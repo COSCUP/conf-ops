@@ -1,4 +1,4 @@
-use modules::base;
+use modules::common;
 use rocket::fairing::AdHoc;
 use rocket::fs::FileServer;
 use rocket_db_pools::diesel::MysqlPool;
@@ -39,5 +39,5 @@ fn rocket() -> _ {
         .attach(MainDb::init())
         .attach(AdHoc::config::<AppConfig>())
         .mount("/", FileServer::from("public/"))
-        .attach(base::stage())
+        .attach(common::stage())
 }

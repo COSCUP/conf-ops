@@ -1,11 +1,12 @@
 use std::net::IpAddr;
 
+use lettre::{message::header::ContentType, Message};
 use rocket::{
     fairing::AdHoc, http::{Cookie, CookieJar, Status}, response::{self, Responder}, serde::json::Json, time::{Duration, OffsetDateTime}, Request, Response, State
 };
 
 use crate::{
-    error::AppError, models::{project::Project, user::User, user_email::UserEmail, user_session::UserSession}, modules::{auth, JsonResult, EmptyResult, EmptyResponse}, utils::rocket::{PrefixUri, UserAgent}, AppConfig, DbConn
+    error::AppError, models::{project::Project, user::User, user_email::UserEmail, user_session::UserSession}, modules::{EmptyResponse, EmptyResult, JsonResult}, utils::{jwt, lettre::send_email, rocket::{PrefixUri, UserAgent}}, AppConfig, DbConn
 };
 
 #[get("/")]
@@ -41,12 +42,32 @@ pub async fn login(
             if user.project_id != project.id {
                 return Err(AppError::unauthorized());
             }
-            auth::send_login_email(config, host, login_req.email.clone(), user)
-                .await
-                .map_err(|e| AppError::internal(e.to_string()))?;
+
+            let login_token = match jwt::generate_login_token(config, user.id.clone()) {
+                Ok(token) => token,
+                Err(_) => return Err(AppError::internal("Failed to generate login token".to_owned())),
+            };
+
+            let smtp_from = &config.smtp_from;
+            let User { name, .. } = user;
+            let PrefixUri(prefix_uri) = host;
+            let to = login_req.email.clone();
+
+            let message = Message::builder()
+                .from(format!("ConfOps <{smtp_from}>").parse().expect("Failed to parse from email address"))
+                .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
+                .subject("Welcome to ConfOps!")
+                .header(ContentType::TEXT_PLAIN)
+                .body(format!(
+                    "Click here to login: {prefix_uri}/token/{login_token}\nPs. this link is alive in 15 mins."
+                ))
+                .expect("Failed to build email message");
+
+            let _ = send_email(config, message).await;
+
             Ok(EmptyResponse)
         }
-        Err(_) => Err(AppError::unauthorized()),
+        Err(_) => Err(AppError::not_found("Token not found".to_owned())),
     }
 }
 
@@ -65,7 +86,7 @@ pub async fn token(
     ip: IpAddr,
     token_req: Json<TokenReq>,
 ) -> EmptyResult {
-    let user_id = match auth::validate_token(config, token_req.token.clone()) {
+    let user_id = match jwt::validate_login_token(config, token_req.token.clone()) {
         Ok(token_data) => token_data.claims.user_id,
         Err(_) => return Err(AppError::unauthorized()),
     };
@@ -129,7 +150,7 @@ impl<'r> Responder<'r, 'static> for EmptyResponse {
 }
 
 pub fn stage() -> AdHoc {
-    AdHoc::on_ignite("base stage", |rocket| async {
+    AdHoc::on_ignite("common stage", |rocket| async {
         rocket
             .mount(
                 "/api",
