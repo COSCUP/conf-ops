@@ -1,0 +1,9 @@
+/target
+
+# dev config
+Rocket.toml
+scripts/env.sh
+
+
+# client dist
+/public

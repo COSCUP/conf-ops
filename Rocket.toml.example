@@ -1,0 +1,6 @@
+[debug]
+port = 8000
+workers = 1
+keep_alive = 0
+log_level = "normal"
+secret_key = "sqW7sx5uXW9nP6raLXHqKMnmSH+0nuCljlCzR+HAaS0="
