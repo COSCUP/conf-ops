@@ -2,6 +2,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use rocket::request::FromRequest;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
+use uuid::Uuid;
 
 use crate::error::AppError;
 use crate::models::{label::Label, user_label::UserLabel};
@@ -37,13 +38,19 @@ impl User {
         name: String,
         project_id: String,
     ) -> Result<User, diesel::result::Error> {
+        let id = Uuid::new_v4().to_string();
+
         let _ = diesel::insert_into(users::table)
-            .values((users::name.eq(name), users::project_id.eq(project_id)))
+            .values((
+                users::id.eq(id.clone()),
+                users::name.eq(name),
+                users::project_id.eq(project_id)
+            ))
             .execute(conn)
             .await;
 
         users::table
-            .order(users::id.desc())
+            .find(id)
             .select(User::as_select())
             .first(conn)
             .await

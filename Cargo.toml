@@ -18,6 +18,9 @@ serde = { version = "1.0", features = ["derive"] }
 # mysql
 diesel = { version = "2.1.0", features = ["mysql", "chrono"] }
 
+# uuid
+uuid = { version = "1.7", features = ["v4"] }
+
 # datetime
 chrono = { version = "0.4", features = ["serde"] }
 

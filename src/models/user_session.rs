@@ -3,6 +3,7 @@ use diesel::dsl::now;
 use diesel::prelude::*;
 use rocket::request::FromRequest;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
+use uuid::Uuid;
 
 use crate::error::AppError;
 use crate::models::user::User;
@@ -30,8 +31,11 @@ impl UserSession {
         user_agent: String,
         ip: String,
     ) -> Result<UserSession, diesel::result::Error> {
+        let id = Uuid::new_v4().to_string();
+
         let _ = diesel::insert_into(user_sessions::table)
             .values((
+                user_sessions::id.eq(id.clone()),
                 user_sessions::user_id.eq(user_id),
                 user_sessions::user_agent.eq(user_agent),
                 user_sessions::ip.eq(ip),
@@ -42,7 +46,7 @@ impl UserSession {
             .await;
 
         user_sessions::table
-            .order(user_sessions::id.desc())
+            .find(id.clone())
             .select(UserSession::as_select())
             .first(conn)
             .await

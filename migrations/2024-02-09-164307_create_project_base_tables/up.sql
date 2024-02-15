@@ -9,7 +9,7 @@ CREATE TABLE `projects`(
 );
 
 CREATE TABLE `users`(
-	`id` CHAR(36) NOT NULL DEFAULT (UUID()),
+	`id` CHAR(36) NOT NULL,
 	`name` VARCHAR(100) NOT NULL,
 	`project_id` VARCHAR(50) NOT NULL,
 	`created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,7 +31,7 @@ CREATE TABLE `user_emails`(
 CREATE UNIQUE INDEX `email` ON `user_emails` (`email`);
 
 CREATE TABLE `user_sessions`(
-	`id` CHAR(36) NOT NULL DEFAULT (UUID()),
+	`id` CHAR(36) NOT NULL,
 	`user_id` CHAR(36) NOT NULL,
 	`user_agent` VARCHAR(255) NOT NULL,
 	`ip` VARCHAR(45) NOT NULL,
