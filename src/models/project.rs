@@ -102,7 +102,7 @@ impl<'r> FromRequest<'r> for Project {
             rocket::outcome::Outcome::Error(error) => {
                 return rocket::request::Outcome::Error((
                     rocket::http::Status::InternalServerError,
-                    AppError::internal(error.1.unwrap().to_string()),
+                    AppError::internal(error.1.map_or("Unknown database problem".to_owned(),|err| err.to_string())),
                 ))
             }
             rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),

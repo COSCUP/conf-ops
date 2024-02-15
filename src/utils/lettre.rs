@@ -17,7 +17,7 @@ pub async fn send_email(
     // Open a remote connection to gmail
     let mailer: AsyncSmtpTransport<Tokio1Executor> =
         AsyncSmtpTransport::<Tokio1Executor>::from_url(&url)
-            .unwrap()
+            .expect("Failed to create mailer")
             .build();
 
     // Send the email

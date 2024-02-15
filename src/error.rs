@@ -58,7 +58,7 @@ impl<'r> Responder<'r, 'static> for AppError {
             status: self.status.to_string(),
             message: self.message.to_owned(),
         })
-        .unwrap();
+        .expect("Failed to serialize error message");
 
         Response::build()
             .status(self.status)
