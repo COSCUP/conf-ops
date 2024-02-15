@@ -25,3 +25,5 @@ EOF
 
 mkdir -p public
 
+echo "Please edit Rocket.toml to configure."
+
