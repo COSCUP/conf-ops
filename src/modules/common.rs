@@ -91,7 +91,7 @@ pub async fn token(
         Err(err) => return Err(AppError::bad_request(err.to_string())),
     };
 
-    let user = match User::get(&mut db, user_id.clone()).await {
+    let user = match User::find(&mut db, user_id.clone()).await {
         Ok(user) => user,
         Err(_) => return Err(AppError::bad_request("Invalid token".to_owned())),
     };

@@ -28,15 +28,11 @@ impl Project {
             .await
     }
 
-    pub async fn get(
+    pub async fn find (
         conn: &mut crate::DbConn,
         id: String,
     ) -> Result<Project, diesel::result::Error> {
-        projects::table
-            .filter(projects::id.eq(id))
-            .select(Project::as_select())
-            .first(conn)
-            .await
+        projects::table.find(id).first(conn).await
     }
 
     pub async fn get_users(
@@ -120,7 +116,7 @@ impl<'r> FromRequest<'r> for Project {
             }
         };
 
-        match Project::get(&mut db, project_id).await {
+        match Project::find(&mut db, project_id).await {
             Ok(project) => rocket::request::Outcome::Success(project),
             Err(_) => project_not_found_error
         }

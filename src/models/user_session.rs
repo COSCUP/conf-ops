@@ -53,7 +53,7 @@ impl UserSession {
         id: String,
     ) -> Result<User, diesel::result::Error> {
         user_sessions::table
-            .filter(user_sessions::id.eq(id))
+            .find(id)
             .filter(now.lt(user_sessions::expired_at))
             .inner_join(users::table)
             .select(User::as_select())
@@ -66,7 +66,7 @@ impl UserSession {
         id: String,
     ) -> Result<UserSession, diesel::result::Error> {
         user_sessions::table
-            .filter(user_sessions::id.eq(id))
+            .find(id)
             .filter(now.lt(user_sessions::expired_at))
             .select(UserSession::as_select())
             .first(conn)

@@ -49,10 +49,9 @@ impl User {
             .await
     }
 
-    pub async fn get(conn: &mut crate::DbConn, id: String) -> Result<User, diesel::result::Error> {
+    pub async fn find(conn: &mut crate::DbConn, id: String) -> Result<User, diesel::result::Error> {
         users::table
-            .filter(users::id.eq(id))
-            .select(User::as_select())
+            .find(id)
             .first(conn)
             .await
     }
