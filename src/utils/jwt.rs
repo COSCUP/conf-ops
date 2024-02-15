@@ -7,6 +7,7 @@ use crate::AppConfig;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginClaims {
     exp: i64,
+    iat: i64,
     sub: String,
     pub user_id: String,
 }
@@ -20,6 +21,7 @@ pub fn generate_login_token (
 ) -> Result<String, jsonwebtoken::errors::Error> {
     let secret_key = &config.secret_key;
     let claims = LoginClaims {
+        iat: Utc::now().timestamp(),
         exp: (Utc::now() + Duration::minutes(15)).timestamp(),
         sub: LOGIN_TOKEN_SUBJECT.to_owned(),
         user_id,
