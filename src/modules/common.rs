@@ -67,7 +67,7 @@ pub async fn login(
 
             Ok(EmptyResponse)
         }
-        Err(_) => Err(AppError::not_found("Token not found".to_owned())),
+        Err(_) => Err(AppError::bad_request("No register user".to_owned())),
     }
 }
 
@@ -88,16 +88,16 @@ pub async fn token(
 ) -> EmptyResult {
     let user_id = match jwt::validate_login_token(config, token_req.token.clone()) {
         Ok(token_data) => token_data.claims.user_id,
-        Err(_) => return Err(AppError::unauthorized()),
+        Err(err) => return Err(AppError::bad_request(err.to_string())),
     };
 
     let user = match User::get(&mut db, user_id.clone()).await {
         Ok(user) => user,
-        Err(_) => return Err(AppError::unauthorized()),
+        Err(_) => return Err(AppError::bad_request("Invalid token".to_owned())),
     };
 
     if user.project_id != project.id {
-        return Err(AppError::unauthorized());
+        return Err(AppError::bad_request("Invalid token".to_owned()));
     }
 
     let session =

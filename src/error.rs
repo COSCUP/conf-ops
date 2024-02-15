@@ -25,6 +25,12 @@ impl AppError {
             message: "Unauthorized".to_owned(),
         }
     }
+    pub fn bad_request(message: String) -> AppError {
+        AppError {
+            status: Status::BadRequest,
+            message: message,
+        }
+    }
     pub fn too_many_requests() -> AppError {
         AppError {
             status: Status::TooManyRequests,
