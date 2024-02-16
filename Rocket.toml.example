@@ -4,8 +4,5 @@ workers = 1
 keep_alive = 0
 log_level = "normal"
 secret_key = "sqW7sx5uXW9nP6raLXHqKMnmSH+0nuCljlCzR+HAaS0="
-smtp_host = ""
-smtp_port =
-smtp_user = ""
-smtp_password = ""
-smtp_from = ""
+smtp_url = ""
+email_from = ""

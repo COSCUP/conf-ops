@@ -48,13 +48,13 @@ pub async fn login(
                 Err(_) => return Err(AppError::internal("Failed to generate login token".to_owned())),
             };
 
-            let smtp_from = &config.smtp_from;
+            let email_from = &config.email_from;
             let User { name, .. } = user;
             let PrefixUri(prefix_uri) = host;
             let to = login_req.email.clone();
 
             let message = Message::builder()
-                .from(format!("ConfOps <{smtp_from}>").parse().expect("Failed to parse from email address"))
+                .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
                 .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
                 .subject("Welcome to ConfOps!")
                 .header(ContentType::TEXT_PLAIN)

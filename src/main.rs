@@ -26,11 +26,8 @@ pub type DbConn = Connection<MainDb>;
 #[derive(Deserialize)]
 pub struct AppConfig {
     secret_key: String,
-    smtp_host: String,
-    smtp_port: u16,
-    smtp_user: String,
-    smtp_password: String,
-    smtp_from: String,
+    smtp_url: String,
+    email_from: String
 }
 
 #[launch]
