@@ -138,3 +138,4 @@ impl<'r> FromRequest<'r> for UserSession {
     }
 }
 
+pub type AuthUserSession = UserSession;

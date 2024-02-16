@@ -176,3 +176,5 @@ impl<'r> FromRequest<'r> for User {
         rocket::outcome::Outcome::Success(user)
     }
 }
+
+pub type AuthUser = User;

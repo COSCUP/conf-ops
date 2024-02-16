@@ -6,7 +6,7 @@ use rocket::{
 };
 
 use crate::{
-    error::AppError, models::{project::Project, user::User, user_email::UserEmail, user_session::UserSession}, modules::{EmptyResponse, EmptyResult, JsonResult}, utils::{jwt, lettre::send_email, rocket::{PrefixUri, UserAgent}}, AppConfig, DbConn
+    error::AppError, models::{project::Project, user::{User, AuthUser}, user_email::UserEmail, user_session::{UserSession, AuthUserSession}}, modules::{EmptyResponse, EmptyResult, JsonResult}, utils::{jwt, lettre::send_email, rocket::{PrefixUri, UserAgent}}, AppConfig, DbConn
 };
 
 #[get("/")]
@@ -116,12 +116,12 @@ pub async fn token(
 }
 
 #[get("/project/me")]
-pub async fn get_me(user: User) -> JsonResult<User> {
+pub async fn get_me(user: AuthUser) -> JsonResult<User> {
     Ok(Json(user))
 }
 
 #[post("/project/logout")]
-pub async fn logout(mut db: DbConn, cookie_jar: &CookieJar<'_>, user_session: UserSession) -> EmptyResult {
+pub async fn logout(mut db: DbConn, cookie_jar: &CookieJar<'_>, user_session: AuthUserSession) -> EmptyResult {
     let _ = user_session.expire(&mut db).await;
 
     if let Some(cookie) = cookie_jar.get_private("session_id") {
