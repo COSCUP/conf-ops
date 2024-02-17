@@ -10,20 +10,17 @@ use rocket::{
 
 use crate::{
     error::AppError,
-    models::{
-        project::Project,
-        user::{AuthUser, User},
-        user_email::UserEmail,
-        user_session::{AuthUserSession, UserSession},
-    },
+    models::{project::Project, user::User, user_email::UserEmail, user_session::UserSession},
     modules::{EmptyResponse, EmptyResult, JsonResult},
     utils::{
-        jwt,
+        jwt::{self, LoginClaims},
         lettre::send_email,
         rocket::{PrefixUri, UserAgent},
     },
     AppConfig, DbConn,
 };
+
+use super::AuthGuard;
 
 #[get("/")]
 pub async fn ping() -> &'static str {
@@ -36,12 +33,14 @@ pub async fn all_projects(mut conn: DbConn) -> JsonResult<Vec<Project>> {
 }
 
 #[get("/project")]
-pub async fn get_project(project: Project) -> JsonResult<Project> {
+pub async fn get_project(auth: AuthGuard) -> JsonResult<Project> {
+    let AuthGuard { project, .. } = auth;
     Ok(Json(project))
 }
 
 #[derive(Deserialize)]
 pub struct LoginReq {
+    project_id: String,
     email: String,
 }
 
@@ -50,18 +49,17 @@ pub async fn login(
     mut conn: DbConn,
     config: &State<AppConfig>,
     host: PrefixUri,
-    project: Project,
     login_req: Json<LoginReq>,
 ) -> EmptyResult {
-    let user = UserEmail::get_user(&mut conn, login_req.email.clone())
-        .await
-        .map_err(|err| AppError::bad_request(err.to_string()))?;
+    let user = UserEmail::get_user(
+        &mut conn,
+        login_req.project_id.clone(),
+        login_req.email.clone(),
+    )
+    .await
+    .map_err(|err| AppError::bad_request(err.to_string()))?;
 
-    if user.project_id != project.id {
-        return Err(AppError::unauthorized());
-    }
-
-    let login_token = jwt::generate_login_token(config, user.id.clone())
+    let login_token = jwt::generate_login_token(config, user.project_id.clone(), user.id.clone())
         .map_err(|err| AppError::internal(err.to_string()))?;
 
     let email_from = &config.email_from;
@@ -94,21 +92,23 @@ pub async fn token(
     mut conn: DbConn,
     config: &State<AppConfig>,
     cookie_jar: &CookieJar<'_>,
-    project: Project,
     user_agent: UserAgent,
     ip: IpAddr,
     token_req: Json<TokenReq>,
 ) -> EmptyResult {
-    let user_id = jwt::validate_login_token(config, token_req.token.clone())
+    let LoginClaims {
+        project_id,
+        user_id,
+        ..
+    } = jwt::validate_login_token(config, token_req.token.clone())
         .map_err(|err| AppError::bad_request(err.to_string()))?
-        .claims
-        .user_id;
+        .claims;
 
     let user = User::find(&mut conn, user_id.clone())
         .await
         .map_err(|err| AppError::bad_request(err.to_string()))?;
 
-    if user.project_id != project.id {
+    if user.project_id != project_id {
         return Err(AppError::bad_request("Invalid token".to_owned()));
     }
 
@@ -126,16 +126,14 @@ pub async fn token(
 }
 
 #[get("/project/me")]
-pub async fn get_me(user: AuthUser) -> JsonResult<User> {
+pub async fn get_me(auth: AuthGuard) -> JsonResult<User> {
+    let AuthGuard { user, .. } = auth;
     Ok(Json(user))
 }
 
 #[post("/project/logout")]
-pub async fn logout(
-    mut conn: DbConn,
-    cookie_jar: &CookieJar<'_>,
-    user_session: AuthUserSession,
-) -> EmptyResult {
+pub async fn logout(mut conn: DbConn, cookie_jar: &CookieJar<'_>, auth: AuthGuard) -> EmptyResult {
+    let AuthGuard { user_session, .. } = auth;
     let _ = user_session.expire(&mut conn).await;
 
     if let Some(cookie) = cookie_jar.get_private("session_id") {

@@ -1,14 +1,15 @@
 use chrono::NaiveDateTime;
 use diesel::dsl::now;
 use diesel::prelude::*;
-use rocket::request::FromRequest;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use uuid::Uuid;
 
-use crate::error::AppError;
-use crate::models::user::User;
-use crate::schema::{user_sessions, users};
-use crate::DbConn;
+use crate::{
+    modules::AuthGuard,
+    schema::{projects, user_sessions, users},
+};
+
+use super::{project::Project, user::User};
 
 #[derive(Queryable, Identifiable, Selectable, Associations, Debug, PartialEq)]
 #[diesel(belongs_to(User))]
@@ -52,29 +53,26 @@ impl UserSession {
             .await
     }
 
-    pub async fn auth_user(
-        conn: &mut crate::DbConn,
-        id: String,
-    ) -> Result<User, diesel::result::Error> {
-        user_sessions::table
-            .find(id)
-            .filter(now.lt(user_sessions::expired_at))
-            .inner_join(users::table)
-            .select(User::as_select())
-            .first(conn)
-            .await
-    }
-
     pub async fn auth(
         conn: &mut crate::DbConn,
         id: String,
-    ) -> Result<UserSession, diesel::result::Error> {
-        user_sessions::table
+    ) -> Result<AuthGuard, diesel::result::Error> {
+        let (project, user, user_session) = user_sessions::table
             .find(id)
             .filter(now.lt(user_sessions::expired_at))
-            .select(UserSession::as_select())
+            .inner_join(users::table.inner_join(projects::table))
+            .select((
+                Project::as_select(),
+                User::as_select(),
+                UserSession::as_select(),
+            ))
             .first(conn)
-            .await
+            .await?;
+        Ok(AuthGuard {
+            project,
+            user,
+            user_session,
+        })
     }
 
     pub async fn expire(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
@@ -84,59 +82,3 @@ impl UserSession {
             .await
     }
 }
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for UserSession {
-    type Error = AppError;
-
-    async fn from_request(
-        request: &'r rocket::Request<'_>,
-    ) -> rocket::request::Outcome<Self, Self::Error> {
-        let mut db = match request.guard::<DbConn>().await {
-            rocket::outcome::Outcome::Success(db) => db,
-            rocket::outcome::Outcome::Error(error) => {
-                return rocket::request::Outcome::Error((
-                    rocket::http::Status::InternalServerError,
-                    AppError::internal(
-                        error
-                            .1
-                            .map_or("Unknown database problem".to_owned(), |err| err.to_string()),
-                    ),
-                ))
-            }
-            rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),
-        };
-
-        let cookie = match request.cookies().get_private("session_id") {
-            Some(cookie) => cookie,
-            None => {
-                return rocket::request::Outcome::Error((
-                    rocket::http::Status::Unauthorized,
-                    AppError::unauthorized(),
-                ))
-            }
-        };
-
-        let session_id = match cookie.value().parse() {
-            Ok(session_id) => session_id,
-            _ => {
-                return rocket::request::Outcome::Error((
-                    rocket::http::Status::Unauthorized,
-                    AppError::unauthorized(),
-                ))
-            }
-        };
-
-        match UserSession::auth(&mut db, session_id).await {
-            Ok(user_session) => rocket::outcome::Outcome::Success(user_session),
-            Err(_) => {
-                return rocket::request::Outcome::Error((
-                    rocket::http::Status::Unauthorized,
-                    AppError::unauthorized(),
-                ))
-            }
-        }
-    }
-}
-
-pub type AuthUserSession = UserSession;

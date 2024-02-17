@@ -11,6 +11,7 @@ pub struct LoginClaims {
     exp: i64,
     iat: i64,
     sub: String,
+    pub project_id: String,
     pub user_id: String,
 }
 
@@ -19,6 +20,7 @@ const LOGIN_TOKEN_ALGORITHM: Algorithm = Algorithm::HS256;
 
 pub fn generate_login_token(
     config: &State<AppConfig>,
+    project_id: String,
     user_id: String,
 ) -> Result<String, jsonwebtoken::errors::Error> {
     let secret_key = &config.secret_key;
@@ -26,6 +28,7 @@ pub fn generate_login_token(
         iat: Utc::now().timestamp(),
         exp: (Utc::now() + Duration::minutes(15)).timestamp(),
         sub: LOGIN_TOKEN_SUBJECT.to_owned(),
+        project_id,
         user_id,
     };
 

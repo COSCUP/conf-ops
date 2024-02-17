@@ -1,7 +1,6 @@
 use crate::models::label::Label;
 use crate::models::project::Project;
 use crate::models::role::Role;
-use crate::models::user::AuthUser;
 use crate::modules::JsonResult;
 use crate::DbConn;
 use crate::{error::AppError, models::user::User};
@@ -9,7 +8,7 @@ use rocket::serde::json::{json, Json, Value};
 use rocket::Route;
 use rocket_db_pools::diesel::AsyncConnection;
 
-use super::{EmptyResponse, EmptyResult, ApiResult};
+use super::{ApiResult, AuthGuard, EmptyResponse, EmptyResult};
 
 #[get("/role/<role_id>")]
 pub async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
@@ -17,23 +16,23 @@ pub async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    Ok(
-        json!({
-            "name": role.name,
-            "login_message": role.login_message,
-        })
-    )
+    Ok(json!({
+        "name": role.name,
+        "login_message": role.login_message,
+    }))
 }
 
 #[get("/role/roles")]
-pub async fn all_roles(mut conn: DbConn, user: AuthUser) -> JsonResult<Vec<Role>> {
+pub async fn all_roles(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
+    let AuthGuard { user, .. } = auth;
     Ok(Role::get_roles_by_user(&mut conn, user)
         .await
         .map_or(Json(vec![]), Json))
 }
 
 #[get("/role/admin/roles")]
-pub async fn all_roles_in_admin(mut conn: DbConn, user: AuthUser) -> JsonResult<Vec<Role>> {
+pub async fn all_roles_in_admin(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
+    let AuthGuard { user, .. } = auth;
     Ok(Role::get_manage_roles_by_user(&mut conn, user)
         .await
         .map_or(Json(vec![]), Json))
@@ -49,18 +48,23 @@ pub struct AdminRoleReq {
 #[put("/role/admin/roles/<role_id>", data = "<role_req>")]
 pub async fn put_role_in_admin(
     mut conn: DbConn,
-    user: AuthUser,
+    auth: AuthGuard,
     role_id: String,
     role_req: Json<AdminRoleReq>,
 ) -> EmptyResult {
+    let AuthGuard { user, .. } = auth;
     let mut role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 
     match role.is_manager(&mut conn, user).await {
-        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                "You are not a manager of this role".to_owned(),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
-        _ => ()
+        _ => (),
     }
 
     if let Some(name) = role_req.name.clone() {
@@ -82,17 +86,22 @@ pub async fn put_role_in_admin(
 #[get("/role/admin/roles/<role_id>/users")]
 pub async fn all_role_users_in_admin(
     mut conn: DbConn,
-    user: AuthUser,
+    auth: AuthGuard,
     role_id: String,
-) -> JsonResult<Vec<AuthUser>> {
+) -> JsonResult<Vec<User>> {
+    let AuthGuard { user, .. } = auth;
     let role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
     match role.is_manager(&mut conn, user).await {
-        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                "You are not a manager of this role".to_owned(),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
-        _ => ()
+        _ => (),
     }
 
     Ok(role.get_users(&mut conn).await.map_or(Json(vec![]), Json))
@@ -108,18 +117,23 @@ pub struct AdminAddRoleUser {
 pub async fn add_role_users_in_admin(
     mut conn: DbConn,
     project: Project,
-    user: AuthUser,
+    auth: AuthGuard,
     role_id: String,
     add_role_user_req: Json<Vec<AdminAddRoleUser>>,
 ) -> EmptyResult {
+    let AuthGuard { user, .. } = auth;
     let role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
     match role.is_manager(&mut conn, user).await {
-        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                "You are not a manager of this role".to_owned(),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
-        _ => ()
+        _ => (),
     }
 
     conn.transaction(|mut conn| {
@@ -151,18 +165,23 @@ pub async fn add_role_users_in_admin(
 #[delete("/role/admin/roles/<role_id>/users/<user_id>")]
 pub async fn delete_role_user_in_admin(
     mut conn: DbConn,
-    user: AuthUser,
+    auth: AuthGuard,
     role_id: String,
     user_id: String,
 ) -> EmptyResult {
+    let AuthGuard { user, .. } = auth;
     let role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
     match role.is_manager(&mut conn, user).await {
-        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                "You are not a manager of this role".to_owned(),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
-        _ => ()
+        _ => (),
     }
 
     let delete_user = User::find(&mut conn, user_id.clone())
