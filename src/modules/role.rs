@@ -11,7 +11,7 @@ use rocket_db_pools::diesel::AsyncConnection;
 
 use super::{EmptyResponse, EmptyResult};
 
-#[get("/project/role/roles")]
+#[get("/project/role/admin/roles")]
 pub async fn all_roles(mut conn: DbConn, user: AuthUser) -> JsonResult<Vec<Role>> {
     Ok(Role::get_manage_roles_by_user(&mut conn, user)
         .await
@@ -25,16 +25,22 @@ pub struct RoleReq {
     pub welcome_message: Option<String>,
 }
 
-#[put("/project/role/roles/<role_id>", data = "<role_req>")]
+#[put("/project/role/admin/roles/<role_id>", data = "<role_req>")]
 pub async fn put_role(
     mut conn: DbConn,
-    _user: AuthUser,
+    user: AuthUser,
     role_id: String,
     role_req: Json<RoleReq>,
 ) -> EmptyResult {
     let mut role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
+
+    match role.is_manager(&mut conn, user).await {
+        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => ()
+    }
 
     if let Some(name) = role_req.name.clone() {
         role.name = name;
@@ -52,15 +58,21 @@ pub async fn put_role(
         .map_err(|err| AppError::internal(err.to_string()))
 }
 
-#[get("/project/role/roles/<role_id>/users")]
+#[get("/project/role/admin/roles/<role_id>/users")]
 pub async fn all_role_users(
     mut conn: DbConn,
-    _user: AuthUser,
+    user: AuthUser,
     role_id: String,
 ) -> JsonResult<Vec<AuthUser>> {
     let role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    match role.is_manager(&mut conn, user).await {
+        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => ()
+    }
 
     Ok(role.get_users(&mut conn).await.map_or(Json(vec![]), Json))
 }
@@ -71,17 +83,23 @@ pub struct AddRoleUser {
     pub emails: Vec<String>,
 }
 
-#[post("/project/role/roles/<role_id>/users", data = "<add_role_user_req>")]
+#[post("/project/role/admin/roles/<role_id>/users", data = "<add_role_user_req>")]
 pub async fn add_role_users(
     mut conn: DbConn,
     project: Project,
-    _user: AuthUser,
+    user: AuthUser,
     role_id: String,
     add_role_user_req: Json<Vec<AddRoleUser>>,
 ) -> EmptyResult {
     let role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    match role.is_manager(&mut conn, user).await {
+        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => ()
+    }
 
     conn.transaction(|mut conn| {
         Box::pin(async move {
@@ -109,10 +127,10 @@ pub async fn add_role_users(
     .map_err(|err| AppError::internal(err.to_string()))
 }
 
-#[delete("/project/role/roles/<role_id>/users/<user_id>")]
+#[delete("/project/role/admin/roles/<role_id>/users/<user_id>")]
 pub async fn delete_role_user(
     mut conn: DbConn,
-    _user: AuthUser,
+    user: AuthUser,
     role_id: String,
     user_id: String,
 ) -> EmptyResult {
@@ -120,7 +138,13 @@ pub async fn delete_role_user(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    let user = User::find(&mut conn, user_id.clone())
+    match role.is_manager(&mut conn, user).await {
+        Ok(false) => return Err(AppError::forbidden("You are not a manager of this role".to_owned())),
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => ()
+    }
+
+    let delete_user = User::find(&mut conn, user_id.clone())
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
@@ -128,7 +152,7 @@ pub async fn delete_role_user(
         Box::pin(async move {
             let label = role.get_label(&mut conn).await?;
 
-            let _ = user.delete_label(&mut conn, label).await?;
+            let _ = delete_user.delete_label(&mut conn, label).await?;
 
             Ok::<_, diesel::result::Error>(EmptyResponse)
         })

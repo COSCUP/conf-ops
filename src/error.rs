@@ -31,6 +31,12 @@ impl AppError {
             message: message,
         }
     }
+    pub fn forbidden(message: String) -> AppError {
+        AppError {
+            status: Status::Forbidden,
+            message: message,
+        }
+    }
     pub fn too_many_requests() -> AppError {
         AppError {
             status: Status::TooManyRequests,
