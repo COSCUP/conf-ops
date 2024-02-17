@@ -5,32 +5,53 @@ use crate::models::user::AuthUser;
 use crate::modules::JsonResult;
 use crate::DbConn;
 use crate::{error::AppError, models::user::User};
-use rocket::serde::json::Json;
+use rocket::serde::json::{json, Json, Value};
 use rocket::Route;
 use rocket_db_pools::diesel::AsyncConnection;
 
-use super::{EmptyResponse, EmptyResult};
+use super::{EmptyResponse, EmptyResult, ApiResult};
 
-#[get("/project/role/admin/roles")]
+#[get("/role/<role_id>")]
+pub async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
+    let role = Role::find(&mut conn, role_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    Ok(
+        json!({
+            "name": role.name,
+            "login_message": role.login_message,
+        })
+    )
+}
+
+#[get("/role/roles")]
 pub async fn all_roles(mut conn: DbConn, user: AuthUser) -> JsonResult<Vec<Role>> {
+    Ok(Role::get_roles_by_user(&mut conn, user)
+        .await
+        .map_or(Json(vec![]), Json))
+}
+
+#[get("/role/admin/roles")]
+pub async fn all_roles_in_admin(mut conn: DbConn, user: AuthUser) -> JsonResult<Vec<Role>> {
     Ok(Role::get_manage_roles_by_user(&mut conn, user)
         .await
         .map_or(Json(vec![]), Json))
 }
 
 #[derive(Deserialize)]
-pub struct RoleReq {
+pub struct AdminRoleReq {
     pub name: Option<String>,
     pub login_message: Option<String>,
     pub welcome_message: Option<String>,
 }
 
-#[put("/project/role/admin/roles/<role_id>", data = "<role_req>")]
-pub async fn put_role(
+#[put("/role/admin/roles/<role_id>", data = "<role_req>")]
+pub async fn put_role_in_admin(
     mut conn: DbConn,
     user: AuthUser,
     role_id: String,
-    role_req: Json<RoleReq>,
+    role_req: Json<AdminRoleReq>,
 ) -> EmptyResult {
     let mut role = Role::find(&mut conn, role_id.clone())
         .await
@@ -58,8 +79,8 @@ pub async fn put_role(
         .map_err(|err| AppError::internal(err.to_string()))
 }
 
-#[get("/project/role/admin/roles/<role_id>/users")]
-pub async fn all_role_users(
+#[get("/role/admin/roles/<role_id>/users")]
+pub async fn all_role_users_in_admin(
     mut conn: DbConn,
     user: AuthUser,
     role_id: String,
@@ -78,18 +99,18 @@ pub async fn all_role_users(
 }
 
 #[derive(Deserialize)]
-pub struct AddRoleUser {
+pub struct AdminAddRoleUser {
     pub name: String,
     pub emails: Vec<String>,
 }
 
-#[post("/project/role/admin/roles/<role_id>/users", data = "<add_role_user_req>")]
-pub async fn add_role_users(
+#[post("/role/admin/roles/<role_id>/users", data = "<add_role_user_req>")]
+pub async fn add_role_users_in_admin(
     mut conn: DbConn,
     project: Project,
     user: AuthUser,
     role_id: String,
-    add_role_user_req: Json<Vec<AddRoleUser>>,
+    add_role_user_req: Json<Vec<AdminAddRoleUser>>,
 ) -> EmptyResult {
     let role = Role::find(&mut conn, role_id.clone())
         .await
@@ -127,8 +148,8 @@ pub async fn add_role_users(
     .map_err(|err| AppError::internal(err.to_string()))
 }
 
-#[delete("/project/role/admin/roles/<role_id>/users/<user_id>")]
-pub async fn delete_role_user(
+#[delete("/role/admin/roles/<role_id>/users/<user_id>")]
+pub async fn delete_role_user_in_admin(
     mut conn: DbConn,
     user: AuthUser,
     role_id: String,
@@ -164,10 +185,12 @@ pub async fn delete_role_user(
 
 pub fn routes() -> Vec<Route> {
     routes![
+        get_role,
         all_roles,
-        put_role,
-        all_role_users,
-        add_role_users,
-        delete_role_user
+        all_roles_in_admin,
+        put_role_in_admin,
+        all_role_users_in_admin,
+        add_role_users_in_admin,
+        delete_role_user_in_admin
     ]
 }

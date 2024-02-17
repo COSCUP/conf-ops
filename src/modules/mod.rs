@@ -30,7 +30,8 @@ impl<'r> Responder<'r, 'static> for EmptyResponse {
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("common stage", |rocket| async {
         rocket
-            .mount("/api", [common::routes(), role::routes()].concat())
+            .mount("/api", common::routes())
+            .mount("/api/project", role::routes())
             .register("/api", catchers![catch_unauthorized, catch_not_found])
     })
 }

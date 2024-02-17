@@ -65,21 +65,39 @@ impl Role {
             .await
     }
 
+    pub async fn get_roles_by_user(
+        conn: &mut crate::DbConn,
+        user: User,
+    ) -> Result<Vec<Role>, diesel::result::Error> {
+        let role_ids = user
+            .get_labels_by_key(conn, "role".to_owned())
+            .await?
+            .iter()
+            .map(|label| label.value.clone())
+            .collect::<Vec<String>>();
+
+        roles::table
+            .filter(roles::id.eq_any(role_ids))
+            .select(Role::as_select())
+            .load(conn)
+            .await
+    }
+
     pub async fn get_manage_roles_by_user(
         conn: &mut crate::DbConn,
         user: User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
-        let user_labels = user
+        let user_label_ids = user
             .get_labels_by_key(conn, "role".to_owned())
             .await?
             .iter()
-            .map(|role| role.id.clone())
+            .map(|label| label.id.clone())
             .collect::<Vec<i32>>();
 
         role_managers::table
             .inner_join(roles::table)
             .inner_join(targets::table.left_join(labels::table))
-            .filter(labels::id.eq_any(user_labels))
+            .filter(labels::id.eq_any(user_label_ids))
             .or_filter(targets::user_id.eq(user.id))
             .select(Role::as_select())
             .load(conn)
