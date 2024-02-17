@@ -57,7 +57,7 @@ CREATE UNIQUE INDEX `key_value` ON `labels` (`key`, `value`);
 
 CREATE TABLE `users_labels`(
 	`user_id` CHAR(36) NOT NULL,
-  `label_id` INTEGER NOT NULL,
+  	`label_id` INTEGER NOT NULL,
 	`created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
@@ -71,15 +71,14 @@ INSERT INTO projects (`id`,`name`,`description`) VALUES(
 	'Conference for Open Source Coders, Users & Promoters'
 );
 
-INSERT INTO users (`name`,`project_id`) VALUES(
+INSERT INTO users (`id`, `name`,`project_id`) VALUES(
+	'c3e3e3e3-3e3e-3e3e-3e3e-3e3e3e3e3e3e',
 	'yoyoIU',
 	'coscup-2024'
 );
 
-SELECT `id` INTO @user_id FROM users WHERE `name` = 'yoyoIU';
-
 INSERT INTO user_emails (`user_id`, `email`) VALUES(
-	@user_id,
+	'c3e3e3e3-3e3e-3e3e-3e3e-3e3e3e3e3e3e',
 	'yoyo930021+confops@gmail.com'
 );
 
@@ -92,6 +91,6 @@ INSERT INTO labels (`project_id`, `key`, `value`) VALUES(
 SELECT `id` INTO @label_id FROM labels WHERE `key` = 'role' AND `value` = 'admin';
 
 INSERT INTO users_labels (`user_id`, `label_id`) VALUES(
-	@user_id,
+	'c3e3e3e3-3e3e-3e3e-3e3e-3e3e3e3e3e3e',
 	@label_id
 );
