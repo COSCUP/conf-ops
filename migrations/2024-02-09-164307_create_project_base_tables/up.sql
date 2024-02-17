@@ -64,33 +64,3 @@ CREATE TABLE `users_labels`(
 	FOREIGN KEY (`label_id`) REFERENCES `labels`(`id`),
 	PRIMARY KEY(`user_id`, `label_id`)
 );
-
-INSERT INTO projects (`id`,`name`,`description`) VALUES(
-	'coscup-2024',
-	'COSCUP 2024',
-	'Conference for Open Source Coders, Users & Promoters'
-);
-
-INSERT INTO users (`id`, `name`,`project_id`) VALUES(
-	'c3e3e3e3-3e3e-3e3e-3e3e-3e3e3e3e3e3e',
-	'yoyoIU',
-	'coscup-2024'
-);
-
-INSERT INTO user_emails (`user_id`, `email`) VALUES(
-	'c3e3e3e3-3e3e-3e3e-3e3e-3e3e3e3e3e3e',
-	'yoyo930021+confops@gmail.com'
-);
-
-INSERT INTO labels (`project_id`, `key`, `value`) VALUES(
-	'coscup-2024',
-	'role',
-	'admin'
-);
-
-SELECT `id` INTO @label_id FROM labels WHERE `key` = 'role' AND `value` = 'admin';
-
-INSERT INTO users_labels (`user_id`, `label_id`) VALUES(
-	'c3e3e3e3-3e3e-3e3e-3e3e-3e3e3e3e3e3e',
-	@label_id
-);

@@ -4,6 +4,8 @@
 Rocket.toml
 scripts/env.sh
 
-
 # client dist
 /public
+
+# test data
+test.sql
