@@ -69,15 +69,12 @@ impl Role {
         conn: &mut crate::DbConn,
         user: User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
-        let user_labels = match user.get_labels_by_key(conn, "role".to_owned()).await {
-            Ok(labels) => labels
-                .iter()
-                .map(|role| role.id.clone())
-                .collect::<Vec<i32>>(),
-            Err(err) => {
-                return Err(err);
-            }
-        };
+        let user_labels = user
+            .get_labels_by_key(conn, "role".to_owned())
+            .await?
+            .iter()
+            .map(|role| role.id.clone())
+            .collect::<Vec<i32>>();
 
         role_managers::table
             .inner_join(roles::table)
@@ -106,11 +103,7 @@ impl Role {
         &self,
         conn: &mut crate::DbConn,
     ) -> Result<Vec<User>, diesel::result::Error> {
-        let label = match self.get_label(conn).await
-        {
-            Ok(label) => label,
-            Err(err) => return Err(err),
-        };
+        let label = self.get_label(conn).await?;
 
         label.get_users(conn).await
     }
@@ -120,11 +113,7 @@ impl Role {
         conn: &mut crate::DbConn,
         user: User,
     ) -> Result<bool, diesel::result::Error> {
-        let label = match self.get_label(conn).await
-        {
-            Ok(label) => label,
-            Err(err) => return Err(err),
-        };
+        let label = self.get_label(conn).await?;
 
         label.is_user(conn, user).await
     }
@@ -133,7 +122,7 @@ impl Role {
         &self,
         conn: &mut crate::DbConn,
     ) -> Result<Vec<User>, diesel::result::Error> {
-        let targets: Vec<(Option<User>, Option<Label>)> = match role_managers::table
+        let targets: Vec<(Option<User>, Option<Label>)> = role_managers::table
             .filter(role_managers::role_id.eq(self.id.clone()))
             .inner_join(
                 targets::table
@@ -142,26 +131,18 @@ impl Role {
             )
             .select((Option::<User>::as_select(), Option::<Label>::as_select()))
             .load::<(Option<User>, Option<Label>)>(conn)
-            .await
-        {
-            Ok(targets) => targets,
-            Err(err) => return Err(err),
-        };
+            .await?;
 
         let labels = targets
             .iter()
             .filter_map(|(_, labels)| labels.as_ref().clone())
             .collect::<Vec<&Label>>();
 
-        let role_users: Vec<_> = match UserLabel::belonging_to(&labels)
+        let role_users: Vec<_> = UserLabel::belonging_to(&labels)
             .inner_join(users::table)
             .select(User::as_select())
             .load(conn)
-            .await
-        {
-            Ok(users) => users,
-            Err(err) => return Err(err),
-        };
+            .await?;
 
         let direct_users = targets
             .into_iter()
@@ -182,15 +163,12 @@ impl Role {
         conn: &mut crate::DbConn,
         user: User,
     ) -> Result<bool, diesel::result::Error> {
-        let user_labels = match user.get_labels_by_key(conn, "role".to_owned()).await {
-            Ok(labels) => labels
-                .iter()
-                .map(|role| role.id.clone())
-                .collect::<Vec<i32>>(),
-            Err(err) => {
-                return Err(err);
-            }
-        };
+        let user_labels = user
+            .get_labels_by_key(conn, "role".to_owned())
+            .await?
+            .iter()
+            .map(|role| role.id.clone())
+            .collect::<Vec<i32>>();
 
         RoleManager::belonging_to(self)
             .inner_join(targets::table.left_join(labels::table))

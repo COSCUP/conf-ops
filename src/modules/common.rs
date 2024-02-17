@@ -53,42 +53,35 @@ pub async fn login(
     project: Project,
     login_req: Json<LoginReq>,
 ) -> EmptyResult {
-    match UserEmail::get_user(&mut conn, login_req.email.clone()).await {
-        Ok(user) => {
-            if user.project_id != project.id {
-                return Err(AppError::unauthorized());
-            }
+    let user = UserEmail::get_user(&mut conn, login_req.email.clone())
+        .await
+        .map_err(|err| AppError::bad_request(err.to_string()))?;
 
-            let login_token = match jwt::generate_login_token(config, user.id.clone()) {
-                Ok(token) => token,
-                Err(_) => {
-                    return Err(AppError::internal(
-                        "Failed to generate login token".to_owned(),
-                    ))
-                }
-            };
-
-            let email_from = &config.email_from;
-            let User { name, .. } = user;
-            let PrefixUri(prefix_uri) = host;
-            let to = login_req.email.clone();
-
-            let message = Message::builder()
-                .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
-                .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
-                .subject("Welcome to ConfOps!")
-                .header(ContentType::TEXT_PLAIN)
-                .body(format!(
-                    "Click here to login: {prefix_uri}/token/{login_token}\nPs. this link is alive in 15 mins."
-                ))
-                .expect("Failed to build email message");
-
-            let _ = send_email(config, message).await;
-
-            Ok(EmptyResponse)
-        }
-        Err(_) => Err(AppError::bad_request("No register user".to_owned())),
+    if user.project_id != project.id {
+        return Err(AppError::unauthorized());
     }
+
+    let login_token = jwt::generate_login_token(config, user.id.clone())
+        .map_err(|err| AppError::internal(err.to_string()))?;
+
+    let email_from = &config.email_from;
+    let User { name, .. } = user;
+    let PrefixUri(prefix_uri) = host;
+    let to = login_req.email.clone();
+
+    let message = Message::builder()
+        .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
+        .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
+        .subject("Welcome to ConfOps!")
+        .header(ContentType::TEXT_PLAIN)
+        .body(format!(
+            "Click here to login: {prefix_uri}/token/{login_token}\nPs. this link is alive in 15 mins."
+        ))
+        .expect("Failed to build email message");
+
+    let _ = send_email(config, message).await;
+
+    Ok(EmptyResponse)
 }
 
 #[derive(Deserialize)]
@@ -106,25 +99,22 @@ pub async fn token(
     ip: IpAddr,
     token_req: Json<TokenReq>,
 ) -> EmptyResult {
-    let user_id = match jwt::validate_login_token(config, token_req.token.clone()) {
-        Ok(token_data) => token_data.claims.user_id,
-        Err(err) => return Err(AppError::bad_request(err.to_string())),
-    };
+    let user_id = jwt::validate_login_token(config, token_req.token.clone())
+        .map_err(|err| AppError::bad_request(err.to_string()))?
+        .claims
+        .user_id;
 
-    let user = match User::find(&mut conn, user_id.clone()).await {
-        Ok(user) => user,
-        Err(_) => return Err(AppError::bad_request("Invalid token".to_owned())),
-    };
+    let user = User::find(&mut conn, user_id.clone())
+        .await
+        .map_err(|err| AppError::bad_request(err.to_string()))?;
 
     if user.project_id != project.id {
         return Err(AppError::bad_request("Invalid token".to_owned()));
     }
 
-    let session =
-        match UserSession::create(&mut conn, user.id.clone(), user_agent.0, ip.to_string()).await {
-            Ok(session) => session,
-            Err(e) => return Err(AppError::internal(e.to_string())),
-        };
+    let session = UserSession::create(&mut conn, user.id.clone(), user_agent.0, ip.to_string())
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
 
     let mut cookie = Cookie::new("session_id", session.id.clone());
     cookie.set_http_only(true);

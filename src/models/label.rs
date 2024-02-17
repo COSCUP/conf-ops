@@ -81,6 +81,8 @@ impl Label {
             users_labels::table
                 .filter(users_labels::user_id.eq(user.id.clone()))
                 .filter(users_labels::label_id.eq(self.id)),
-        )).get_result(conn).await
+        ))
+        .get_result(conn)
+        .await
     }
 }

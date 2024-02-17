@@ -149,7 +149,6 @@ impl User {
         .execute(conn)
         .await
     }
-
 }
 
 #[rocket::async_trait]

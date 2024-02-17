@@ -1,10 +1,10 @@
-use crate::{error::AppError, models::user::User};
 use crate::models::label::Label;
 use crate::models::project::Project;
 use crate::models::role::Role;
 use crate::models::user::AuthUser;
 use crate::modules::JsonResult;
 use crate::DbConn;
+use crate::{error::AppError, models::user::User};
 use rocket::serde::json::Json;
 use rocket::Route;
 use rocket_db_pools::diesel::AsyncConnection;
@@ -32,10 +32,9 @@ pub async fn put_role(
     role_id: String,
     role_req: Json<RoleReq>,
 ) -> EmptyResult {
-    let mut role = match Role::find(&mut conn, role_id.clone()).await {
-        Ok(role) => role,
-        Err(err) => return Err(AppError::not_found(err.to_string())),
-    };
+    let mut role = Role::find(&mut conn, role_id.clone())
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
 
     if let Some(name) = role_req.name.clone() {
         role.name = name;
@@ -59,10 +58,9 @@ pub async fn all_role_users(
     _user: AuthUser,
     role_id: String,
 ) -> JsonResult<Vec<AuthUser>> {
-    let role = match Role::find(&mut conn, role_id.clone()).await {
-        Ok(role) => role,
-        Err(err) => return Err(AppError::not_found(err.to_string())),
-    };
+    let role = Role::find(&mut conn, role_id.clone())
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
 
     Ok(role.get_users(&mut conn).await.map_or(Json(vec![]), Json))
 }
@@ -81,7 +79,9 @@ pub async fn add_role_users(
     role_id: String,
     add_role_user_req: Json<Vec<AddRoleUser>>,
 ) -> EmptyResult {
-    let role = Role::find(&mut conn, role_id.clone()).await.map_err(|err| AppError::not_found(err.to_string()))?;
+    let role = Role::find(&mut conn, role_id.clone())
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
 
     conn.transaction(|mut conn| {
         Box::pin(async move {
@@ -116,15 +116,13 @@ pub async fn delete_role_user(
     role_id: String,
     user_id: String,
 ) -> EmptyResult {
-    let role = match Role::find(&mut conn, role_id.clone()).await {
-        Ok(role) => role,
-        Err(err) => return Err(AppError::not_found(err.to_string())),
-    };
+    let role = Role::find(&mut conn, role_id.clone())
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    let user = match User::find(&mut conn, user_id.clone()).await {
-        Ok(user) => user,
-        Err(err) => return Err(AppError::not_found(err.to_string())),
-    };
+    let user = User::find(&mut conn, user_id.clone())
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
 
     conn.transaction(|mut conn| {
         Box::pin(async move {
@@ -141,5 +139,11 @@ pub async fn delete_role_user(
 }
 
 pub fn routes() -> Vec<Route> {
-    routes![all_roles, put_role, all_role_users, add_role_users, delete_role_user]
+    routes![
+        all_roles,
+        put_role,
+        all_role_users,
+        add_role_users,
+        delete_role_user
+    ]
 }
