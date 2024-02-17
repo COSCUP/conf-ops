@@ -1,4 +1,3 @@
-use modules::common;
 use rocket::fairing::AdHoc;
 use rocket::fs::FileServer;
 use rocket_db_pools::diesel::MysqlPool;
@@ -27,7 +26,7 @@ pub type DbConn = Connection<MainDb>;
 pub struct AppConfig {
     secret_key: String,
     smtp_url: String,
-    email_from: String
+    email_from: String,
 }
 
 #[launch]
@@ -36,5 +35,5 @@ fn rocket() -> _ {
         .attach(MainDb::init())
         .attach(AdHoc::config::<AppConfig>())
         .mount("/", FileServer::from("public/"))
-        .attach(common::stage())
+        .attach(modules::stage())
 }

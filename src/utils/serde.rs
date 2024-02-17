@@ -1,4 +1,4 @@
-pub mod unixtime {
+pub mod unix_time {
     use chrono::NaiveDateTime;
     use serde::{Deserialize, Deserializer, Serializer};
 

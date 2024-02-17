@@ -27,6 +27,43 @@ diesel::table! {
 }
 
 diesel::table! {
+    role_managers (id) {
+        id -> Integer,
+        #[max_length = 50]
+        role_id -> Varchar,
+        target_id -> Integer,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    roles (id) {
+        #[max_length = 50]
+        id -> Varchar,
+        #[max_length = 50]
+        name -> Varchar,
+        #[max_length = 50]
+        project_id -> Varchar,
+        login_message -> Nullable<Text>,
+        welcome_message -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    targets (id) {
+        id -> Integer,
+        #[max_length = 36]
+        user_id -> Nullable<Char>,
+        label_id -> Nullable<Integer>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     user_emails (id) {
         id -> Integer,
         #[max_length = 36]
@@ -78,6 +115,11 @@ diesel::table! {
 }
 
 diesel::joinable!(labels -> projects (project_id));
+diesel::joinable!(role_managers -> roles (role_id));
+diesel::joinable!(role_managers -> targets (target_id));
+diesel::joinable!(roles -> projects (project_id));
+diesel::joinable!(targets -> labels (label_id));
+diesel::joinable!(targets -> users (user_id));
 diesel::joinable!(user_emails -> users (user_id));
 diesel::joinable!(user_sessions -> users (user_id));
 diesel::joinable!(users -> projects (project_id));
@@ -87,6 +129,9 @@ diesel::joinable!(users_labels -> users (user_id));
 diesel::allow_tables_to_appear_in_same_query!(
     labels,
     projects,
+    role_managers,
+    roles,
+    targets,
     user_emails,
     user_sessions,
     users,

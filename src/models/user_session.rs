@@ -77,10 +77,7 @@ impl UserSession {
             .await
     }
 
-    pub async fn expire (
-        &self,
-        conn: &mut crate::DbConn
-    ) -> Result<usize, diesel::result::Error> {
+    pub async fn expire(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
         diesel::update(user_sessions::table.filter(user_sessions::id.eq(self.id.clone())))
             .set(user_sessions::expired_at.eq(now))
             .execute(conn)
@@ -100,7 +97,11 @@ impl<'r> FromRequest<'r> for UserSession {
             rocket::outcome::Outcome::Error(error) => {
                 return rocket::request::Outcome::Error((
                     rocket::http::Status::InternalServerError,
-                    AppError::internal(error.1.map_or("Unknown database problem".to_owned(),|err| err.to_string())),
+                    AppError::internal(
+                        error
+                            .1
+                            .map_or("Unknown database problem".to_owned(), |err| err.to_string()),
+                    ),
                 ))
             }
             rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),

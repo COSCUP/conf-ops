@@ -1,0 +1,34 @@
+-- Your SQL goes here
+CREATE TABLE `roles`(
+    `id` VARCHAR(50) NOT NULL,
+    `name` VARCHAR(50) NOT NULL,
+    `project_id` VARCHAR(50) NOT NULL,
+    `login_message` TEXT,
+    `welcome_message` TEXT,
+	`created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`),
+    PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `targets`(
+	`id` INTEGER NOT NULL AUTO_INCREMENT,
+	`user_id` CHAR(36),
+	`label_id` INTEGER,
+	`created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	FOREIGN KEY (`user_id`) REFERENCES  `users`(`id`),
+	FOREIGN KEY (`label_id`) REFERENCES  `labels`(`id`),
+	PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `role_managers`(
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+	`role_id` VARCHAR(50) NOT NULL,
+	`target_id` INTEGER NOT NULL,
+	`created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`),
+	FOREIGN KEY (`target_id`) REFERENCES `targets`(`id`),
+	PRIMARY KEY (`id`)
+);

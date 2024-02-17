@@ -4,7 +4,14 @@ use rocket::request::FromRequest;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 
 use crate::{
-    error::AppError, models::{label::Label, user::User}, schema::{labels::{self}, projects, users}, utils::serde::unixtime, DbConn
+    error::AppError,
+    models::{label::Label, user::User},
+    schema::{
+        labels::{self},
+        projects,
+    },
+    utils::serde::unix_time,
+    DbConn,
 };
 
 #[derive(Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize)]
@@ -14,9 +21,9 @@ pub struct Project {
     pub id: String,
     pub name: String,
     pub description: String,
-    #[serde(with = "unixtime")]
+    #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
-    #[serde(with = "unixtime")]
+    #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
 }
 
@@ -28,7 +35,7 @@ impl Project {
             .await
     }
 
-    pub async fn find (
+    pub async fn find(
         conn: &mut crate::DbConn,
         id: String,
     ) -> Result<Project, diesel::result::Error> {
@@ -49,14 +56,8 @@ impl Project {
         &self,
         conn: &mut crate::DbConn,
         name: String,
-    ) -> Result<usize, diesel::result::Error> {
-        diesel::insert_into(users::table)
-            .values((
-                users::name.eq(name),
-                users::project_id.eq(self.id.to_owned()),
-            ))
-            .execute(conn)
-            .await
+    ) -> Result<User, diesel::result::Error> {
+        User::create(conn, name, self.id.clone()).await
     }
 
     pub async fn get_labels(
@@ -69,19 +70,15 @@ impl Project {
             .await
     }
 
-    pub async fn add_label(
+    pub async fn get_labels_by_key(
         &self,
         conn: &mut crate::DbConn,
         key: String,
-        value: String,
-    ) -> Result<usize, diesel::result::Error> {
-        diesel::insert_into(labels::table)
-            .values((
-                labels::project_id.eq(self.id.to_owned()),
-                labels::key.eq(key),
-                labels::value.eq(value),
-            ))
-            .execute(conn)
+    ) -> Result<Vec<Label>, diesel::result::Error> {
+        Label::belonging_to(self)
+            .filter(labels::key.eq(key))
+            .select(Label::as_select())
+            .load(conn)
             .await
     }
 }
@@ -98,7 +95,11 @@ impl<'r> FromRequest<'r> for Project {
             rocket::outcome::Outcome::Error(error) => {
                 return rocket::request::Outcome::Error((
                     rocket::http::Status::InternalServerError,
-                    AppError::internal(error.1.map_or("Unknown database problem".to_owned(),|err| err.to_string())),
+                    AppError::internal(
+                        error
+                            .1
+                            .map_or("Unknown database problem".to_owned(), |err| err.to_string()),
+                    ),
                 ))
             }
             rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),
@@ -111,14 +112,12 @@ impl<'r> FromRequest<'r> for Project {
 
         let project_id: String = match request.headers().get_one("x-project-id") {
             Some(text) => text.to_owned(),
-            _ => {
-                return project_not_found_error
-            }
+            _ => return project_not_found_error,
         };
 
         match Project::find(&mut db, project_id).await {
             Ok(project) => rocket::request::Outcome::Success(project),
-            Err(_) => project_not_found_error
+            Err(_) => project_not_found_error,
         }
     }
 }

@@ -1,5 +1,7 @@
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use jsonwebtoken::{
+    decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
+};
 use rocket::State;
 
 use crate::AppConfig;
@@ -15,7 +17,7 @@ pub struct LoginClaims {
 const LOGIN_TOKEN_SUBJECT: &str = "conf-ops-login";
 const LOGIN_TOKEN_ALGORITHM: Algorithm = Algorithm::HS256;
 
-pub fn generate_login_token (
+pub fn generate_login_token(
     config: &State<AppConfig>,
     user_id: String,
 ) -> Result<String, jsonwebtoken::errors::Error> {
@@ -47,4 +49,3 @@ pub fn validate_login_token(
         &validation,
     )
 }
-

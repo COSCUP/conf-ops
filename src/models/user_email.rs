@@ -4,7 +4,7 @@ use rocket_db_pools::diesel::prelude::RunQueryDsl;
 
 use crate::models::user::User;
 use crate::schema::{user_emails, users};
-use crate::utils::serde::unixtime;
+use crate::utils::serde::unix_time;
 
 #[derive(
     Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, Serialize, Deserialize,
@@ -16,9 +16,9 @@ pub struct UserEmail {
     pub id: i32,
     pub user_id: String,
     pub email: String,
-    #[serde(with = "unixtime")]
+    #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
-    #[serde(with = "unixtime")]
+    #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
 }
 

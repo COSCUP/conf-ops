@@ -10,14 +10,23 @@ use crate::models::{label::Label, user_label::UserLabel};
 use crate::{
     models::project::Project,
     schema::{labels, user_emails, users, users_labels},
-    utils::serde::unixtime,
+    utils::serde::unix_time,
     DbConn,
 };
 
 use super::user_session::UserSession;
 
 #[derive(
-    Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, Serialize, Deserialize,
+    Queryable,
+    Identifiable,
+    Selectable,
+    Associations,
+    Debug,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    Eq,
+    Hash,
 )]
 #[diesel(belongs_to(Project))]
 #[diesel(table_name = users)]
@@ -26,9 +35,9 @@ pub struct User {
     pub id: String,
     pub name: String,
     pub project_id: String,
-    #[serde(with = "unixtime")]
+    #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
-    #[serde(with = "unixtime")]
+    #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
 }
 
@@ -44,7 +53,7 @@ impl User {
             .values((
                 users::id.eq(id.clone()),
                 users::name.eq(name),
-                users::project_id.eq(project_id)
+                users::project_id.eq(project_id),
             ))
             .execute(conn)
             .await;
@@ -57,10 +66,7 @@ impl User {
     }
 
     pub async fn find(conn: &mut crate::DbConn, id: String) -> Result<User, diesel::result::Error> {
-        users::table
-            .find(id)
-            .first(conn)
-            .await
+        users::table.find(id).first(conn).await
     }
 
     pub async fn get_emails(
@@ -74,16 +80,23 @@ impl User {
             .await
     }
 
-    pub async fn add_email(
+    pub async fn add_emails(
         &self,
         conn: &mut DbConn,
-        email: String,
+        email: Vec<String>,
     ) -> Result<usize, diesel::result::Error> {
         diesel::insert_into(user_emails::table)
-            .values((
-                user_emails::user_id.eq(self.id.to_owned()),
-                user_emails::email.eq(email),
-            ))
+            .values(
+                email
+                    .iter()
+                    .map(|email| {
+                        (
+                            user_emails::user_id.eq(self.id.to_owned()),
+                            user_emails::email.eq(email),
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
             .execute(conn)
             .await
     }
@@ -91,6 +104,19 @@ impl User {
     pub async fn get_labels(&self, conn: &mut DbConn) -> Result<Vec<Label>, diesel::result::Error> {
         UserLabel::belonging_to(self)
             .inner_join(labels::table)
+            .select(Label::as_select())
+            .load(conn)
+            .await
+    }
+
+    pub async fn get_labels_by_key(
+        &self,
+        conn: &mut DbConn,
+        key: String,
+    ) -> Result<Vec<Label>, diesel::result::Error> {
+        UserLabel::belonging_to(self)
+            .inner_join(labels::table)
+            .filter(labels::key.eq(key))
             .select(Label::as_select())
             .load(conn)
             .await
@@ -109,6 +135,21 @@ impl User {
             .execute(conn)
             .await
     }
+
+    pub async fn delete_label(
+        &self,
+        conn: &mut DbConn,
+        label: Label,
+    ) -> Result<usize, diesel::result::Error> {
+        diesel::delete(
+            users_labels::table
+                .filter(users_labels::user_id.eq(self.id.to_owned()))
+                .filter(users_labels::label_id.eq(label.id)),
+        )
+        .execute(conn)
+        .await
+    }
+
 }
 
 #[rocket::async_trait]
@@ -123,7 +164,11 @@ impl<'r> FromRequest<'r> for User {
             rocket::outcome::Outcome::Error(error) => {
                 return rocket::request::Outcome::Error((
                     rocket::http::Status::InternalServerError,
-                    AppError::internal(error.1.map_or("Unknown database problem".to_owned(),|err| err.to_string())),
+                    AppError::internal(
+                        error
+                            .1
+                            .map_or("Unknown database problem".to_owned(), |err| err.to_string()),
+                    ),
                 ))
             }
             rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),
@@ -149,7 +194,6 @@ impl<'r> FromRequest<'r> for User {
             }
         };
 
-
         let user = match UserSession::auth_user(&mut db, session_id).await {
             Ok(user) => user,
             Err(_) => {
@@ -162,7 +206,9 @@ impl<'r> FromRequest<'r> for User {
 
         let project = match request.guard::<Project>().await {
             rocket::outcome::Outcome::Success(project) => project,
-            rocket::outcome::Outcome::Error(error) => return rocket::request::Outcome::Error(error),
+            rocket::outcome::Outcome::Error(error) => {
+                return rocket::request::Outcome::Error(error)
+            }
             rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),
         };
 
@@ -170,7 +216,7 @@ impl<'r> FromRequest<'r> for User {
             return rocket::request::Outcome::Error((
                 rocket::http::Status::Unauthorized,
                 AppError::unauthorized(),
-            ))
+            ));
         }
 
         rocket::outcome::Outcome::Success(user)
