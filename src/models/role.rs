@@ -4,11 +4,9 @@ use rocket_db_pools::diesel::prelude::RunQueryDsl;
 
 use crate::{
     models::{label::Label, project::Project, target::Target, user::User},
-    schema::{labels, role_managers, roles, targets, users},
-    utils::{serde::unix_time, vec::UniqueVec},
+    schema::{labels, role_managers, roles, targets},
+    utils::serde::unix_time,
 };
-
-use super::user_label::UserLabel;
 
 #[derive(
     Queryable,
@@ -140,40 +138,13 @@ impl Role {
         &self,
         conn: &mut crate::DbConn,
     ) -> Result<Vec<User>, diesel::result::Error> {
-        let targets: Vec<(Option<User>, Option<Label>)> = role_managers::table
-            .filter(role_managers::role_id.eq(self.id.clone()))
-            .inner_join(
-                targets::table
-                    .left_join(users::table)
-                    .left_join(labels::table),
-            )
-            .select((Option::<User>::as_select(), Option::<Label>::as_select()))
-            .load::<(Option<User>, Option<Label>)>(conn)
-            .await?;
-
-        let labels = targets
-            .iter()
-            .filter_map(|(_, labels)| labels.as_ref().clone())
-            .collect::<Vec<&Label>>();
-
-        let role_users: Vec<_> = UserLabel::belonging_to(&labels)
-            .inner_join(users::table)
-            .select(User::as_select())
+        let managers: Vec<Target> = RoleManager::belonging_to(self)
+            .inner_join(targets::table)
+            .select(Target::as_select())
             .load(conn)
             .await?;
 
-        let direct_users = targets
-            .into_iter()
-            .filter_map(|(user, _)| user)
-            .collect::<Vec<User>>();
-
-        let mut users: Vec<_> = role_users
-            .into_iter()
-            .chain(direct_users.into_iter())
-            .collect();
-        users.unique_by_key(|u| u.id.clone());
-
-        Ok(users)
+        Target::get_users(conn, managers).await
     }
 
     pub async fn is_manager(
@@ -181,21 +152,12 @@ impl Role {
         conn: &mut crate::DbConn,
         user: User,
     ) -> Result<bool, diesel::result::Error> {
-        let user_labels = user
-            .get_labels_by_key(conn, "role".to_owned())
-            .await?
-            .iter()
-            .map(|role| role.id.clone())
-            .collect::<Vec<i32>>();
+        let managers: Vec<Target> = RoleManager::belonging_to(self)
+            .inner_join(targets::table)
+            .select(Target::as_select())
+            .load(conn)
+            .await?;
 
-        RoleManager::belonging_to(self)
-            .inner_join(targets::table.left_join(labels::table))
-            .filter(labels::id.eq_any(user_labels))
-            .or_filter(targets::user_id.eq(user.id))
-            .select(RoleManager::as_select())
-            .first(conn)
-            .await
-            .map(|_| true)
-            .or(Ok(false))
+        Target::is_user_in_targets(conn, user, managers).await
     }
 }
