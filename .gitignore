@@ -9,3 +9,9 @@ scripts/env.sh
 
 # test data
 test.sql
+
+# editor settings
+.vscode/
+
+# macOS
+.DS_Store

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use rocket::fairing::AdHoc;
 use rocket::fs::FileServer;
 use rocket_db_pools::diesel::MysqlPool;
@@ -29,11 +31,28 @@ pub struct AppConfig {
     email_from: String,
 }
 
+pub struct DataFolder(pub std::path::PathBuf);
+
+impl DataFolder {
+    pub fn image_path(&self, image_name: &str) -> std::path::PathBuf {
+        self.0.join(Path::new("images")).join(image_name)
+    }
+
+    pub fn file_path(&self, file_name: &str) -> std::path::PathBuf {
+        self.0.join(Path::new("files")).join(file_name)
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build()
         .attach(MainDb::init())
         .attach(AdHoc::config::<AppConfig>())
+        .attach(AdHoc::try_on_ignite("Data Folder", |rocket| async {
+            let data_folder_path = std::env::current_dir().unwrap().join(Path::new("app-data"));
+            tokio::fs::create_dir_all(&data_folder_path).await.unwrap();
+            Ok(rocket.manage(DataFolder(data_folder_path)))
+        }))
         .mount("/", FileServer::from("public/"))
         .attach(modules::stage())
 }

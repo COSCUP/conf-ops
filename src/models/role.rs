@@ -65,7 +65,7 @@ impl Role {
 
     pub async fn get_roles_by_user(
         conn: &mut crate::DbConn,
-        user: User,
+        user: &User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
         let role_ids = user
             .get_labels_by_key(conn, "role".to_owned())
@@ -83,7 +83,7 @@ impl Role {
 
     pub async fn get_manage_roles_by_user(
         conn: &mut crate::DbConn,
-        user: User,
+        user: &User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
         let user_label_ids = user
             .get_labels_by_key(conn, "role".to_owned())
@@ -96,7 +96,7 @@ impl Role {
             .inner_join(roles::table)
             .inner_join(targets::table.left_join(labels::table))
             .filter(labels::id.eq_any(user_label_ids))
-            .or_filter(targets::user_id.eq(user.id))
+            .or_filter(targets::user_id.eq(user.id.clone()))
             .select(Role::as_select())
             .load(conn)
             .await
@@ -127,7 +127,7 @@ impl Role {
     pub async fn is_user(
         &self,
         conn: &mut crate::DbConn,
-        user: User,
+        user: &User,
     ) -> Result<bool, diesel::result::Error> {
         let label = self.get_label(conn).await?;
 
@@ -144,13 +144,13 @@ impl Role {
             .load(conn)
             .await?;
 
-        Target::get_users(conn, managers).await
+        Target::get_users(conn, &managers).await
     }
 
     pub async fn is_manager(
         &self,
         conn: &mut crate::DbConn,
-        user: User,
+        user: &User,
     ) -> Result<bool, diesel::result::Error> {
         let managers: Vec<Target> = RoleManager::belonging_to(self)
             .inner_join(targets::table)
@@ -158,6 +158,6 @@ impl Role {
             .load(conn)
             .await?;
 
-        Target::is_user_in_targets(conn, user, managers).await
+        Target::is_user_in_targets(conn, user, &managers).await
     }
 }

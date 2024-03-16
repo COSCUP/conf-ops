@@ -30,9 +30,35 @@ pub struct Target {
 }
 
 impl Target {
+    pub async fn find_or_create_user (
+        conn: &mut crate::DbConn,
+        user: &User,
+    ) -> Result<Target, diesel::result::Error> {
+        let target = targets::table
+            .filter(targets::user_id.eq(Some(user.id.clone())))
+            .first::<Target>(conn)
+            .await;
+
+        match target {
+            Ok(target) => Ok(target),
+            Err(_) => {
+                let _ = diesel::insert_into(targets::table)
+                    .values(targets::user_id.eq(user.id.clone()))
+                    .execute(conn)
+                    .await?;
+
+                sql_function! {
+                    fn last_insert_id() -> Integer;
+                }
+
+                targets::table.find(last_insert_id()).first(conn).await
+            }
+        }
+    }
+
     pub async fn get_users(
         conn: &mut crate::DbConn,
-        targets: Vec<Target>,
+        targets: &Vec<Target>,
     ) -> Result<Vec<User>, diesel::result::Error> {
         let list: Vec<(Option<User>, Option<Label>)> = targets::table
             .filter(targets::id.eq_any(targets.iter().map(|t| t.id).collect::<Vec<i32>>()))
@@ -69,8 +95,8 @@ impl Target {
 
     pub async fn is_user_in_targets(
         conn: &mut crate::DbConn,
-        user: User,
-        list: Vec<Target>,
+        user: &User,
+        list: &Vec<Target>,
     ) -> Result<bool, diesel::result::Error> {
         let user_label_ids = user
             .get_labels_by_key(conn, "role".to_owned())

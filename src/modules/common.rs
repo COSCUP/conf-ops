@@ -20,7 +20,7 @@ use crate::{
     AppConfig, DbConn,
 };
 
-use super::AuthGuard;
+use super::{role, ticket, AuthGuard, EnabledFeature};
 
 #[get("/")]
 pub async fn ping() -> &'static str {
@@ -143,6 +143,18 @@ pub async fn logout(mut conn: DbConn, cookie_jar: &CookieJar<'_>, auth: AuthGuar
     Ok(EmptyResponse)
 }
 
+#[get("/project/features")]
+pub async fn get_features_by_user(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<EnabledFeature>> {
+    let AuthGuard { user, .. } = auth;
+
+    let mut features = vec![];
+
+    features.extend(ticket::get_enabled_features_by_user(&mut conn, &user).await);
+    features.extend(role::get_enabled_features_by_user(&mut conn, &user).await);
+
+    Ok(Json(features))
+}
+
 pub fn routes() -> Vec<Route> {
     routes![
         ping,
@@ -151,6 +163,7 @@ pub fn routes() -> Vec<Route> {
         login,
         token,
         get_me,
-        logout
+        logout,
+        get_features_by_user
     ]
 }

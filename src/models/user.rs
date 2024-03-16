@@ -79,7 +79,7 @@ impl User {
     pub async fn add_emails(
         &self,
         conn: &mut DbConn,
-        email: Vec<String>,
+        email: &Vec<String>,
     ) -> Result<usize, diesel::result::Error> {
         diesel::insert_into(user_emails::table)
             .values(
@@ -121,7 +121,7 @@ impl User {
     pub async fn add_label(
         &self,
         conn: &mut DbConn,
-        label: Label,
+        label: &Label,
     ) -> Result<usize, diesel::result::Error> {
         diesel::insert_into(users_labels::table)
             .values((
@@ -135,7 +135,7 @@ impl User {
     pub async fn delete_label(
         &self,
         conn: &mut DbConn,
-        label: Label,
+        label: &Label,
     ) -> Result<usize, diesel::result::Error> {
         diesel::delete(
             users_labels::table

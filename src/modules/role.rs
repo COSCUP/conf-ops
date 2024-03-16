@@ -8,7 +8,7 @@ use rocket::serde::json::{json, Json, Value};
 use rocket::Route;
 use rocket_db_pools::diesel::AsyncConnection;
 
-use super::{ApiResult, AuthGuard, EmptyResponse, EmptyResult};
+use super::{ApiResult, AuthGuard, EmptyResponse, EmptyResult, EnabledFeature};
 
 #[get("/role/<role_id>")]
 pub async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
@@ -25,7 +25,7 @@ pub async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
 #[get("/role/roles")]
 pub async fn all_roles(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
     let AuthGuard { user, .. } = auth;
-    Ok(Role::get_roles_by_user(&mut conn, user)
+    Ok(Role::get_roles_by_user(&mut conn, &user)
         .await
         .map_or(Json(vec![]), Json))
 }
@@ -33,7 +33,7 @@ pub async fn all_roles(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role
 #[get("/role/admin/roles")]
 pub async fn all_roles_in_admin(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
     let AuthGuard { user, .. } = auth;
-    Ok(Role::get_manage_roles_by_user(&mut conn, user)
+    Ok(Role::get_manage_roles_by_user(&mut conn, &user)
         .await
         .map_or(Json(vec![]), Json))
 }
@@ -57,7 +57,7 @@ pub async fn put_role_in_admin(
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 
-    match role.is_manager(&mut conn, user).await {
+    match role.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
                 "You are not a manager of this role".to_owned(),
@@ -94,7 +94,7 @@ pub async fn all_role_users_in_admin(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    match role.is_manager(&mut conn, user).await {
+    match role.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
                 "You are not a manager of this role".to_owned(),
@@ -126,7 +126,7 @@ pub async fn add_role_users_in_admin(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    match role.is_manager(&mut conn, user).await {
+    match role.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
                 "You are not a manager of this role".to_owned(),
@@ -141,7 +141,7 @@ pub async fn add_role_users_in_admin(
             for user_req in add_role_user_req.iter() {
                 let user = project.add_user(&mut conn, user_req.name.clone()).await?;
 
-                let _ = user.add_emails(&mut conn, user_req.emails.clone()).await?;
+                let _ = user.add_emails(&mut conn, &user_req.emails).await?;
 
                 let label = Label::find_or_create(
                     &mut conn,
@@ -151,7 +151,7 @@ pub async fn add_role_users_in_admin(
                 )
                 .await?;
 
-                let _ = user.add_label(&mut conn, label).await?;
+                let _ = user.add_label(&mut conn, &label).await?;
             }
 
             Ok::<_, diesel::result::Error>(EmptyResponse)
@@ -174,7 +174,7 @@ pub async fn delete_role_user_in_admin(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    match role.is_manager(&mut conn, user).await {
+    match role.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
                 "You are not a manager of this role".to_owned(),
@@ -192,7 +192,7 @@ pub async fn delete_role_user_in_admin(
         Box::pin(async move {
             let label = role.get_label(&mut conn).await?;
 
-            let _ = delete_user.delete_label(&mut conn, label).await?;
+            let _ = delete_user.delete_label(&mut conn, &label).await?;
 
             Ok::<_, diesel::result::Error>(EmptyResponse)
         })
@@ -200,6 +200,20 @@ pub async fn delete_role_user_in_admin(
     .await
     .map(|_| EmptyResponse)
     .map_err(|err| AppError::internal(err.to_string()))
+}
+
+pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec<EnabledFeature> {
+    let manager_roles = Role::get_manage_roles_by_user(conn, &user)
+        .await
+        .unwrap_or(vec![]);
+
+    if manager_roles.is_empty() {
+        vec![]
+    } else {
+        vec![
+            EnabledFeature::ManagerRole(manager_roles.len())
+        ]
+    }
 }
 
 pub fn routes() -> Vec<Route> {

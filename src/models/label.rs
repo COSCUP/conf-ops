@@ -75,7 +75,7 @@ impl Label {
     pub async fn is_user(
         &self,
         conn: &mut crate::DbConn,
-        user: User,
+        user: &User,
     ) -> Result<bool, diesel::result::Error> {
         select(exists(
             users_labels::table

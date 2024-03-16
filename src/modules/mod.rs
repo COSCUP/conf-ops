@@ -9,6 +9,7 @@ use rocket::{fairing::AdHoc, response, serde::json::Json, Request, Response};
 
 pub mod common;
 pub mod role;
+pub mod ticket;
 
 type ApiResult<T> = Result<T, crate::error::AppError>;
 pub type JsonResult<T> = ApiResult<Json<T>>;
@@ -93,11 +94,20 @@ impl<'r> rocket::request::FromRequest<'r> for AuthGuard {
     }
 }
 
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[serde(tag = "type", content = "todo")]
+pub enum EnabledFeature {
+    ManagerRole(usize),
+    Ticket(usize),
+    ManagerTicket(usize),
+}
+
 pub fn stage() -> AdHoc {
-    AdHoc::on_ignite("common stage", |rocket| async {
+    AdHoc::on_ignite("Common Stage", |rocket| async {
         rocket
             .mount("/api", common::routes())
-            .mount("/api/project", role::routes())
+            .mount("/api/project", [role::routes(), ticket::api::routes()].concat())
             .register("/api", catchers![catch_unauthorized, catch_not_found])
     })
 }

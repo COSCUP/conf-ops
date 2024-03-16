@@ -16,7 +16,7 @@ tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 
 # mysql
-diesel = { version = "2.1.0", features = ["mysql", "chrono"] }
+diesel = { version = "2.1.0", features = ["mysql", "chrono", "serde_json"] }
 
 # uuid
 uuid = { version = "1.7", features = ["v4"] }
@@ -29,3 +29,9 @@ lettre = { version = "0.11", features = ["smtp-transport", "native-tls", "tokio1
 
 # jwt
 jsonwebtoken = "9"
+
+# hash
+sha256 = { version = "1.5", features = ["async"] }
+
+# image
+image = "0.24"
