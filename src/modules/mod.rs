@@ -94,7 +94,6 @@ impl<'r> rocket::request::FromRequest<'r> for AuthGuard {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(tag = "type", content = "todo")]
 pub enum EnabledFeature {
@@ -107,7 +106,10 @@ pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Common Stage", |rocket| async {
         rocket
             .mount("/api", common::routes())
-            .mount("/api/project", [role::routes(), ticket::api::routes()].concat())
+            .mount(
+                "/api/project",
+                [role::routes(), ticket::api::routes()].concat(),
+            )
             .register("/api", catchers![catch_unauthorized, catch_not_found])
     })
 }

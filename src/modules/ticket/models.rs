@@ -6,7 +6,6 @@ use diesel::prelude::*;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 
 use crate::models::user::User;
-use crate::models::user_label;
 use crate::models::{project::Project, target::Target};
 use crate::schema::{
     labels, targets, ticket_flows, ticket_form_answers, ticket_reviews, ticket_schema_flows,
@@ -104,7 +103,9 @@ impl TicketSchema {
         let user_label_ids = user.build_user_labels_query("role".to_owned());
 
         ticket_schemas::table
-            .inner_join(ticket_schema_managers::table.inner_join(targets::table.left_join(labels::table)))
+            .inner_join(
+                ticket_schema_managers::table.inner_join(targets::table.left_join(labels::table)),
+            )
             .filter(labels::id.eq_any(user_label_ids))
             .or_filter(targets::user_id.eq(user.id.clone()))
             .select(TicketSchema::as_select())
@@ -147,7 +148,7 @@ impl TicketSchema {
     pub async fn add_manager_user(
         &self,
         conn: &mut crate::DbConn,
-        user: &User
+        user: &User,
     ) -> Result<TicketSchemaManager, diesel::result::Error> {
         let target = Target::find_or_create_user(conn, user).await?;
 
@@ -184,7 +185,7 @@ impl TicketSchema {
         Target::is_user_in_targets(conn, user, &users).await
     }
 
-    pub async fn get_flows (
+    pub async fn get_flows(
         &self,
         conn: &mut crate::DbConn,
     ) -> Result<Vec<TicketSchemaFlow>, diesel::result::Error> {
@@ -535,7 +536,6 @@ impl Ticket {
             .group_by(ticket_flows::ticket_id)
             .having(min(ticket_schema_flows::created_at).is_not_null())
             .select(ticket_flows::ticket_id);
-
 
         tickets::table
             .filter(tickets::id.eq_any(sub_query))

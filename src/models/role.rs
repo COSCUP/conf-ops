@@ -119,7 +119,7 @@ impl Role {
         conn: &mut crate::DbConn,
         user: &User,
     ) -> Result<bool, diesel::result::Error> {
-        let label = self.get_label(conn).await?;
+        let label: Label = self.get_label(conn).await?;
 
         label.is_user(conn, user).await
     }

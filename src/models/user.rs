@@ -1,5 +1,9 @@
 use chrono::NaiveDateTime;
-use diesel::{dsl::{Eq, Filter, InnerJoin, IntoBoxed, Select}, mysql::Mysql, prelude::*};
+use diesel::{
+    dsl::{Eq, Filter, InnerJoin, IntoBoxed, Select},
+    mysql::Mysql,
+    prelude::*,
+};
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use uuid::Uuid;
 
@@ -7,7 +11,7 @@ use crate::{
     models::project::Project,
     schema::{labels, user_emails, users, users_labels},
     utils::serde::unix_time,
-    DbConn
+    DbConn,
 };
 
 use super::{label::Label, user_label::UserLabel};
@@ -108,7 +112,20 @@ impl User {
     pub fn build_role_ids_query<'a>(
         &self,
         key: String,
-    ) -> IntoBoxed<'a, Select<Filter<InnerJoin<Filter<users_labels::table, Eq<users_labels::user_id, String>>,labels::table>, Eq<labels::key, String>>, labels::value>, Mysql> {
+    ) -> IntoBoxed<
+        'a,
+        Select<
+            Filter<
+                InnerJoin<
+                    Filter<users_labels::table, Eq<users_labels::user_id, String>>,
+                    labels::table,
+                >,
+                Eq<labels::key, String>,
+            >,
+            labels::value,
+        >,
+        Mysql,
+    > {
         users_labels::table
             .filter(users_labels::user_id.eq(self.id.clone()))
             .inner_join(labels::table)
@@ -120,7 +137,20 @@ impl User {
     pub fn build_user_labels_query<'a>(
         &self,
         key: String,
-    ) -> IntoBoxed<'a, Select<Filter<InnerJoin<Filter<users_labels::table, Eq<users_labels::user_id, String>>,labels::table>, Eq<labels::key, String>>, labels::id>, Mysql> {
+    ) -> IntoBoxed<
+        'a,
+        Select<
+            Filter<
+                InnerJoin<
+                    Filter<users_labels::table, Eq<users_labels::user_id, String>>,
+                    labels::table,
+                >,
+                Eq<labels::key, String>,
+            >,
+            labels::id,
+        >,
+        Mysql,
+    > {
         users_labels::table
             .filter(users_labels::user_id.eq(self.id.clone()))
             .inner_join(labels::table)

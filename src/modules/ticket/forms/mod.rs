@@ -42,10 +42,7 @@ impl FormSchema {
         }
     }
 
-    pub fn new(
-        form: TicketSchemaForm,
-        fields: Vec<TicketSchemaFormField>,
-    ) -> FormSchema {
+    pub fn new(form: TicketSchemaForm, fields: Vec<TicketSchemaFormField>) -> FormSchema {
         let mut new_fields = fields.clone();
         new_fields.sort_by_key(|field| field.order);
         FormSchema {

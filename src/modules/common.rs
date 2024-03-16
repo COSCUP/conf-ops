@@ -144,7 +144,10 @@ pub async fn logout(mut conn: DbConn, cookie_jar: &CookieJar<'_>, auth: AuthGuar
 }
 
 #[get("/project/features")]
-pub async fn get_features_by_user(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<EnabledFeature>> {
+pub async fn get_features_by_user(
+    mut conn: DbConn,
+    auth: AuthGuard,
+) -> JsonResult<Vec<EnabledFeature>> {
     let AuthGuard { user, .. } = auth;
 
     let mut features = vec![];

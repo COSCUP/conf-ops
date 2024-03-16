@@ -16,13 +16,13 @@ use super::reviews::models::TicketReview;
 use super::reviews::models::TicketSchemaReview;
 use super::TicketFlowItem;
 use super::TicketFlowStatus;
-use super::TicketSchemaFlowValue;
 use super::TicketSchemaFlowItem;
+use super::TicketSchemaFlowValue;
 
 use crate::error::AppError;
 use crate::modules::ticket::models::Ticket;
+use crate::modules::{AuthGuard, EmptyResponse, EmptyResult, JsonResult};
 use crate::DbConn;
-use crate::modules::{AuthGuard, JsonResult, EmptyResult, EmptyResponse};
 
 #[get("/ticket/tickets")]
 pub async fn all_tickets(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Ticket>> {
@@ -248,7 +248,8 @@ pub async fn get_schema(
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
-    let flows = schema.get_detail_flows(&mut conn)
+    let flows = schema
+        .get_detail_flows(&mut conn)
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 
@@ -265,7 +266,7 @@ pub async fn add_ticket_for_schema(
     mut conn: DbConn,
     auth: AuthGuard,
     schema_id: i32,
-    new_ticket_req: Json<NewTicketReq>
+    new_ticket_req: Json<NewTicketReq>,
 ) -> EmptyResult {
     let AuthGuard { user, .. } = auth;
     let schema = TicketSchema::find(&mut conn, schema_id)
@@ -282,7 +283,8 @@ pub async fn add_ticket_for_schema(
         _ => (),
     }
 
-    let flows = schema.get_flows(&mut conn)
+    let flows = schema
+        .get_flows(&mut conn)
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
@@ -302,7 +304,6 @@ pub async fn add_ticket_for_schema(
     .map_err(|err| AppError::internal(err.to_string()))?;
     Ok(EmptyResponse)
 }
-
 
 #[get("/ticket/admin/schemas")]
 pub async fn all_managed_schemas_in_admin(
@@ -341,7 +342,8 @@ pub async fn get_managed_schema_in_admin(
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
-    let flows = schema.get_detail_flows(&mut conn)
+    let flows = schema
+        .get_detail_flows(&mut conn)
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 
@@ -351,23 +353,27 @@ pub async fn get_managed_schema_in_admin(
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NewTicketSchemaReq {
     pub title: String,
-    pub description: String
+    pub description: String,
 }
 
 #[post("/ticket/admin/schemas", data = "<new_schema_req>")]
-pub async fn add_managed_schema_in_admin (
+pub async fn add_managed_schema_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
-    new_schema_req: Json<NewTicketSchemaReq>
+    new_schema_req: Json<NewTicketSchemaReq>,
 ) -> EmptyResult {
     let AuthGuard { user, project, .. } = auth;
     conn.transaction(|conn| {
         async move {
-            let schema = TicketSchema::create(conn, new_schema_req.title.clone(), new_schema_req.description.clone(), project.id)
-                .await?;
+            let schema = TicketSchema::create(
+                conn,
+                new_schema_req.title.clone(),
+                new_schema_req.description.clone(),
+                project.id,
+            )
+            .await?;
 
-            let _ = schema.add_manager_user(conn, &user)
-                .await?;
+            let _ = schema.add_manager_user(conn, &user).await?;
 
             Ok::<_, diesel::result::Error>(())
         }
@@ -380,11 +386,11 @@ pub async fn add_managed_schema_in_admin (
 }
 
 #[post("/ticket/admin/schemas/<schema_id>/flows", data = "<new_flow_req>")]
-pub async fn add_flow_to_schema_in_admin (
+pub async fn add_flow_to_schema_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     schema_id: i32,
-    new_flow_req: Json<TicketSchemaFlowItem>
+    new_flow_req: Json<TicketSchemaFlowItem>,
 ) -> EmptyResult {
     let AuthGuard { user, .. } = auth;
     let schema = TicketSchema::find(&mut conn, schema_id)
@@ -402,27 +408,28 @@ pub async fn add_flow_to_schema_in_admin (
 
     conn.transaction(|conn| {
         async move {
-            let flow = schema.add_flow(conn, new_flow_req.schema.name.clone())
+            let flow = schema
+                .add_flow(conn, new_flow_req.schema.name.clone())
                 .await?;
 
             match new_flow_req.into_inner().module {
                 TicketSchemaFlowValue::Form(form_schema) => {
-                    let schema_form = TicketSchemaForm::create(conn, &flow, form_schema.form.expired_at)
-                        .await?;
-                    let fields = form_schema.fields.into_iter().map(|field| {
-                        FormSchemaField {
+                    let schema_form =
+                        TicketSchemaForm::create(conn, &flow, form_schema.form.expired_at).await?;
+                    let fields = form_schema
+                        .fields
+                        .into_iter()
+                        .map(|field| FormSchemaField {
                             key: field.key,
                             define: field.define,
                             required: field.required,
-                            editable: field.editable
-                        }
-                    }).collect::<Vec<_>>();
-                    schema_form.add_fields(conn, fields)
-                        .await?;
+                            editable: field.editable,
+                        })
+                        .collect::<Vec<_>>();
+                    schema_form.add_fields(conn, fields).await?;
                 }
                 TicketSchemaFlowValue::Review(review_schema) => {
-                    TicketSchemaReview::create(conn, &flow, review_schema.restarted)
-                        .await?;
+                    TicketSchemaReview::create(conn, &flow, review_schema.restarted).await?;
                 }
             }
 
@@ -455,7 +462,8 @@ pub async fn all_tickets_for_schema_in_admin(
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
-    let tickets = schema.get_tickets(&mut conn)
+    let tickets = schema
+        .get_tickets(&mut conn)
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
     Ok(Json(tickets))
