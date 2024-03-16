@@ -6,6 +6,7 @@ use diesel::prelude::*;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 
 use crate::models::user::User;
+use crate::models::user_label;
 use crate::models::{project::Project, target::Target};
 use crate::schema::{
     labels, targets, ticket_flows, ticket_form_answers, ticket_reviews, ticket_schema_flows,
@@ -100,12 +101,7 @@ impl TicketSchema {
         conn: &mut crate::DbConn,
         user: &User,
     ) -> Result<Vec<TicketSchema>, diesel::result::Error> {
-        let user_label_ids = user
-            .get_labels_by_key(conn, "role".to_owned())
-            .await?
-            .iter()
-            .map(|label| label.id.clone())
-            .collect::<Vec<i32>>();
+        let user_label_ids = user.build_user_labels_query("role".to_owned());
 
         ticket_schemas::table
             .inner_join(ticket_schema_managers::table.inner_join(targets::table.left_join(labels::table)))
@@ -134,12 +130,7 @@ impl TicketSchema {
         conn: &mut crate::DbConn,
         user: &User,
     ) -> Result<Vec<TicketSchema>, diesel::result::Error> {
-        let user_label_ids = user
-            .get_labels_by_key(conn, "role".to_owned())
-            .await?
-            .iter()
-            .map(|label| label.id.clone())
-            .collect::<Vec<i32>>();
+        let user_label_ids = user.build_user_labels_query("role".to_owned());
 
         ticket_schemas::table
             .inner_join(

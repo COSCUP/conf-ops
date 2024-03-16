@@ -67,12 +67,7 @@ impl Role {
         conn: &mut crate::DbConn,
         user: &User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
-        let role_ids = user
-            .get_labels_by_key(conn, "role".to_owned())
-            .await?
-            .iter()
-            .map(|label| label.value.clone())
-            .collect::<Vec<String>>();
+        let role_ids = user.build_role_ids_query("role".to_owned());
 
         roles::table
             .filter(roles::id.eq_any(role_ids))
@@ -85,12 +80,7 @@ impl Role {
         conn: &mut crate::DbConn,
         user: &User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
-        let user_label_ids = user
-            .get_labels_by_key(conn, "role".to_owned())
-            .await?
-            .iter()
-            .map(|label| label.id.clone())
-            .collect::<Vec<i32>>();
+        let user_label_ids = user.build_user_labels_query("role".to_owned());
 
         role_managers::table
             .inner_join(roles::table)

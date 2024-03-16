@@ -98,12 +98,7 @@ impl Target {
         user: &User,
         list: &Vec<Target>,
     ) -> Result<bool, diesel::result::Error> {
-        let user_label_ids = user
-            .get_labels_by_key(conn, "role".to_owned())
-            .await?
-            .iter()
-            .map(|label| label.id.clone())
-            .collect::<Vec<i32>>();
+        let user_label_ids = user.build_user_labels_query("role".to_owned()).load(conn).await?;
 
         Ok(list.iter().any(|t| {
             if let Some(label_id) = t.label_id {
