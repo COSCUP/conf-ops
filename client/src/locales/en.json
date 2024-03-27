@@ -1,0 +1,30 @@
+{
+  "error": "Error",
+  "ok": "OK",
+  "cancel": "Cancel",
+  "save": {
+    "title": "Save",
+    "success": "Saved successfully."
+  },
+  "unauthorized": {
+    "title": "Not Logged In",
+    "content": "You are not logged in, please log in before proceeding."
+  },
+  "ticket": {
+    "page": {
+      "home": "Ticket Home",
+      "detail": "Ticket Detail",
+      "add-1": "Add Ticket (Choose schema)",
+      "add-2": "Add Ticket (Fill in details)"
+    },
+    "status": {
+      "InProgress": "In Progress",
+      "Pending": "Pending",
+      "Finished": "Finished"
+    },
+    "module": {
+      "Form": "Form",
+      "Review": "Check"
+    }
+  }
+}

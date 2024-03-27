@@ -19,9 +19,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
 
     /* types */
-    "types": ["naive-ui/volar"]
+    "types": ["naive-ui/volar", "@intlify/unplugin-vue-i18n/messages"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
   "references": [{ "path": "./tsconfig.node.json" }]

@@ -1,0 +1,30 @@
+{
+  "error": "錯誤",
+  "ok": "確定",
+  "cancel": "取消",
+  "save": {
+    "title": "儲存",
+    "success": "儲存成功"
+  },
+  "unauthorized": {
+    "title": "未登入",
+    "content": "您尚未登入，請登入後再進行操作。"
+  },
+  "ticket": {
+    "page": {
+      "home": "工單首頁",
+      "detail": "工單詳情",
+      "add-1": "新增工單 (選擇結構)",
+      "add-2": "新增工單 (填寫資料)"
+    },
+    "status": {
+      "InProgress": "進行中",
+      "Pending": "待處理",
+      "Finished": "已完成"
+    },
+    "module": {
+      "Form": "表單",
+      "Review": "檢查"
+    }
+  }
+}
