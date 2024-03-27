@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    // common
+    "EditorConfig.EditorConfig",
+    // frontend
+    "Vue.volar",
+    "antfu.unocss",
+    "lokalise.i18n-ally",
+    // backend
+    "rust-lang.rust-analyzer"
+  ]
+}

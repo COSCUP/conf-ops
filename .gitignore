@@ -10,8 +10,12 @@ scripts/env.sh
 # test data
 test.sql
 
-# editor settings
-.vscode/
+# vscode
+.vscode/*
+!.vscode/extensions.json
 
 # macOS
 .DS_Store
+
+# app data
+/app-data/

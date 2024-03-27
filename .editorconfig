@@ -5,3 +5,7 @@ indent_size = 4
 [*.rs]
 indent_style = space
 indent_size = 4
+
+[*.vue,*.ts]
+indent_style = space
+indent_size = 2
