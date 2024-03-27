@@ -11,7 +11,7 @@ use crate::{
 
 use super::{project::Project, user::User};
 
-#[derive(Queryable, Identifiable, Selectable, Associations, Debug, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, AsChangeset)]
 #[diesel(belongs_to(User))]
 #[diesel(table_name = user_sessions)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]

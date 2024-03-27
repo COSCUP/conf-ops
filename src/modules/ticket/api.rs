@@ -1,31 +1,45 @@
 use std::collections::HashMap;
 use std::iter;
 
+use rocket::form::Form;
+use rocket::fs::NamedFile;
+use rocket::fs::TempFile;
 use rocket::serde::json::serde_json;
 use rocket::serde::json::Json;
 use rocket::serde::json::Value;
 use rocket::Route;
+use rocket::State;
 use rocket_db_pools::diesel::scoped_futures::ScopedFutureExt;
 use rocket_db_pools::diesel::AsyncConnection;
 
+use super::forms::fields::FormFieldDefine;
 use super::forms::fields::FormSchemaField;
 use super::forms::models::TicketFormAnswer;
+use super::forms::models::TicketFormFile;
+use super::forms::models::TicketFormImage;
 use super::forms::models::TicketSchemaForm;
 use super::models::TicketSchema;
+use super::models::TicketSchemaFlow;
 use super::reviews::models::TicketReview;
 use super::reviews::models::TicketSchemaReview;
 use super::TicketFlowItem;
 use super::TicketFlowStatus;
 use super::TicketSchemaFlowItem;
 use super::TicketSchemaFlowValue;
+use super::TicketStatus;
+use super::TicketWithStatus;
 
 use crate::error::AppError;
+use crate::models::target::Target;
+use crate::models::user::User;
 use crate::modules::ticket::models::Ticket;
+use crate::modules::ApiResult;
 use crate::modules::{AuthGuard, EmptyResponse, EmptyResult, JsonResult};
+use crate::DataFolder;
 use crate::DbConn;
 
 #[get("/ticket/tickets")]
-pub async fn all_tickets(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Ticket>> {
+async fn all_tickets(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<TicketWithStatus>> {
     let AuthGuard { user, .. } = auth;
     let tickets = Ticket::get_tickets_by_user(&mut conn, &user)
         .await
@@ -36,17 +50,13 @@ pub async fn all_tickets(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Ti
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TicketDetail {
     #[serde(flatten)]
-    pub ticket: Ticket,
+    pub ticket: TicketWithStatus,
     pub schema: TicketSchema,
     pub flows: Vec<TicketFlowStatus>,
 }
 
 #[get("/ticket/tickets/<ticket_id>")]
-pub async fn get_ticket(
-    mut conn: DbConn,
-    auth: AuthGuard,
-    ticket_id: i32,
-) -> JsonResult<TicketDetail> {
+async fn get_ticket(mut conn: DbConn, auth: AuthGuard, ticket_id: i32) -> JsonResult<TicketDetail> {
     let AuthGuard { user, .. } = auth;
     let ticket = Ticket::find(&mut conn, ticket_id)
         .await
@@ -86,8 +96,45 @@ pub async fn get_ticket(
         })
         .collect::<Vec<_>>();
 
+    let ticket_status = match ticket.finished {
+        true => TicketStatus::Finished,
+        false => {
+            let process_flow = flows.iter().find(|f| {
+                if let Some(flow) = &f.flow {
+                    flow.flow.finished == false
+                } else {
+                    false
+                }
+            });
+
+            match process_flow {
+                Some(flow) => match flow.flow.as_ref().and_then(|f| f.flow.user_id.clone()) {
+                    Some(flow_user_id) if flow_user_id == user.id => TicketStatus::Pending,
+                    Some(_) => TicketStatus::InProgress,
+                    None => {
+                        let target = Target::find(&mut conn, flow.schema.schema.operator_id)
+                            .await
+                            .map_err(|err| AppError::internal(err.to_string()))?;
+                        let is_user = Target::is_user_in_targets(&mut conn, &user, &vec![target])
+                            .await
+                            .map_err(|err| AppError::internal(err.to_string()))?;
+
+                        match is_user {
+                            true => TicketStatus::Pending,
+                            false => TicketStatus::InProgress,
+                        }
+                    }
+                },
+                None => TicketStatus::Finished,
+            }
+        }
+    };
+
     Ok(Json(TicketDetail {
-        ticket,
+        ticket: TicketWithStatus {
+            ticket,
+            status: ticket_status,
+        },
         schema,
         flows,
     }))
@@ -112,14 +159,14 @@ pub struct TicketFlowProcessReq {
 }
 
 #[post("/ticket/tickets/<ticket_id>/process", data = "<flow_req>")]
-pub async fn process_ticket_flow(
+async fn process_ticket_flow(
     mut conn: DbConn,
     auth: AuthGuard,
     ticket_id: i32,
     flow_req: Json<TicketFlowProcessReq>,
 ) -> EmptyResult {
     let AuthGuard { user, .. } = auth;
-    let ticket = Ticket::find(&mut conn, ticket_id)
+    let mut ticket = Ticket::find(&mut conn, ticket_id)
         .await
         .map_err(|err| crate::error::AppError::not_found(err.to_string()))?;
     match ticket.is_user(&mut conn, &user).await {
@@ -131,16 +178,37 @@ pub async fn process_ticket_flow(
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
+    ticket.updated_at = chrono::Utc::now().naive_utc();
 
-    let process_flow = ticket
+    let mut process_flow = ticket
         .get_process_flow(&mut conn)
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
+
+    if let Some(flow_user_id) = &process_flow.user_id {
+        if flow_user_id != &user.id {
+            return Err(AppError::forbidden(
+                "You are not assign to this flow".to_owned(),
+            ));
+        }
+    }
 
     let process_schema = process_flow
         .get_schema(&mut conn)
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
+
+    let schema_target = Target::find(&mut conn, process_schema.schema.operator_id)
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
+    let is_schema_user = Target::is_user_in_targets(&mut conn, &user, &vec![schema_target])
+        .await
+        .map_err(|err| AppError::forbidden(err.to_string()))?;
+    if !is_schema_user {
+        return Err(AppError::forbidden(
+            "You are not assign to this schema".to_owned(),
+        ));
+    }
 
     let latest_flow = ticket
         .get_latest_flow(&mut conn)
@@ -159,14 +227,17 @@ pub async fn process_ticket_flow(
                     Ok(normalized_data) => {
                         conn.transaction(|conn| {
                             async move {
-                                let _ = TicketFormAnswer::create(
+                                let _ = ticket.save(conn).await?;
+                                process_flow.user_id = Some(user.id.clone());
+                                process_flow.finished = true;
+                                let _ = process_flow.save(conn).await?;
+                                let _ = TicketFormAnswer::save_or_create(
                                     conn,
                                     &process_flow,
                                     &form_schema,
                                     normalized_data,
                                 )
                                 .await?;
-                                let _ = process_flow.set_finish(conn, true).await?;
 
                                 if latest_flow.id == process_flow.id {
                                     let _ = ticket.set_finish(conn, true).await?;
@@ -191,7 +262,8 @@ pub async fn process_ticket_flow(
             if let TicketProcessFlow::Review(review_req) = req.flow {
                 conn.transaction(|conn| {
                     async move {
-                        let _ = TicketReview::create(
+                        let _ = ticket.save(conn).await?;
+                        let _ = TicketReview::save_or_create(
                             conn,
                             &process_flow,
                             &review_schema,
@@ -199,10 +271,28 @@ pub async fn process_ticket_flow(
                             review_req.comment,
                         )
                         .await?;
-                        let _ = process_flow.set_finish(conn, true).await?;
+                        process_flow.user_id = Some(user.id.clone());
 
-                        if latest_flow.id == process_flow.id {
-                            let _ = ticket.set_finish(conn, true).await?;
+                        if review_req.approved {
+                            process_flow.finished = true;
+                            let _ = process_flow.save(conn).await?;
+
+                            if latest_flow.id == process_flow.id {
+                                let _ = ticket.set_finish(conn, true).await?;
+                            }
+                        } else if review_schema.restarted {
+                            let _ = process_flow.save(conn).await?;
+                            let flows = ticket.get_flows(conn).await?;
+                            for mut flow in flows.into_iter() {
+                                flow.flow.finished = false;
+                                let _ = flow.flow.save(conn).await?;
+                            }
+                        } else {
+                            let _ = process_flow.save(conn).await?;
+                            let mut previous_flow =
+                                ticket.get_previous_flow(conn, &process_flow).await?;
+                            previous_flow.finished = false;
+                            let _ = previous_flow.save(conn).await?;
                         }
 
                         Ok::<_, diesel::result::Error>(())
@@ -219,10 +309,7 @@ pub async fn process_ticket_flow(
 }
 
 #[get("/ticket/schemas")]
-pub async fn all_probably_schemas(
-    mut conn: DbConn,
-    auth: AuthGuard,
-) -> JsonResult<Vec<TicketSchema>> {
+async fn all_probably_schemas(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<TicketSchema>> {
     let AuthGuard { user, .. } = auth;
     Ok(TicketSchema::get_probably_schemas(&mut conn, &user)
         .await
@@ -230,7 +317,7 @@ pub async fn all_probably_schemas(
 }
 
 #[get("/ticket/schemas/<schema_id>")]
-pub async fn get_schema(
+async fn get_schema(
     mut conn: DbConn,
     auth: AuthGuard,
     schema_id: i32,
@@ -239,10 +326,10 @@ pub async fn get_schema(
     let schema = TicketSchema::find(&mut conn, schema_id)
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
-    match schema.is_probably_user(&mut conn, &user).await {
+    match schema.is_probably_join_user(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                "You are not a manager of this schema".to_owned(),
+                "You are not a probably user of this schema".to_owned(),
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
@@ -256,24 +343,57 @@ pub async fn get_schema(
     Ok(Json(TicketSchemaDetail { schema, flows }))
 }
 
+#[get("/ticket/schemas/<schema_id>/flows/<flow_id>/probably_assign_users")]
+async fn get_probably_assign_user_in_schema_flow(
+    mut conn: DbConn,
+    auth: AuthGuard,
+    schema_id: i32,
+    flow_id: i32,
+) -> JsonResult<Vec<User>> {
+    let AuthGuard { user, .. } = auth;
+    let schema = TicketSchema::find(&mut conn, schema_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+    match schema.is_probably_join_user(&mut conn, &user).await {
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                "You are not a probably user of this schema".to_owned(),
+            ))
+        }
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => (),
+    }
+
+    let schema_flow = TicketSchemaFlow::find(&mut conn, flow_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    let users = schema_flow
+        .get_probably_assign_users(&mut conn)
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
+    Ok(Json(users))
+}
+
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NewTicketReq {
+struct AddTicketReq {
+    pub title: String,
     pub assign_flow_users: HashMap<i32, String>,
 }
 
 #[post("/ticket/schemas/<schema_id>/tickets", data = "<new_ticket_req>")]
-pub async fn add_ticket_for_schema(
+async fn add_ticket_for_schema(
     mut conn: DbConn,
     auth: AuthGuard,
     schema_id: i32,
-    new_ticket_req: Json<NewTicketReq>,
+    new_ticket_req: Json<AddTicketReq>,
 ) -> EmptyResult {
     let AuthGuard { user, .. } = auth;
     let schema = TicketSchema::find(&mut conn, schema_id)
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    match schema.is_probably_user(&mut conn, &user).await {
+    match schema.is_probably_join_user(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
                 "You are not join to this ticket".to_owned(),
@@ -288,11 +408,14 @@ pub async fn add_ticket_for_schema(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
-    let assign_flow_users = new_ticket_req.into_inner().assign_flow_users;
+    let AddTicketReq {
+        title,
+        assign_flow_users,
+    } = new_ticket_req.into_inner();
 
     conn.transaction(|conn| {
         async move {
-            let ticket = Ticket::create(conn, &schema).await?;
+            let ticket = Ticket::create(conn, &schema, &title).await?;
 
             let _ = ticket.fill_flows(conn, &flows, assign_flow_users).await?;
 
@@ -305,8 +428,134 @@ pub async fn add_ticket_for_schema(
     Ok(EmptyResponse)
 }
 
+#[derive(FromForm)]
+struct UploadFormField<'r> {
+    file: TempFile<'r>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+enum UploadResult {
+    File(TicketFormFile),
+    Image(TicketFormImage),
+}
+
+#[post(
+    "/ticket/schemas/<schema_id>/form/<form_id>/field/<field_id>/upload",
+    data = "<upload_file_req>"
+)]
+async fn upload_file_in_form_field(
+    mut conn: DbConn,
+    auth: AuthGuard,
+    data_folder: &State<DataFolder>,
+    schema_id: i32,
+    form_id: i32,
+    field_id: i32,
+    upload_file_req: Form<UploadFormField<'_>>,
+) -> JsonResult<UploadResult> {
+    let AuthGuard { user, .. } = auth;
+
+    let UploadFormField { file } = upload_file_req.into_inner();
+
+    let form = TicketSchemaForm::find_with_field(&mut conn, form_id, field_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+    let schema_flow = TicketSchemaFlow::find(&mut conn, form.form.ticket_schema_flow_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+    if schema_flow.ticket_schema_id != schema_id {
+        return Err(AppError::bad_request("Invalid schema".to_owned()));
+    }
+    let schema_target = Target::find(&mut conn, schema_flow.operator_id)
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
+    let is_schema_user = Target::is_user_in_targets(&mut conn, &user, &vec![schema_target])
+        .await
+        .map_err(|err| AppError::forbidden(err.to_string()))?;
+    if !is_schema_user {
+        return Err(AppError::forbidden(
+            "You are not assign to this schema".to_owned(),
+        ));
+    }
+
+    if form.field.is_file_define() {
+        return form
+            .upload_file(&mut conn, data_folder, file)
+            .await
+            .map(|mut f: TicketFormFile| {
+                f.path = String::new();
+                Json(UploadResult::File(f))
+            })
+            .map_err(|err| AppError::bad_request(err.to_string()));
+    }
+
+    if form.field.is_image_define() {
+        return form
+            .upload_image(&mut conn, data_folder, file)
+            .await
+            .map(|mut f| {
+                f.path = String::new();
+                Json(UploadResult::Image(f))
+            })
+            .map_err(|err| AppError::bad_request(err.to_string()));
+    }
+
+    Err(AppError::bad_request("Invalid request".to_owned()))
+}
+
+#[get("/ticket/schemas/<schema_id>/form/<form_id>/field/<field_id>/<file_id>")]
+async fn get_field_file_content(
+    mut conn: DbConn,
+    auth: AuthGuard,
+    schema_id: i32,
+    form_id: i32,
+    field_id: i32,
+    file_id: String,
+) -> ApiResult<NamedFile> {
+    let AuthGuard { user, .. } = auth;
+
+    let schema = TicketSchema::find(&mut conn, schema_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    match schema.is_probably_user(&mut conn, &user).await {
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                "You are not join to this ticket".to_owned(),
+            ))
+        }
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => (),
+    }
+
+    let form = TicketSchemaForm::find_with_field(&mut conn, form_id, field_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    let mut id = file_id.clone();
+    if file_id.contains('.') {
+        id = file_id.split('.').collect::<Vec<&str>>()[0].to_owned();
+    }
+
+    let file_path = match form.field.define {
+        FormFieldDefine::File { .. } => TicketFormFile::find(&mut conn, id)
+            .await
+            .map(|f| f.path)
+            .map_err(|err| AppError::not_found(err.to_string()))?,
+        FormFieldDefine::Image { .. } => TicketFormImage::find(&mut conn, id)
+            .await
+            .map(|f| f.path)
+            .map_err(|err| AppError::not_found(err.to_string()))?,
+        _ => return Err(AppError::not_found("Not Found".to_owned())),
+    };
+
+    NamedFile::open(file_path)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))
+}
+
 #[get("/ticket/admin/schemas")]
-pub async fn all_managed_schemas_in_admin(
+async fn all_managed_schemas_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
 ) -> JsonResult<Vec<TicketSchema>> {
@@ -324,7 +573,7 @@ pub struct TicketSchemaDetail {
 }
 
 #[get("/ticket/admin/schemas/<schema_id>")]
-pub async fn get_managed_schema_in_admin(
+async fn get_managed_schema_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     schema_id: i32,
@@ -351,13 +600,13 @@ pub async fn get_managed_schema_in_admin(
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NewTicketSchemaReq {
+struct NewTicketSchemaReq {
     pub title: String,
     pub description: String,
 }
 
 #[post("/ticket/admin/schemas", data = "<new_schema_req>")]
-pub async fn add_managed_schema_in_admin(
+async fn add_managed_schema_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     new_schema_req: Json<NewTicketSchemaReq>,
@@ -386,14 +635,14 @@ pub async fn add_managed_schema_in_admin(
 }
 
 #[post("/ticket/admin/schemas/<schema_id>/flows", data = "<new_flow_req>")]
-pub async fn add_flow_to_schema_in_admin(
+async fn add_flow_to_schema_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     schema_id: i32,
     new_flow_req: Json<TicketSchemaFlowItem>,
 ) -> EmptyResult {
     let AuthGuard { user, .. } = auth;
-    let schema = TicketSchema::find(&mut conn, schema_id)
+    let mut schema = TicketSchema::find(&mut conn, schema_id)
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
     match schema.is_manager(&mut conn, &user).await {
@@ -408,6 +657,8 @@ pub async fn add_flow_to_schema_in_admin(
 
     conn.transaction(|conn| {
         async move {
+            schema.updated_at = chrono::Utc::now().naive_utc();
+            let _ = schema.save(conn).await?;
             let flow = schema
                 .add_flow(conn, new_flow_req.schema.name.clone())
                 .await?;
@@ -420,6 +671,8 @@ pub async fn add_flow_to_schema_in_admin(
                         .fields
                         .into_iter()
                         .map(|field| FormSchemaField {
+                            name: field.name,
+                            description: field.description,
                             key: field.key,
                             define: field.define,
                             required: field.required,
@@ -444,7 +697,7 @@ pub async fn add_flow_to_schema_in_admin(
 }
 
 #[get("/ticket/admin/schemas/<schema_id>/tickets")]
-pub async fn all_tickets_for_schema_in_admin(
+async fn all_tickets_for_schema_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     schema_id: i32,
@@ -476,7 +729,10 @@ pub fn routes() -> Vec<Route> {
         process_ticket_flow,
         all_probably_schemas,
         get_schema,
+        get_probably_assign_user_in_schema_flow,
         add_ticket_for_schema,
+        upload_file_in_form_field,
+        get_field_file_content,
         all_managed_schemas_in_admin,
         get_managed_schema_in_admin,
         add_managed_schema_in_admin,

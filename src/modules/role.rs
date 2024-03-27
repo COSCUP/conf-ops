@@ -1,5 +1,4 @@
 use crate::models::label::Label;
-use crate::models::project::Project;
 use crate::models::role::Role;
 use crate::modules::JsonResult;
 use crate::DbConn;
@@ -11,7 +10,7 @@ use rocket_db_pools::diesel::AsyncConnection;
 use super::{ApiResult, AuthGuard, EmptyResponse, EmptyResult, EnabledFeature};
 
 #[get("/role/<role_id>")]
-pub async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
+async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
     let role = Role::find(&mut conn, role_id)
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
@@ -23,7 +22,7 @@ pub async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
 }
 
 #[get("/role/roles")]
-pub async fn all_roles(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
+async fn all_roles(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
     let AuthGuard { user, .. } = auth;
     Ok(Role::get_roles_by_user(&mut conn, &user)
         .await
@@ -31,7 +30,7 @@ pub async fn all_roles(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role
 }
 
 #[get("/role/admin/roles")]
-pub async fn all_roles_in_admin(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
+async fn all_roles_in_admin(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<Role>> {
     let AuthGuard { user, .. } = auth;
     Ok(Role::get_manage_roles_by_user(&mut conn, &user)
         .await
@@ -39,14 +38,14 @@ pub async fn all_roles_in_admin(mut conn: DbConn, auth: AuthGuard) -> JsonResult
 }
 
 #[derive(Deserialize)]
-pub struct AdminRoleReq {
+struct AdminRoleReq {
     pub name: Option<String>,
     pub login_message: Option<String>,
     pub welcome_message: Option<String>,
 }
 
 #[put("/role/admin/roles/<role_id>", data = "<role_req>")]
-pub async fn put_role_in_admin(
+async fn put_role_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     role_id: String,
@@ -84,7 +83,7 @@ pub async fn put_role_in_admin(
 }
 
 #[get("/role/admin/roles/<role_id>/users")]
-pub async fn all_role_users_in_admin(
+async fn all_role_users_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     role_id: String,
@@ -108,20 +107,20 @@ pub async fn all_role_users_in_admin(
 }
 
 #[derive(Deserialize)]
-pub struct AdminAddRoleUser {
+struct AdminAddRoleUser {
     pub name: String,
+    pub locale: String,
     pub emails: Vec<String>,
 }
 
 #[post("/role/admin/roles/<role_id>/users", data = "<add_role_user_req>")]
-pub async fn add_role_users_in_admin(
+async fn add_role_users_in_admin(
     mut conn: DbConn,
-    project: Project,
     auth: AuthGuard,
     role_id: String,
     add_role_user_req: Json<Vec<AdminAddRoleUser>>,
 ) -> EmptyResult {
-    let AuthGuard { user, .. } = auth;
+    let AuthGuard { user, project, .. } = auth;
     let role = Role::find(&mut conn, role_id.clone())
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
@@ -139,7 +138,9 @@ pub async fn add_role_users_in_admin(
     conn.transaction(|mut conn| {
         Box::pin(async move {
             for user_req in add_role_user_req.iter() {
-                let user = project.add_user(&mut conn, user_req.name.clone()).await?;
+                let user = project
+                    .add_user(&mut conn, user_req.name.clone(), user_req.locale.clone())
+                    .await?;
 
                 let _ = user.add_emails(&mut conn, &user_req.emails).await?;
 
@@ -163,7 +164,7 @@ pub async fn add_role_users_in_admin(
 }
 
 #[delete("/role/admin/roles/<role_id>/users/<user_id>")]
-pub async fn delete_role_user_in_admin(
+async fn delete_role_user_in_admin(
     mut conn: DbConn,
     auth: AuthGuard,
     role_id: String,
@@ -210,7 +211,7 @@ pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec
     if manager_roles.is_empty() {
         vec![]
     } else {
-        vec![EnabledFeature::ManagerRole(manager_roles.len())]
+        vec![EnabledFeature::RoleManage(manager_roles.len())]
     }
 }
 

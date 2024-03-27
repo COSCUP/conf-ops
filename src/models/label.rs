@@ -10,7 +10,15 @@ use crate::utils::serde::unix_time;
 use super::user_label::UserLabel;
 
 #[derive(
-    Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, Serialize, Deserialize,
+    Queryable,
+    Identifiable,
+    Selectable,
+    Associations,
+    Debug,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    AsChangeset,
 )]
 #[diesel(table_name = labels)]
 #[diesel(belongs_to(Project))]

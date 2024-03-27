@@ -27,6 +27,7 @@ use super::{label::Label, user_label::UserLabel};
     Deserialize,
     Eq,
     Hash,
+    AsChangeset,
 )]
 #[diesel(belongs_to(Project))]
 #[diesel(table_name = users)]
@@ -35,6 +36,7 @@ pub struct User {
     pub id: String,
     pub name: String,
     pub project_id: String,
+    pub locale: String,
     #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
     #[serde(with = "unix_time")]
@@ -46,6 +48,7 @@ impl User {
         conn: &mut DbConn,
         name: String,
         project_id: String,
+        locale: String,
     ) -> Result<User, diesel::result::Error> {
         let id = Uuid::new_v4().to_string();
 
@@ -54,6 +57,7 @@ impl User {
                 users::id.eq(id.clone()),
                 users::name.eq(name),
                 users::project_id.eq(project_id),
+                users::locale.eq(locale),
             ))
             .execute(conn)
             .await;
@@ -111,7 +115,6 @@ impl User {
 
     pub fn build_role_ids_query<'a>(
         &self,
-        key: String,
     ) -> IntoBoxed<
         'a,
         Select<
@@ -129,23 +132,19 @@ impl User {
         users_labels::table
             .filter(users_labels::user_id.eq(self.id.clone()))
             .inner_join(labels::table)
-            .filter(labels::key.eq(key))
+            .filter(labels::key.eq("role"))
             .select(labels::value)
             .into_boxed()
     }
 
     pub fn build_user_labels_query<'a>(
         &self,
-        key: String,
     ) -> IntoBoxed<
         'a,
         Select<
-            Filter<
-                InnerJoin<
-                    Filter<users_labels::table, Eq<users_labels::user_id, String>>,
-                    labels::table,
-                >,
-                Eq<labels::key, String>,
+            InnerJoin<
+                Filter<users_labels::table, Eq<users_labels::user_id, String>>,
+                labels::table,
             >,
             labels::id,
         >,
@@ -154,7 +153,6 @@ impl User {
         users_labels::table
             .filter(users_labels::user_id.eq(self.id.clone()))
             .inner_join(labels::table)
-            .filter(labels::key.eq(key))
             .select(labels::id)
             .into_boxed()
     }

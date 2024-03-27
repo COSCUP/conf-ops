@@ -49,6 +49,7 @@ CREATE TABLE `ticket_schema_form_fields`(
 	`ticket_schema_form_id` INTEGER NOT NULL,
 	`order` INTEGER NOT NULL,
 	`key` VARCHAR(100) NOT NULL,
+	`name` VARCHAR(100) NOT NULL,
 	`description` TEXT NOT NULL,
 	`define` JSON NOT NULL,
 	`required` BOOLEAN NOT NULL,
@@ -72,6 +73,7 @@ CREATE TABLE `ticket_schema_reviews`(
 CREATE TABLE `tickets`(
 	`id` INTEGER NOT NULL AUTO_INCREMENT,
 	`ticket_schema_id` INTEGER NOT NULL,
+	`title` VARCHAR(150) NOT NULL,
 	`finished` BOOLEAN NOT NULL,
 	`created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

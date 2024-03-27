@@ -5,9 +5,9 @@ diesel::table! {
         id -> Integer,
         #[max_length = 50]
         project_id -> Varchar,
-        #[max_length = 20]
+        #[max_length = 50]
         key -> Varchar,
-        #[max_length = 20]
+        #[max_length = 50]
         value -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
@@ -151,6 +151,8 @@ diesel::table! {
         order -> Integer,
         #[max_length = 100]
         key -> Varchar,
+        #[max_length = 100]
+        name -> Varchar,
         description -> Text,
         define -> Json,
         required -> Bool,
@@ -207,6 +209,8 @@ diesel::table! {
     tickets (id) {
         id -> Integer,
         ticket_schema_id -> Integer,
+        #[max_length = 150]
+        title -> Varchar,
         finished -> Bool,
         created_at -> Timestamp,
         updated_at -> Timestamp,
@@ -249,6 +253,8 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 50]
         project_id -> Varchar,
+        #[max_length = 10]
+        locale -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }

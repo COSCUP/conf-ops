@@ -9,7 +9,7 @@ use crate::error::AppError;
 
 pub struct PrefixUri(pub String);
 const HOST_WHITELIST: &[rocket::http::uri::Host<'_>; 2] = &[
-    Host::new(uri!("localhost:8000")),
+    Host::new(uri!("127.0.0.1:8000")),
     Host::new(uri!("ops.coscup.org")),
 ];
 #[rocket::async_trait]
@@ -17,6 +17,12 @@ impl<'r> FromRequest<'r> for PrefixUri {
     type Error = AppError;
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+        let origin = request.headers().get_one("Origin");
+
+        if let Some(origin) = origin {
+            return Success(PrefixUri(origin.to_owned()));
+        }
+
         let uri = request
             .host()
             .and_then(|host| host.to_absolute("http", HOST_WHITELIST));

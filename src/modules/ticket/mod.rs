@@ -1,3 +1,4 @@
+use crate::models::role::Role;
 use crate::models::user::User;
 use crate::DbConn;
 
@@ -30,8 +31,17 @@ pub struct TicketSchemaFlowItem {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum TicketFlowValue {
+    None,
     Form(TicketFormAnswer),
     Review(TicketReview),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum TicketFlowOperator {
+    User(User),
+    Role(Role),
+    None,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -39,12 +49,27 @@ pub struct TicketFlowItem {
     #[serde(flatten)]
     flow: TicketFlow,
     module: TicketFlowValue,
+    operator: TicketFlowOperator,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TicketFlowStatus {
     schema: TicketSchemaFlowItem,
     flow: Option<TicketFlowItem>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum TicketStatus {
+    InProgress,
+    Pending,
+    Finished,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TicketWithStatus {
+    #[serde(flatten)]
+    pub ticket: Ticket,
+    pub status: TicketStatus,
 }
 
 pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec<EnabledFeature> {
@@ -64,10 +89,8 @@ pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec
         .await
         .unwrap_or(vec![]);
 
-    if manager_tickets.is_empty() {
-        features.push(EnabledFeature::ManagerRole(0));
-    } else {
-        features.push(EnabledFeature::ManagerRole(manager_tickets.len()));
+    if !manager_tickets.is_empty() {
+        features.push(EnabledFeature::TicketManage(manager_tickets.len()));
     }
 
     features

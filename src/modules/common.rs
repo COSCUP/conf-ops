@@ -23,29 +23,37 @@ use crate::{
 use super::{role, ticket, AuthGuard, EnabledFeature};
 
 #[get("/")]
-pub async fn ping() -> &'static str {
+async fn ping() -> &'static str {
     "pong"
 }
 
 #[get("/projects")]
-pub async fn all_projects(mut conn: DbConn) -> JsonResult<Vec<Project>> {
+async fn all_projects(mut conn: DbConn) -> JsonResult<Vec<Project>> {
     Ok(Project::all(&mut conn).await.map_or(Json(vec![]), Json))
 }
 
+#[get("/projects/<project_id>")]
+async fn get_project_by_id(mut conn: DbConn, project_id: String) -> JsonResult<Project> {
+    Ok(Project::find(&mut conn, project_id)
+        .await
+        .map(Json)
+        .map_err(|err| AppError::not_found(err.to_string()))?)
+}
+
 #[get("/project")]
-pub async fn get_project(auth: AuthGuard) -> JsonResult<Project> {
+async fn get_auth_project(auth: AuthGuard) -> JsonResult<Project> {
     let AuthGuard { project, .. } = auth;
     Ok(Json(project))
 }
 
 #[derive(Deserialize)]
-pub struct LoginReq {
+struct LoginReq {
     project_id: String,
     email: String,
 }
 
 #[post("/project/login", data = "<login_req>")]
-pub async fn login(
+async fn login(
     mut conn: DbConn,
     config: &State<AppConfig>,
     host: PrefixUri,
@@ -83,12 +91,12 @@ pub async fn login(
 }
 
 #[derive(Deserialize)]
-pub struct TokenReq {
+struct TokenReq {
     token: String,
 }
 
 #[post("/project/token", data = "<token_req>")]
-pub async fn token(
+async fn verify_token(
     mut conn: DbConn,
     config: &State<AppConfig>,
     cookie_jar: &CookieJar<'_>,
@@ -126,13 +134,13 @@ pub async fn token(
 }
 
 #[get("/project/me")]
-pub async fn get_me(auth: AuthGuard) -> JsonResult<User> {
+async fn get_me(auth: AuthGuard) -> JsonResult<User> {
     let AuthGuard { user, .. } = auth;
     Ok(Json(user))
 }
 
 #[post("/project/logout")]
-pub async fn logout(mut conn: DbConn, cookie_jar: &CookieJar<'_>, auth: AuthGuard) -> EmptyResult {
+async fn logout(mut conn: DbConn, cookie_jar: &CookieJar<'_>, auth: AuthGuard) -> EmptyResult {
     let AuthGuard { user_session, .. } = auth;
     let _ = user_session.expire(&mut conn).await;
 
@@ -144,7 +152,7 @@ pub async fn logout(mut conn: DbConn, cookie_jar: &CookieJar<'_>, auth: AuthGuar
 }
 
 #[get("/project/features")]
-pub async fn get_features_by_user(
+async fn get_features_by_user(
     mut conn: DbConn,
     auth: AuthGuard,
 ) -> JsonResult<Vec<EnabledFeature>> {
@@ -162,9 +170,10 @@ pub fn routes() -> Vec<Route> {
     routes![
         ping,
         all_projects,
-        get_project,
+        get_project_by_id,
+        get_auth_project,
         login,
-        token,
+        verify_token,
         get_me,
         logout,
         get_features_by_user

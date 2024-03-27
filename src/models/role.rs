@@ -18,6 +18,7 @@ use crate::{
     Serialize,
     Deserialize,
     Insertable,
+    AsChangeset,
 )]
 #[diesel(belongs_to(Project))]
 #[diesel(table_name = roles)]
@@ -35,7 +36,15 @@ pub struct Role {
 }
 
 #[derive(
-    Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, Serialize, Deserialize,
+    Queryable,
+    Identifiable,
+    Selectable,
+    Associations,
+    Debug,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    AsChangeset,
 )]
 #[diesel(belongs_to(Role))]
 #[diesel(belongs_to(Target))]
@@ -57,17 +66,31 @@ impl Role {
     }
 
     pub async fn save(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
-        diesel::replace_into(roles::table)
+        match diesel::replace_into(roles::table)
             .values(self)
             .execute(conn)
             .await
+        {
+            Ok(result) => Ok(result),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => {
+                diesel::update(roles::table)
+                    .filter(roles::id.eq(&self.id))
+                    .set(self)
+                    .execute(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn get_roles_by_user(
         conn: &mut crate::DbConn,
         user: &User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
-        let role_ids = user.build_role_ids_query("role".to_owned());
+        let role_ids = user.build_role_ids_query();
 
         roles::table
             .filter(roles::id.eq_any(role_ids))
@@ -80,12 +103,12 @@ impl Role {
         conn: &mut crate::DbConn,
         user: &User,
     ) -> Result<Vec<Role>, diesel::result::Error> {
-        let user_label_ids = user.build_user_labels_query("role".to_owned());
+        let role_ids = user.build_user_labels_query();
 
         role_managers::table
             .inner_join(roles::table)
             .inner_join(targets::table.left_join(labels::table))
-            .filter(labels::id.eq_any(user_label_ids))
+            .filter(labels::id.eq_any(role_ids))
             .or_filter(targets::user_id.eq(user.id.clone()))
             .select(Role::as_select())
             .load(conn)

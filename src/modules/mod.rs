@@ -26,6 +26,13 @@ fn catch_not_found() -> AppError {
     AppError::not_found("Resource not found".to_owned())
 }
 
+#[catch(500)]
+fn catch_internal() -> AppError {
+    AppError::internal(
+        "The server encountered an internal error while processing this request.".to_owned(),
+    )
+}
+
 impl<'r> Responder<'r, 'static> for EmptyResponse {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
         Response::build().status(Status::NoContent).ok()
@@ -97,9 +104,9 @@ impl<'r> rocket::request::FromRequest<'r> for AuthGuard {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(tag = "type", content = "todo")]
 pub enum EnabledFeature {
-    ManagerRole(usize),
+    RoleManage(usize),
     Ticket(usize),
-    ManagerTicket(usize),
+    TicketManage(usize),
 }
 
 pub fn stage() -> AdHoc {
@@ -110,6 +117,9 @@ pub fn stage() -> AdHoc {
                 "/api/project",
                 [role::routes(), ticket::api::routes()].concat(),
             )
-            .register("/api", catchers![catch_unauthorized, catch_not_found])
+            .register(
+                "/api",
+                catchers![catch_unauthorized, catch_not_found, catch_internal],
+            )
     })
 }

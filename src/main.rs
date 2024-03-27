@@ -34,6 +34,10 @@ pub struct AppConfig {
 pub struct DataFolder(pub std::path::PathBuf);
 
 impl DataFolder {
+    pub fn base_path(&self) -> std::path::PathBuf {
+        self.0.clone()
+    }
+
     pub fn image_path(&self, image_name: &str) -> std::path::PathBuf {
         self.0.join(Path::new("images")).join(image_name)
     }
@@ -50,8 +54,17 @@ fn rocket() -> _ {
         .attach(AdHoc::config::<AppConfig>())
         .attach(AdHoc::try_on_ignite("Data Folder", |rocket| async {
             let data_folder_path = std::env::current_dir().unwrap().join(Path::new("app-data"));
-            tokio::fs::create_dir_all(&data_folder_path).await.unwrap();
-            Ok(rocket.manage(DataFolder(data_folder_path)))
+            let data_folder = DataFolder(data_folder_path);
+            tokio::fs::create_dir_all(&data_folder.base_path())
+                .await
+                .unwrap();
+            tokio::fs::create_dir_all(&data_folder.image_path(""))
+                .await
+                .unwrap();
+            tokio::fs::create_dir_all(&data_folder.file_path(""))
+                .await
+                .unwrap();
+            Ok(rocket.manage(data_folder))
         }))
         .mount("/", FileServer::from("public/"))
         .attach(modules::stage())

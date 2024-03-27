@@ -50,25 +50,25 @@ pub enum FormFieldValue {
 pub enum FormFieldDefine<OV> {
     SingleLineText {
         max_texts: u32,
-        default: FormFieldDefault,
+        default: Option<FormFieldDefault>,
     },
     MultiLineText {
         max_texts: u32,
         max_lines: u32,
-        default: FormFieldDefault,
+        default: Option<FormFieldDefault>,
     },
     SingleChoice {
         options: Vec<FormFieldOption<OV>>,
-        default: FormFieldDefault,
+        default: Option<FormFieldDefault>,
     },
     MultipleChoice {
         options: Vec<FormFieldOption<OV>>,
         max_options: u32,
         is_checkbox: bool,
-        default: FormFieldDefault,
+        default: Option<FormFieldDefault>,
     },
     Bool {
-        default: FormFieldDefault,
+        default: Option<FormFieldDefault>,
     },
     Image {
         max_size: u32,
@@ -77,17 +77,17 @@ pub enum FormFieldDefine<OV> {
         min_height: Option<u32>,
         max_height: Option<u32>,
         mimes: Vec<ImageMime>,
-        default: FormFieldDefault,
+        default: Option<FormFieldDefault>,
     },
     File {
         max_size: u32,
         mimes: Vec<FileMime>,
-        default: FormFieldDefault,
+        default: Option<FormFieldDefault>,
     },
     IfEqual {
         key: String,
         from: FormFieldDefault,
-        value: FormFieldValue,
+        value: Vec<FormFieldValue>,
     },
     IfEnd {
         key: String,
@@ -112,6 +112,8 @@ impl ToSql<sql_types::Json, Mysql> for FormFieldDefine<FormFieldOptionValue> {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct FormSchemaField {
+    pub name: String,
+    pub description: String,
     pub key: String,
     pub define: FormFieldDefine<FormFieldOptionValue>,
     pub required: bool,

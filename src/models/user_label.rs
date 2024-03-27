@@ -6,7 +6,15 @@ use crate::schema::users_labels;
 use crate::utils::serde::unix_time;
 
 #[derive(
-    Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, Serialize, Deserialize,
+    Queryable,
+    Identifiable,
+    Selectable,
+    Associations,
+    Debug,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    AsChangeset,
 )]
 #[diesel(belongs_to(User))]
 #[diesel(belongs_to(Label))]

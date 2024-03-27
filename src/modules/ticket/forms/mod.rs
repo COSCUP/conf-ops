@@ -125,18 +125,25 @@ impl FormSchema {
             } = field.clone()
             {
                 let condition_result = match from {
-                    FormFieldDefault::Static(from_value) => from_value == value,
+                    FormFieldDefault::Static(from_value) => value.contains(&from_value),
                     FormFieldDefault::Dynamic {
                         value: from_value, ..
                     } => match from_value {
-                        Some(from_value) => from_value == value,
+                        Some(from_value) => value.contains(&from_value),
                         None => false,
                     },
                 };
                 if !condition_result {
                     last_falsy_if = Some(key);
-                    continue;
                 }
+                continue;
+            }
+            if let TicketSchemaFormField {
+                define: FormFieldDefine::IfEnd { .. },
+                ..
+            } = raw_field
+            {
+                continue;
             }
             result.push(field);
         }
@@ -170,7 +177,7 @@ impl PartFormSchema {
         conn: &mut crate::DbConn,
         data_folder: &State<DataFolder>,
         mut temp_file: TempFile<'_>,
-    ) -> Result<serde_json::Value, String> {
+    ) -> Result<TicketFormImage, String> {
         let PartFormSchema { field, .. } = self;
 
         let get_file_content = || async {
@@ -279,19 +286,24 @@ impl PartFormSchema {
                 .to_str()
                 .ok_or(format!("Error getting file path"))?;
 
-            let image = TicketFormImage::create(
-                conn,
-                hash,
-                field,
-                path.to_owned(),
-                mime,
+            let image = TicketFormImage {
+                id: hash.clone(),
+                ticket_schema_form_field_id: field.id,
+                path: path.to_owned(),
+                mime: mime.clone(),
                 size,
                 width,
                 height,
-            )
-            .await
-            .map_err(|err| format!("Error saving image: {}", err))?;
-            return Ok(Value::String(image.id));
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: chrono::Utc::now().naive_utc(),
+            };
+
+            image
+                .save(conn)
+                .await
+                .map_err(|err| format!("Error saving image: {}", err))?;
+
+            return Ok(image);
         };
 
         Err(format!("Field {} is not an image", field.key))
@@ -302,7 +314,7 @@ impl PartFormSchema {
         conn: &mut crate::DbConn,
         data_folder: &State<DataFolder>,
         mut temp_file: TempFile<'_>,
-    ) -> Result<serde_json::Value, String> {
+    ) -> Result<TicketFormFile, String> {
         let PartFormSchema { field, .. } = self;
 
         let get_file_content = || async {
@@ -372,7 +384,7 @@ impl PartFormSchema {
             let file = TicketFormFile::create(conn, hash, field, path.to_owned(), mime, file_size)
                 .await
                 .map_err(|err| format!("Error saving file: {}", err))?;
-            return Ok(Value::String(file.id));
+            return Ok(file);
         }
 
         Err(format!("Field {} is not a file", field.key))

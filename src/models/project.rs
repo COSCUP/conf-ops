@@ -14,7 +14,9 @@ use crate::{
     DbConn,
 };
 
-#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize, AsChangeset,
+)]
 #[diesel(table_name = projects)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Project {
@@ -30,6 +32,7 @@ pub struct Project {
 impl Project {
     pub async fn all(conn: &mut crate::DbConn) -> Result<Vec<Project>, diesel::result::Error> {
         projects::table
+            .order(projects::created_at.asc())
             .select(Project::as_select())
             .load(conn)
             .await
@@ -56,8 +59,9 @@ impl Project {
         &self,
         conn: &mut crate::DbConn,
         name: String,
+        locale: String,
     ) -> Result<User, diesel::result::Error> {
-        User::create(conn, name, self.id.clone()).await
+        User::create(conn, name, self.id.clone(), locale).await
     }
 
     pub async fn get_labels(

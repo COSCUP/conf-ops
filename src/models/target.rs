@@ -13,7 +13,15 @@ use crate::{
 use super::user_label::UserLabel;
 
 #[derive(
-    Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, Serialize, Deserialize,
+    Queryable,
+    Identifiable,
+    Selectable,
+    Associations,
+    Debug,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    AsChangeset,
 )]
 #[diesel(belongs_to(User))]
 #[diesel(belongs_to(Label))]
@@ -30,6 +38,10 @@ pub struct Target {
 }
 
 impl Target {
+    pub async fn find(conn: &mut crate::DbConn, id: i32) -> Result<Target, diesel::result::Error> {
+        targets::table.find(id).first(conn).await
+    }
+
     pub async fn find_or_create_user(
         conn: &mut crate::DbConn,
         user: &User,
@@ -98,10 +110,7 @@ impl Target {
         user: &User,
         list: &Vec<Target>,
     ) -> Result<bool, diesel::result::Error> {
-        let user_label_ids = user
-            .build_user_labels_query("role".to_owned())
-            .load(conn)
-            .await?;
+        let user_label_ids = user.build_user_labels_query().load(conn).await?;
 
         Ok(list.iter().any(|t| {
             if let Some(label_id) = t.label_id {

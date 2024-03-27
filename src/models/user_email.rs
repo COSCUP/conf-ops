@@ -7,7 +7,15 @@ use crate::schema::{user_emails, users};
 use crate::utils::serde::unix_time;
 
 #[derive(
-    Queryable, Identifiable, Selectable, Associations, Debug, PartialEq, Serialize, Deserialize,
+    Queryable,
+    Identifiable,
+    Selectable,
+    Associations,
+    Debug,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    AsChangeset,
 )]
 #[diesel(belongs_to(User))]
 #[diesel(table_name = user_emails)]

@@ -6,10 +6,10 @@ use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use serde_json::Value;
 
 use crate::models::user::User;
-use crate::modules::ticket::models::{TicketFlow, TicketSchemaFlow};
+use crate::modules::ticket::models::{Ticket, TicketFlow, TicketSchemaFlow};
 use crate::schema::{
     ticket_flows, ticket_form_answers, ticket_form_files, ticket_form_images,
-    ticket_schema_form_fields, ticket_schema_forms,
+    ticket_schema_form_fields, ticket_schema_forms, tickets,
 };
 use crate::utils::file::FileMime;
 use crate::utils::image::ImageMime;
@@ -33,6 +33,7 @@ use super::{FormSchema, PartFormSchema};
     Serialize,
     Deserialize,
     Insertable,
+    AsChangeset,
 )]
 #[diesel(belongs_to(TicketSchemaFlow))]
 #[diesel(table_name = ticket_schema_forms)]
@@ -109,15 +110,43 @@ impl TicketSchemaForm {
         conn: &mut crate::DbConn,
         fields: Vec<TicketSchemaFormField>,
     ) -> Result<usize, diesel::result::Error> {
-        let _ = diesel::replace_into(ticket_schema_forms::table)
+        let _ = match diesel::replace_into(ticket_schema_forms::table)
             .values(self)
             .execute(conn)
-            .await?;
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => {
+                diesel::update(ticket_schema_forms::table)
+                    .filter(ticket_schema_forms::id.eq(&self.id))
+                    .set(self)
+                    .execute(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }?;
 
-        diesel::replace_into(ticket_schema_form_fields::table)
+        match diesel::replace_into(ticket_schema_form_fields::table)
             .values(fields)
             .execute(conn)
             .await
+        {
+            Ok(result) => Ok(result),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => {
+                diesel::update(ticket_schema_form_fields::table)
+                    .filter(ticket_schema_form_fields::ticket_schema_form_id.eq(&self.id))
+                    .set(ticket_schema_form_fields::order.eq(0))
+                    .execute(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn add_fields(
@@ -143,6 +172,8 @@ impl TicketSchemaForm {
                 (
                     ticket_schema_form_fields::ticket_schema_form_id.eq(self.id),
                     ticket_schema_form_fields::order.eq(order + i as i32),
+                    ticket_schema_form_fields::name.eq(field.name),
+                    ticket_schema_form_fields::description.eq(field.description),
                     ticket_schema_form_fields::key.eq(field.key),
                     ticket_schema_form_fields::define.eq(field.define),
                     ticket_schema_form_fields::required.eq(field.required),
@@ -169,6 +200,7 @@ impl TicketSchemaForm {
     Deserialize,
     Insertable,
     Clone,
+    AsChangeset,
 )]
 #[diesel(belongs_to(TicketSchemaForm))]
 #[diesel(table_name = ticket_schema_form_fields)]
@@ -178,6 +210,7 @@ pub struct TicketSchemaFormField {
     pub ticket_schema_form_id: i32,
     pub order: i32,
     pub key: String,
+    pub name: String,
     pub description: String,
     pub define: FormFieldDefine<FormFieldOptionValue>,
     pub required: bool,
@@ -194,7 +227,7 @@ impl TicketSchemaFormField {
         conn: &mut crate::DbConn,
         data: &serde_json::Value,
     ) -> Result<Value, String> {
-        if self.editable {
+        if !self.editable {
             return Ok(serde_json::Value::Null);
         }
 
@@ -266,13 +299,21 @@ impl TicketSchemaFormField {
                     return Ok(data.clone());
                 }
                 FormFieldDefine::File { .. } => {
-                    if let Err(_) = TicketFormFile::find(conn, value.clone()).await {
+                    let mut id = value.clone();
+                    if id.contains(".") {
+                        id = id.split('.').collect::<Vec<&str>>()[0].to_owned();
+                    }
+                    if let Err(_) = TicketFormFile::find(conn, id).await {
                         return Err(format!("Field {} is not a upload file", self.key));
                     }
                     return Ok(data.clone());
                 }
                 FormFieldDefine::Image { .. } => {
-                    if let Err(_) = TicketFormImage::find(conn, value.clone()).await {
+                    let mut id = value.clone();
+                    if id.contains(".") {
+                        id = id.split('.').collect::<Vec<&str>>()[0].to_owned();
+                    }
+                    if let Err(_) = TicketFormImage::find(conn, id).await {
                         return Err(format!("Field {} is not a upload image", self.key));
                     }
                     return Ok(data.clone());
@@ -324,12 +365,12 @@ impl TicketSchemaFormField {
         match self.define.clone() {
             FormFieldDefine::SingleLineText { max_texts, default } => {
                 let new_default = match default {
-                    FormFieldDefault::Dynamic {
+                    Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key,
                         ..
-                    } => FormFieldDefault::Dynamic {
+                    }) => Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key: field_key.clone(),
@@ -341,8 +382,8 @@ impl TicketSchemaFormField {
                             &field_key,
                         )
                         .await,
-                    },
-                    FormFieldDefault::Static(_) => default.clone(),
+                    }),
+                    _ => default,
                 };
                 FormFieldDefine::SingleLineText {
                     default: new_default,
@@ -355,12 +396,12 @@ impl TicketSchemaFormField {
                 default,
             } => {
                 let new_default = match default {
-                    FormFieldDefault::Dynamic {
+                    Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key,
                         ..
-                    } => FormFieldDefault::Dynamic {
+                    }) => Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key: field_key.clone(),
@@ -372,8 +413,8 @@ impl TicketSchemaFormField {
                             &field_key,
                         )
                         .await,
-                    },
-                    FormFieldDefault::Static(_) => default.clone(),
+                    }),
+                    _ => default,
                 };
                 FormFieldDefine::MultiLineText {
                     default: new_default,
@@ -385,12 +426,12 @@ impl TicketSchemaFormField {
                 options, default, ..
             } => {
                 let new_default = match default {
-                    FormFieldDefault::Dynamic {
+                    Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key,
                         ..
-                    } => FormFieldDefault::Dynamic {
+                    }) => Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key: field_key.clone(),
@@ -402,8 +443,8 @@ impl TicketSchemaFormField {
                             &field_key,
                         )
                         .await,
-                    },
-                    FormFieldDefault::Static(_) => default.clone(),
+                    }),
+                    _ => default,
                 };
                 FormFieldDefine::SingleChoice {
                     default: new_default,
@@ -417,12 +458,12 @@ impl TicketSchemaFormField {
                 is_checkbox,
             } => {
                 let new_default = match default {
-                    FormFieldDefault::Dynamic {
+                    Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key,
                         ..
-                    } => FormFieldDefault::Dynamic {
+                    }) => Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key: field_key.clone(),
@@ -434,8 +475,8 @@ impl TicketSchemaFormField {
                             &field_key,
                         )
                         .await,
-                    },
-                    FormFieldDefault::Static(_) => default.clone(),
+                    }),
+                    _ => default,
                 };
                 FormFieldDefine::MultipleChoice {
                     default: new_default,
@@ -446,12 +487,12 @@ impl TicketSchemaFormField {
             }
             FormFieldDefine::Bool { default } => {
                 let new_default = match default {
-                    FormFieldDefault::Dynamic {
+                    Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key,
                         ..
-                    } => FormFieldDefault::Dynamic {
+                    }) => Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key: field_key.clone(),
@@ -463,8 +504,8 @@ impl TicketSchemaFormField {
                             &field_key,
                         )
                         .await,
-                    },
-                    FormFieldDefault::Static(_) => default.clone(),
+                    }),
+                    _ => default.clone(),
                 };
                 FormFieldDefine::Bool {
                     default: new_default,
@@ -480,12 +521,12 @@ impl TicketSchemaFormField {
                 mimes,
             } => {
                 let new_default = match default {
-                    FormFieldDefault::Dynamic {
+                    Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key,
                         ..
-                    } => FormFieldDefault::Dynamic {
+                    }) => Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key: field_key.clone(),
@@ -497,8 +538,8 @@ impl TicketSchemaFormField {
                             &field_key,
                         )
                         .await,
-                    },
-                    FormFieldDefault::Static(_) => default.clone(),
+                    }),
+                    _ => default,
                 };
                 FormFieldDefine::Image {
                     default: new_default,
@@ -516,12 +557,12 @@ impl TicketSchemaFormField {
                 mimes,
             } => {
                 let new_default = match default {
-                    FormFieldDefault::Dynamic {
+                    Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key,
                         ..
-                    } => FormFieldDefault::Dynamic {
+                    }) => Some(FormFieldDefault::Dynamic {
                         schema_form_id,
                         flow_id,
                         field_key: field_key.clone(),
@@ -533,8 +574,8 @@ impl TicketSchemaFormField {
                             &field_key,
                         )
                         .await,
-                    },
-                    FormFieldDefault::Static(_) => default.clone(),
+                    }),
+                    _ => default,
                 };
                 FormFieldDefine::File {
                     default: new_default,
@@ -614,10 +655,24 @@ impl TicketSchemaFormField {
     }
 
     pub async fn save(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
-        diesel::replace_into(ticket_schema_form_fields::table)
+        match diesel::replace_into(ticket_schema_form_fields::table)
             .values(self)
             .execute(conn)
             .await
+        {
+            Ok(result) => Ok(result),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => {
+                diesel::update(ticket_schema_form_fields::table)
+                    .filter(ticket_schema_form_fields::id.eq(&self.id))
+                    .set(self)
+                    .execute(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub fn is_file_define(&self) -> bool {
@@ -653,6 +708,7 @@ impl TicketSchemaFormField {
     Serialize,
     Deserialize,
     Insertable,
+    AsChangeset,
 )]
 #[diesel(belongs_to(TicketFlow))]
 #[diesel(belongs_to(TicketSchemaForm))]
@@ -670,7 +726,7 @@ pub struct TicketFormAnswer {
 }
 
 impl TicketFormAnswer {
-    pub async fn create(
+    pub async fn save_or_create(
         conn: &mut crate::DbConn,
         flow: &TicketFlow,
         form_schema: &FormSchema,
@@ -678,23 +734,39 @@ impl TicketFormAnswer {
     ) -> Result<TicketFormAnswer, diesel::result::Error> {
         let FormSchema { form, .. } = form_schema;
 
-        diesel::insert_into(ticket_form_answers::table)
-            .values((
-                ticket_form_answers::ticket_flow_id.eq(flow.id),
-                ticket_form_answers::ticket_schema_form_id.eq(form.id),
-                ticket_form_answers::value.eq(serde_json::Value::Object(value)),
-            ))
-            .execute(conn)
-            .await?;
-
-        sql_function! {
-            fn last_insert_id() -> Integer;
-        }
-
-        ticket_form_answers::table
-            .find(last_insert_id())
+        let form_answer: Result<TicketFormAnswer, _> = ticket_form_answers::table
+            .filter(ticket_form_answers::ticket_flow_id.eq(flow.id))
+            .filter(ticket_form_answers::ticket_schema_form_id.eq(form.id))
             .first(conn)
-            .await
+            .await;
+
+        match form_answer {
+            Ok(mut form_answer) => {
+                form_answer.value = serde_json::Value::Object(value);
+                form_answer.save(conn).await?;
+                return Ok(form_answer);
+            }
+            Err(diesel::result::Error::NotFound) => {
+                diesel::insert_into(ticket_form_answers::table)
+                    .values((
+                        ticket_form_answers::ticket_flow_id.eq(flow.id),
+                        ticket_form_answers::ticket_schema_form_id.eq(form.id),
+                        ticket_form_answers::value.eq(serde_json::Value::Object(value)),
+                    ))
+                    .execute(conn)
+                    .await?;
+
+                sql_function! {
+                    fn last_insert_id() -> Integer;
+                }
+
+                ticket_form_answers::table
+                    .find(last_insert_id())
+                    .first(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn get_field_value(
@@ -705,8 +777,8 @@ impl TicketFormAnswer {
         field_key: &String,
     ) -> Option<FormFieldValue> {
         let mut query = ticket_form_answers::table
-            .inner_join(ticket_flows::table)
-            .filter(ticket_flows::user_id.eq(user.id.clone()))
+            .inner_join(ticket_flows::table.inner_join(tickets::table))
+            .filter(tickets::id.eq_any(Ticket::build_ticket_ids_by_user_query(user)))
             .filter(ticket_form_answers::ticket_schema_form_id.eq(ticket_schema_form_id))
             .into_boxed();
 
@@ -733,10 +805,24 @@ impl TicketFormAnswer {
     }
 
     pub async fn save(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
-        diesel::replace_into(ticket_form_answers::table)
+        match diesel::replace_into(ticket_form_answers::table)
             .values(self)
             .execute(conn)
             .await
+        {
+            Ok(result) => Ok(result),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => {
+                diesel::update(ticket_form_answers::table)
+                    .filter(ticket_form_answers::id.eq(&self.id))
+                    .set(self)
+                    .execute(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -750,6 +836,7 @@ impl TicketFormAnswer {
     Serialize,
     Deserialize,
     Insertable,
+    AsChangeset,
 )]
 #[diesel(belongs_to(TicketSchemaFormField))]
 #[diesel(table_name = ticket_form_images)]
@@ -769,43 +856,32 @@ pub struct TicketFormImage {
 }
 
 impl TicketFormImage {
-    pub async fn create(
-        conn: &mut crate::DbConn,
-        id: String,
-        field: &TicketSchemaFormField,
-        path: String,
-        mime: ImageMime,
-        size: u32,
-        width: u32,
-        height: u32,
-    ) -> Result<TicketFormImage, diesel::result::Error> {
-        diesel::insert_into(ticket_form_images::table)
-            .values((
-                ticket_form_images::id.eq(id),
-                ticket_form_images::ticket_schema_form_field_id.eq(field.id),
-                ticket_form_images::path.eq(path),
-                ticket_form_images::mime.eq(mime),
-                ticket_form_images::size.eq(size),
-                ticket_form_images::width.eq(width),
-                ticket_form_images::height.eq(height),
-            ))
-            .execute(conn)
-            .await?;
-
-        sql_function! {
-            fn last_insert_id() -> VarChar;
-        }
-
-        ticket_form_images::table
-            .find(last_insert_id())
-            .first(conn)
-            .await
-    }
     pub async fn find(
         conn: &mut crate::DbConn,
         id: String,
     ) -> Result<TicketFormImage, diesel::result::Error> {
         ticket_form_images::table.find(id).first(conn).await
+    }
+
+    pub async fn save(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
+        match diesel::replace_into(ticket_form_images::table)
+            .values(self)
+            .execute(conn)
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => {
+                diesel::update(ticket_form_images::table)
+                    .filter(ticket_form_images::id.eq(&self.id))
+                    .set(self)
+                    .execute(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -819,6 +895,7 @@ impl TicketFormImage {
     Serialize,
     Deserialize,
     Insertable,
+    AsChangeset,
 )]
 #[diesel(belongs_to(TicketSchemaFormField))]
 #[diesel(table_name = ticket_form_files)]
