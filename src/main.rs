@@ -50,8 +50,8 @@ impl DataFolder {
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .attach(MainDb::init())
         .attach(AdHoc::config::<AppConfig>())
+        .attach(MainDb::init())
         .attach(AdHoc::try_on_ignite("Data Folder", |rocket| async {
             let data_folder_path = std::env::current_dir().unwrap().join(Path::new("app-data"));
             let data_folder = DataFolder(data_folder_path);
