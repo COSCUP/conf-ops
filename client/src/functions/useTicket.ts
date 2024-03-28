@@ -1,4 +1,4 @@
-import { Component, computed, h } from 'vue'
+import { Component, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Home, AddAlt, Ticket, PendingFilled, InProgress, CheckmarkFilled } from '@vicons/carbon'
 import { usePageTitle } from '@/functions/usePage'
