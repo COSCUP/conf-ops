@@ -1,7 +1,9 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rocket::fairing::AdHoc;
-use rocket::fs::FileServer;
+use rocket::fs::{FileServer, NamedFile};
+use rocket::http::Method;
+use rocket::http::Header;
 use rocket_db_pools::diesel::MysqlPool;
 use rocket_db_pools::{Connection, Database};
 
@@ -47,6 +49,14 @@ impl DataFolder {
     }
 }
 
+#[get("/<path..>", rank = 1)]
+async fn get_default_page(path: PathBuf) -> Option<NamedFile> {
+    if path.starts_with("api/") {
+        return None;
+    }
+    NamedFile::open("public/index.html").await.ok()
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build()
@@ -66,6 +76,26 @@ fn rocket() -> _ {
                 .unwrap();
             Ok(rocket.manage(data_folder))
         }))
-        .mount("/", FileServer::from("public/"))
         .attach(modules::stage())
+        .mount("/", FileServer::from("public/").rank(0))
+        .mount("/", routes![get_default_page])
+        .attach(AdHoc::on_response("cache header", |req, res| Box::pin(async move {
+            if req.method() != Method::Get || res.status().code >= 400 {
+                return
+            }
+
+            if req.uri().path().starts_with("/api/") {
+                res.set_header(Header::new("Cache-Control", "max-age=0, no-store"));
+                return
+            }
+            if req.uri().path() == "/" || req.uri().path().starts_with("/index.html") {
+                res.set_header(Header::new("Cache-Control", "max-age=0, no-store"));
+                return
+            }
+            if req.uri().path().starts_with("/assets/") {
+                res.set_header(Header::new("Cache-Control", "public, max-age=604800, immutable"));
+                return
+            }
+            res.set_header(Header::new("Cache-Control", "max-age=600"));
+        })))
 }

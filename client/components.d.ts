@@ -7,10 +7,6 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
-    AppHeader: typeof import('./src/components/AppHeader.vue')['default']
-    BaseHeader: typeof import('./src/components/BaseHeader.vue')['default']
-    HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
-    HomeHeader: typeof import('./src/components/HomeHeader.vue')['default']
     HomeLayout: typeof import('./src/components/HomeLayout.vue')['default']
     NAlert: typeof import('naive-ui')['NAlert']
     NBreadcrumb: typeof import('naive-ui')['NBreadcrumb']
@@ -28,7 +24,6 @@ declare module 'vue' {
     NDivider: typeof import('naive-ui')['NDivider']
     NDropdown: typeof import('naive-ui')['NDropdown']
     NDynamicInput: typeof import('naive-ui')['NDynamicInput']
-    NEllipsis: typeof import('naive-ui')['NEllipsis']
     NEmpty: typeof import('naive-ui')['NEmpty']
     NFlex: typeof import('naive-ui')['NFlex']
     NForm: typeof import('naive-ui')['NForm']
@@ -53,15 +48,11 @@ declare module 'vue' {
     NSelect: typeof import('naive-ui')['NSelect']
     NSpin: typeof import('naive-ui')['NSpin']
     NSwitch: typeof import('naive-ui')['NSwitch']
-    NTag: typeof import('naive-ui')['NTag']
     NText: typeof import('naive-ui')['NText']
-    NTextarea: typeof import('naive-ui')['NTextarea']
     NThing: typeof import('naive-ui')['NThing']
     NTime: typeof import('naive-ui')['NTime']
     NTimeline: typeof import('naive-ui')['NTimeline']
-    NTimeLine: typeof import('naive-ui')['NTimeLine']
     NTimelineItem: typeof import('naive-ui')['NTimelineItem']
-    NTimeLineItem: typeof import('naive-ui')['NTimeLineItem']
     NUpload: typeof import('naive-ui')['NUpload']
     NUploadDragger: typeof import('naive-ui')['NUploadDragger']
     RoleForm: typeof import('./src/components/system/role/RoleForm.vue')['default']
@@ -72,7 +63,6 @@ declare module 'vue' {
     TicketBreadcrumb: typeof import('./src/components/system/ticket/TicketBreadcrumb.vue')['default']
     TicketFlowModule: typeof import('./src/components/system/ticket/TicketFlowModule.vue')['default']
     TicketFormFlow: typeof import('./src/components/system/ticket/module/TicketFormFlow.vue')['default']
-    TicketModule: typeof import('./src/components/system/ticket/TicketModule.vue')['default']
     TicketReviewFlow: typeof import('./src/components/system/ticket/module/TicketReviewFlow.vue')['default']
   }
 }
