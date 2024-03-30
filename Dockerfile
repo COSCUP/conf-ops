@@ -24,6 +24,7 @@ RUN mkdir src && touch src/lib.rs
 RUN cargo build --release
 
 COPY ./src ./src
+COPY ./migrations ./migrations
 RUN cargo build --release
 
 # application
@@ -32,7 +33,6 @@ FROM debian:bookworm-slim
 WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -y libssl-dev libmariadb-dev && rm -rf /var/lib/apt/lists/*
 
-COPY ./migrations ./migrations
 COPY README.md README.md
 COPY LICENSE LICENSE
 

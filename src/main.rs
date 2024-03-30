@@ -4,8 +4,12 @@ use rocket::fairing::AdHoc;
 use rocket::fs::{FileServer, NamedFile};
 use rocket::http::Method;
 use rocket::http::Header;
+use rocket::{Build, Rocket};
 use rocket_db_pools::diesel::MysqlPool;
-use rocket_db_pools::{Connection, Database};
+use rocket_db_pools::{Database, Connection};
+
+#[cfg(not(debug_assertions))]
+use diesel_migrations::{EmbeddedMigrations, embed_migrations};
 
 #[macro_use]
 extern crate rocket;
@@ -50,11 +54,51 @@ impl DataFolder {
 }
 
 #[get("/<path..>", rank = 1)]
-async fn get_default_page(path: PathBuf) -> Option<NamedFile> {
+async fn get_default_page(
+    path: PathBuf
+) -> Option<NamedFile> {
     if path.starts_with("api/") {
         return None;
     }
     NamedFile::open("public/index.html").await.ok()
+}
+
+#[cfg(not(debug_assertions))]
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+
+#[cfg(debug_assertions)]
+async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
+    println!("Not running migrations in debug mode");
+    rocket
+}
+
+#[cfg(not(debug_assertions))]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct SimpleDatabaseConfig {
+    url: String
+}
+
+#[cfg(not(debug_assertions))]
+async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
+    use diesel_migrations::MigrationHarness;
+    use rocket_db_pools::diesel::{AsyncMysqlConnection, async_connection_wrapper::AsyncConnectionWrapper};
+
+    println!("Running migrations in release mode");
+
+    let database_config = rocket.figment()
+        .focus("databases.main_db")
+        .extract::<SimpleDatabaseConfig>()
+        .expect("Failed to extract database config");
+
+    tokio::task::spawn_blocking(move || {
+        let mut conn = <AsyncConnectionWrapper::<AsyncMysqlConnection> as diesel::Connection>::establish(&database_config.url)
+            .expect("Failed to establish connection");
+
+        conn.run_pending_migrations(MIGRATIONS)
+            .expect("Failed to run migrations");
+    }).await.expect("Failed to run blocking task");
+
+    rocket
 }
 
 #[launch]
@@ -62,19 +106,20 @@ fn rocket() -> _ {
     rocket::build()
         .attach(AdHoc::config::<AppConfig>())
         .attach(MainDb::init())
-        .attach(AdHoc::try_on_ignite("Data Folder", |rocket| async {
+        .attach(AdHoc::on_ignite("run migrations", run_migrations))
+        .attach(AdHoc::on_ignite("Data Folder", |rocket| async {
             let data_folder_path = std::env::current_dir().unwrap().join(Path::new("app-data"));
             let data_folder = DataFolder(data_folder_path);
             tokio::fs::create_dir_all(&data_folder.base_path())
                 .await
-                .unwrap();
+                .expect("Failed to create data folder");
             tokio::fs::create_dir_all(&data_folder.image_path(""))
                 .await
-                .unwrap();
+                .expect("Failed to create image folder");
             tokio::fs::create_dir_all(&data_folder.file_path(""))
                 .await
-                .unwrap();
-            Ok(rocket.manage(data_folder))
+                .expect("Failed to create file folder");
+            rocket.manage(data_folder)
         }))
         .attach(modules::stage())
         .mount("/", FileServer::from("public/").rank(0))

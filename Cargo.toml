@@ -17,6 +17,8 @@ serde = { version = "1.0", features = ["derive"] }
 
 # mysql
 diesel = { version = "2.1.0", features = ["mysql", "chrono", "serde_json"] }
+diesel_migrations = { version = "2.1.0", features = ["mysql"] }
+diesel-async = { version = "0.4.1", features = ["mysql", "async-connection-wrapper", "deadpool", "tokio"]}
 
 # uuid
 uuid = { version = "1.7", features = ["v4"] }
