@@ -35,7 +35,7 @@ export const createRole = () => ({
   getManageRoles () {
     return makeRequest<Role[]>(instance('/project/role/admin/roles'))
   },
-  updateManageRole (id: string, role: { name?: string, login_message?: string, welcome_message?: string }) {
+  updateManageRole (id: string, role: Omit<Role, 'id' | 'project_id'>) {
     return makeRequest<Role>(instance(`/project/role/admin/roles/${id}`, { method: 'PUT', body: role }))
   },
   getUsersInManageRole (id: string) {

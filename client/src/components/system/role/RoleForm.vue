@@ -1,31 +1,75 @@
 <template>
   <NCard>
     <NForm
+      ref="formRef"
       :model="formValue"
       @submit.prevent="save"
     >
       <NFormItem :label="t('id')">
         <NText>{{ role.id }}</NText>
       </NFormItem>
-      <NFormItem :label="t('name')">
-        <NInput
-          v-model:value="formValue.name"
-          show-count
-          :maxlength="50"
-        />
-      </NFormItem>
-      <NFormItem :label="t('login_message')">
-        <NInput
-          v-model:value="formValue.login_message"
-          type="textarea"
-        />
-      </NFormItem>
-      <NFormItem :label="t('welcome_message')">
-        <NInput
-          v-model:value="formValue.welcome_message"
-          type="textarea"
-        />
-      </NFormItem>
+      <NFlex>
+        <NFormItem
+          class="flex-[1_1_200px]"
+          :label="t('name', {}, { locale: 'zh' })"
+        >
+          <NInput
+            v-model:value="formValue.name_zh"
+            show-count
+            :maxlength="50"
+          />
+        </NFormItem>
+        <NFormItem
+          class="flex-[1_1_200px]"
+          :label="t('name', {}, { locale: 'en' })"
+        >
+          <NInput
+            v-model:value="formValue.name_en"
+            show-count
+            :maxlength="50"
+          />
+        </NFormItem>
+      </NFlex>
+      <NFlex>
+        <NFormItem
+          class="flex-[1_1_200px]"
+          :label="t('login_message', {}, { locale: 'zh' })"
+        >
+          <NInput
+            v-model:value="formValue.login_message_zh"
+            type="textarea"
+          />
+        </NFormItem>
+        <NFormItem
+          class="flex-[1_1_200px]"
+          :label="t('login_message', {}, { locale: 'en' })"
+        >
+          <NInput
+            v-model:value="formValue.login_message_en"
+            type="textarea"
+          />
+        </NFormItem>
+      </NFlex>
+      <NFlex>
+        <NFormItem
+          class="flex-[1_1_200px]"
+          :label="t('welcome_message', {}, { locale: 'zh' })"
+        >
+          <NInput
+            v-model:value="formValue.welcome_message_zh"
+            type="textarea"
+          />
+        </NFormItem>
+        <NFormItem
+          class="flex-[1_1_200px]"
+          :label="t('welcome_message', {}, { locale: 'en' })"
+        >
+          <NInput
+            v-model:value="formValue.welcome_message_en"
+            type="textarea"
+          />
+        </NFormItem>
+      </NFlex>
       <NButton
         type="primary"
         size="large"
@@ -43,7 +87,6 @@
 import { api } from '@/api'
 import { Role } from '@/api/modules/role'
 import { useFormAPI } from '@/functions/useAPI'
-import { useLocale } from '@/i18n'
 import { FormInst, useDialog } from 'naive-ui'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -55,14 +98,16 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: [] }>()
 
 const { t } = useI18n()
-const { locale } = useLocale()
 const dialog = useDialog()
 
 const formRef = ref<FormInst | null>(null)
 const formValue = ref({
-  name: props.role[`name_${locale.value}`],
-  login_message: props.role[`login_message_${locale.value}`],
-  welcome_message: props.role[`welcome_message_${locale.value}`]
+  name_zh: props.role.name_zh,
+  name_en: props.role.name_en,
+  login_message_zh: props.role.login_message_zh,
+  login_message_en: props.role.login_message_en,
+  welcome_message_zh: props.role.welcome_message_zh,
+  welcome_message_en: props.role.welcome_message_en
 })
 
 
