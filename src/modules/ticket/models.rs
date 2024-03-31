@@ -658,19 +658,6 @@ impl Ticket {
         Ok(pending_user_ticket_ids)
     }
 
-    pub async fn get_pending_tickets_by_user(
-        conn: &mut crate::DbConn,
-        user: &User,
-    ) -> Result<Vec<Ticket>, diesel::result::Error> {
-        let pending_ticket_ids = Self::get_pending_ticket_ids_by_user(conn, user).await?;
-
-        tickets::table
-            .filter(tickets::id.eq_any(pending_ticket_ids))
-            .select(Ticket::as_select())
-            .load(conn)
-            .await
-    }
-
     pub fn build_ticket_ids_by_user_query<'a>(
         user: &User,
     ) -> IntoBoxed<

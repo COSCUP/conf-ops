@@ -49,9 +49,9 @@ impl<'r> Responder<'r, 'static> for EmptyResponse {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(tag = "type", content = "todo")]
 pub enum EnabledFeature {
-    RoleManage(usize),
-    Ticket(usize),
-    TicketManage(usize),
+    RoleManage(usize, usize),
+    Ticket(usize, usize),
+    TicketManage(usize, usize),
 }
 
 pub fn stage() -> AdHoc {

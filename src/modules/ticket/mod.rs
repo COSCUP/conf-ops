@@ -75,14 +75,34 @@ pub struct TicketWithStatus {
 pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec<EnabledFeature> {
     let mut features = vec![];
 
-    let pending_tickets = Ticket::get_pending_tickets_by_user(conn, user)
+    let tickets = Ticket::get_tickets_by_user(conn, user)
         .await
         .unwrap_or(vec![]);
 
-    if pending_tickets.is_empty() {
-        features.push(EnabledFeature::Ticket(0));
+    let pending_tickets = tickets
+        .iter()
+        .filter(|t| {
+            match t.status {
+                TicketStatus::Pending => true,
+                _ => false,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let in_progress_tickets = tickets
+        .iter()
+        .filter(|t| {
+            match t.status {
+                TicketStatus::InProgress => true,
+                _ => false,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if tickets.is_empty() {
+        features.push(EnabledFeature::Ticket(0, 0));
     } else {
-        features.push(EnabledFeature::Ticket(pending_tickets.len()));
+        features.push(EnabledFeature::Ticket(pending_tickets.len(), in_progress_tickets.len()));
     }
 
     let manager_tickets = TicketSchema::get_manager_schemas(conn, user)
@@ -90,7 +110,7 @@ pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec
         .unwrap_or(vec![]);
 
     if !manager_tickets.is_empty() {
-        features.push(EnabledFeature::TicketManage(manager_tickets.len()));
+        features.push(EnabledFeature::TicketManage(0, 0));
     }
 
     features

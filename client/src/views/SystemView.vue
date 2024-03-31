@@ -95,15 +95,22 @@ const generateMenuLabel = (feature: Feature, detail: FeatureDetail) => () => h(
         align: 'center'
       },
       {
-        default: () => feature.todo === 0 ? [t(`feature.${detail.key}`)] : [
-          t(`feature.${detail.key}`),
-          h(
-            NBadge,
-            {
-              value: feature.todo
-            }
-          )
-        ]
+        default: () => {
+          const [required, optional] = feature.todo
+          if (required || optional) {
+            return [
+              t(`feature.${detail.key}`),
+              h(
+                NBadge,
+                {
+                  type: required ? 'error' : 'warning',
+                  value: required || optional
+                }
+              )
+            ]
+          }
+          return [t(`feature.${detail.key}`)]
+        }
       }
     )
   }

@@ -19,7 +19,7 @@ export interface User {
 
 export interface Feature {
   type: 'RoleManage' | 'Ticket' | 'TicketManage',
-  todo: number
+  todo: [number, number]
 }
 
 export const createProject = () => ({
