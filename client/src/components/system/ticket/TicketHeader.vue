@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { TicketDetail, TicketFlowStatus } from '/Users/yoyo930021/git/conf-ops/client/src/api/modules/ticket/types'
+import { TicketDetail, TicketFlowStatus } from '@/api/modules/ticket/types'
 import { DataFormat, Review, Unknown } from '@vicons/carbon'
 import { getStatusType } from '@/functions/useTicket'
 import { NTag } from 'naive-ui'
