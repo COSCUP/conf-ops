@@ -35,9 +35,7 @@ async fn catch_too_many_requests<'r>(request: &'r Request<'_>) -> AppError {
 #[catch(500)]
 async fn catch_internal<'r>(request: &'r Request<'_>) -> AppError {
     let i18n = request.guard::<I18n>().await.expect("i18n failed!");
-    AppError::internal(
-        i18n.t("error.internal_server_error").to_string()
-    )
+    AppError::internal(i18n.t("error.internal_server_error").to_string())
 }
 
 impl<'r> Responder<'r, 'static> for EmptyResponse {

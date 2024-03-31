@@ -11,7 +11,10 @@ use crate::{
     models::{project::Project, user::User, user_email::UserEmail, user_session::UserSession},
     modules::{EmptyResponse, EmptyResult, JsonResult},
     utils::{
-        i18n::I18n, jwt::{self, LoginClaims}, lettre::send_email, rocket::{PrefixUri, UserAgent}
+        i18n::I18n,
+        jwt::{self, LoginClaims},
+        lettre::send_email,
+        rocket::{PrefixUri, UserAgent},
     },
     AppConfig, DbConn,
 };
@@ -85,16 +88,25 @@ async fn login<'a>(
         project.name_en.clone()
     };
 
-    let body = i18n.tf("login.email.body", &[
-        ("user", name.clone()),
-        ("project", project_name.clone()),
-        ("url", format!("{prefix_uri}/token/{login_token}")),
-        ("email_from", email_from.clone())
-    ]);
+    let body = i18n.tf(
+        "login.email.body",
+        &[
+            ("user", name.clone()),
+            ("project", project_name.clone()),
+            ("url", format!("{prefix_uri}/token/{login_token}")),
+            ("email_from", email_from.clone()),
+        ],
+    );
 
     let message = Message::builder()
-        .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
-        .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
+        .from(
+            format!("ConfOps <{email_from}>")
+                .parse()
+                .expect("Failed to parse from email address"),
+        )
+        .to(format!("{name} <{to}>")
+            .parse()
+            .expect("Failed to parse to email address"))
         .subject(i18n.tf("login.email.subject", &[("project", project_name.clone())]))
         .header(ContentType::TEXT_HTML)
         .body(body)

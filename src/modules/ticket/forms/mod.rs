@@ -8,8 +8,8 @@ use crate::{
     models::user::User,
     utils::{
         file::FileMime,
+        i18n::I18n,
         image::{self, ImageMime},
-        i18n::I18n
     },
     DataFolder,
 };

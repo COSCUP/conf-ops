@@ -35,9 +35,9 @@ use crate::models::user::User;
 use crate::modules::ticket::models::Ticket;
 use crate::modules::ApiResult;
 use crate::modules::{guard::AuthGuard, EmptyResponse, EmptyResult, JsonResult};
+use crate::utils::i18n::I18n;
 use crate::DataFolder;
 use crate::DbConn;
-use crate::utils::i18n::I18n;
 
 #[get("/ticket/tickets")]
 async fn all_tickets(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<TicketWithStatus>> {
@@ -57,13 +57,22 @@ pub struct TicketDetail {
 }
 
 #[get("/ticket/tickets/<ticket_id>")]
-async fn get_ticket<'a>(mut conn: DbConn, auth: AuthGuard, i18n: I18n<'a>, ticket_id: i32) -> JsonResult<TicketDetail> {
+async fn get_ticket<'a>(
+    mut conn: DbConn,
+    auth: AuthGuard,
+    i18n: I18n<'a>,
+    ticket_id: i32,
+) -> JsonResult<TicketDetail> {
     let AuthGuard { user, .. } = auth;
     let ticket = Ticket::find(&mut conn, ticket_id)
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
     match ticket.is_user(&mut conn, &user).await {
-        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_join_to_this_ticket"))),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                i18n.t("ticket.error.not_join_to_this_ticket"),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -168,7 +177,11 @@ async fn process_ticket_flow<'a>(
         .await
         .map_err(|err| crate::error::AppError::not_found(err.to_string()))?;
     match ticket.is_user(&mut conn, &user).await {
-        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_join_to_this_ticket"))),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                i18n.t("ticket.error.not_join_to_this_ticket"),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -182,7 +195,7 @@ async fn process_ticket_flow<'a>(
     if let Some(flow_user_id) = &process_flow.user_id {
         if flow_user_id != &user.id {
             return Err(AppError::forbidden(
-                i18n.t("ticket.error.not_assign_to_this_flow")
+                i18n.t("ticket.error.not_assign_to_this_flow"),
             ));
         }
     }
@@ -200,7 +213,7 @@ async fn process_ticket_flow<'a>(
         .map_err(|err| AppError::forbidden(err.to_string()))?;
     if !is_schema_user {
         return Err(AppError::forbidden(
-            i18n.t("ticket.error.not_assign_to_this_schema")
+            i18n.t("ticket.error.not_assign_to_this_schema"),
         ));
     }
 
@@ -322,7 +335,11 @@ async fn get_schema<'a>(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
     match schema.is_probably_join_user(&mut conn, &user).await {
-        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_probably_user_of_this_schema"))),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                i18n.t("ticket.error.not_probably_user_of_this_schema"),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -347,7 +364,11 @@ async fn get_probably_assign_user_in_schema_flow<'a>(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
     match schema.is_probably_join_user(&mut conn, &user).await {
-        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_probably_user_of_this_schema"))),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                i18n.t("ticket.error.not_probably_user_of_this_schema"),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -383,7 +404,11 @@ async fn add_ticket_for_schema<'a>(
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
     match schema.is_probably_join_user(&mut conn, &user).await {
-        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_join_to_this_ticket"))),
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                i18n.t("ticket.error.not_join_to_this_ticket"),
+            ))
+        }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -508,7 +533,7 @@ async fn get_field_file_content<'a>(
     match schema.is_probably_user(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                i18n.t("ticket.error.not_join_to_this_ticket")
+                i18n.t("ticket.error.not_join_to_this_ticket"),
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
@@ -573,7 +598,7 @@ async fn get_managed_schema_in_admin<'a>(
     match schema.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                i18n.t("ticket.error.not_manager_of_this_schema")
+                i18n.t("ticket.error.not_manager_of_this_schema"),
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
@@ -641,7 +666,7 @@ async fn add_flow_to_schema_in_admin<'a>(
     match schema.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                i18n.t("ticket.error.not_manager_of_this_schema")
+                i18n.t("ticket.error.not_manager_of_this_schema"),
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
@@ -653,7 +678,11 @@ async fn add_flow_to_schema_in_admin<'a>(
             schema.updated_at = chrono::Utc::now().naive_utc();
             let _ = schema.save(conn).await?;
             let flow = schema
-                .add_flow(conn, new_flow_req.schema.name_zh.clone(), new_flow_req.schema.name_en.clone())
+                .add_flow(
+                    conn,
+                    new_flow_req.schema.name_zh.clone(),
+                    new_flow_req.schema.name_en.clone(),
+                )
                 .await?;
 
             match new_flow_req.into_inner().module {
@@ -705,7 +734,7 @@ async fn all_tickets_for_schema_in_admin<'a>(
     match schema.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                i18n.t("ticket.error.not_manager_of_this_schema")
+                i18n.t("ticket.error.not_manager_of_this_schema"),
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),

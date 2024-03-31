@@ -1,14 +1,15 @@
-use rocket::{request::{self, FromRequest}, Request};
+use rocket::{
+    request::{self, FromRequest},
+    Request,
+};
 
 pub struct I18n<'a> {
-    pub locale: &'a str
+    pub locale: &'a str,
 }
 
 impl<'a> I18n<'a> {
     pub fn new(locale: &'a str) -> Self {
-        Self {
-            locale
-        }
+        Self { locale }
     }
 
     pub fn t(&self, key: &'a str) -> String {
@@ -18,8 +19,8 @@ impl<'a> I18n<'a> {
     pub fn tf(&self, key: &'a str, options: &[(&'a str, String)]) -> String {
         let message = rust_i18n::t!(key, locale = self.locale);
         let patterns = options.iter().map(|(k, _)| *k).collect::<Vec<_>>();
-        let values  = options.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
-        return rust_i18n::replace_patterns(message.as_ref(), &patterns, &values)
+        let values = options.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
+        return rust_i18n::replace_patterns(message.as_ref(), &patterns, &values);
     }
 }
 

@@ -81,28 +81,27 @@ pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec
 
     let pending_tickets = tickets
         .iter()
-        .filter(|t| {
-            match t.status {
-                TicketStatus::Pending => true,
-                _ => false,
-            }
+        .filter(|t| match t.status {
+            TicketStatus::Pending => true,
+            _ => false,
         })
         .collect::<Vec<_>>();
 
     let in_progress_tickets = tickets
         .iter()
-        .filter(|t| {
-            match t.status {
-                TicketStatus::InProgress => true,
-                _ => false,
-            }
+        .filter(|t| match t.status {
+            TicketStatus::InProgress => true,
+            _ => false,
         })
         .collect::<Vec<_>>();
 
     if tickets.is_empty() {
         features.push(EnabledFeature::Ticket(0, 0));
     } else {
-        features.push(EnabledFeature::Ticket(pending_tickets.len(), in_progress_tickets.len()));
+        features.push(EnabledFeature::Ticket(
+            pending_tickets.len(),
+            in_progress_tickets.len(),
+        ));
     }
 
     let manager_tickets = TicketSchema::get_manager_schemas(conn, user)

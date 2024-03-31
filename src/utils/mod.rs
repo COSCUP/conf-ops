@@ -1,4 +1,5 @@
 pub mod file;
+pub mod i18n;
 pub mod image;
 pub mod jwt;
 pub mod lettre;
@@ -6,4 +7,3 @@ pub mod rocket;
 pub mod serde;
 pub mod string;
 pub mod vec;
-pub mod i18n;
