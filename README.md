@@ -5,7 +5,7 @@ We are currently developing and designing a project specifically to handle commu
 ## development environment
 
 ### frontend
-```bash=
+```bash
 # install nodejs
 curl https://get.volta.sh | bash
 volta install node:lts
@@ -24,7 +24,7 @@ pnpm run dev
 ```
 
 ### backend
-```bash=
+```bash
 # install docker for database (not requirement)
 brew install orbstack
 
@@ -58,7 +58,7 @@ cargo watch -i client/ -x run
 ```
 
 ### common
-```bash=
+```bash
 # start dev in frontend and backend together
 ./scripts/dev.sh
 
@@ -67,7 +67,7 @@ cargo watch -i client/ -x run
 ```
 
 ### build docker
-```bash=
+```bash
 docker build -t conf-ops .
 docker run -d \
   --name conf-ops \ # container name
