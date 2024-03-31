@@ -41,17 +41,18 @@
               :placeholder="t('email.label')"
             />
           </NFormItem>
-          <NFormItem>
-            <NButton
-              type="primary"
-              size="large"
-              block
-              :loading="loading"
-              attr-type="submit"
-            >
-              {{ t('login.label') }}
-            </NButton>
-          </NFormItem>
+          <NP class="whitespace-pre-line my-2">
+            {{ t('login.note') }}
+          </NP>
+          <NButton
+            type="primary"
+            size="large"
+            block
+            :loading="loading"
+            attr-type="submit"
+          >
+            {{ t('login.label') }}
+          </NButton>
         </NForm>
       </NCard>
     </NFlex>
@@ -128,8 +129,9 @@ const { execute: login, loading } = useFormAPI(
       "label": "Login",
       "success": {
         "title": "Login successful",
-        "message": "Please check your email to confirm login"
-      }
+        "message": "Please check your email to confirm login, check spam if not found."
+      },
+      "note": "Please note that you can only send once every 5 minutes."
     },
     "welcome": "Welcome to {0}!"
   },
@@ -144,8 +146,9 @@ const { execute: login, loading } = useFormAPI(
       "label": "登入",
       "success": {
         "title": "登入成功",
-        "message": "請前往你的 Email 信箱確認登入"
-      }
+        "message": "請前往你的 Email 信箱確認登入，找不到時請檢查垃圾信件。"
+      },
+      "note": "請注意，每 5 分鐘只能寄一次登入信。"
     },
     "welcome": "歡迎來到 {0}!"
   }
