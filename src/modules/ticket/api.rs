@@ -34,7 +34,7 @@ use crate::models::target::Target;
 use crate::models::user::User;
 use crate::modules::ticket::models::Ticket;
 use crate::modules::ApiResult;
-use crate::modules::{AuthGuard, EmptyResponse, EmptyResult, JsonResult};
+use crate::modules::{guard::AuthGuard, EmptyResponse, EmptyResult, JsonResult};
 use crate::DataFolder;
 use crate::DbConn;
 

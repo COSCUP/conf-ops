@@ -7,7 +7,7 @@ use rocket::serde::json::{json, Json, Value};
 use rocket::Route;
 use rocket_db_pools::diesel::AsyncConnection;
 
-use super::{ApiResult, AuthGuard, EmptyResponse, EmptyResult, EnabledFeature};
+use super::{ApiResult, guard::AuthGuard, EmptyResponse, EmptyResult, EnabledFeature};
 
 #[get("/role/<role_id>")]
 async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {

@@ -1,11 +1,6 @@
-use std::net::IpAddr;
-
 use lettre::{message::header::ContentType, Message};
 use rocket::{
-    http::{Cookie, CookieJar},
-    serde::json::Json,
-    time::{Duration, OffsetDateTime},
-    Route, State,
+    http::{Cookie, CookieJar}, serde::json::Json, time::{Duration, OffsetDateTime}, Route, State
 };
 
 use crate::{
@@ -20,7 +15,7 @@ use crate::{
     AppConfig, DbConn,
 };
 
-use super::{role, ticket, AuthGuard, EnabledFeature};
+use super::{guard::{AuthGuard, LoginReqGuard, VerifyEmailOrTokenGuard}, role, ticket, EnabledFeature};
 
 #[get("/")]
 async fn ping() -> &'static str {
@@ -47,22 +42,23 @@ async fn get_auth_project(auth: AuthGuard) -> JsonResult<Project> {
 }
 
 #[derive(Deserialize)]
-struct LoginReq {
+pub struct LoginReq {
     project_id: String,
-    email: String,
+    pub email: String,
 }
 
 #[post("/project/login", data = "<login_req>")]
 async fn login(
     mut conn: DbConn,
     config: &State<AppConfig>,
+    _ip: VerifyEmailOrTokenGuard,
     host: PrefixUri,
-    login_req: Json<LoginReq>,
+    login_req: LoginReqGuard,
 ) -> EmptyResult {
     let user = UserEmail::get_user(
         &mut conn,
-        login_req.project_id.clone(),
-        login_req.email.clone(),
+        login_req.0.project_id.clone(),
+        login_req.0.email.clone(),
     )
     .await
     .map_err(|err| AppError::bad_request(err.to_string()))?;
@@ -73,7 +69,7 @@ async fn login(
     let email_from = &config.email_from;
     let User { name, .. } = user;
     let PrefixUri(prefix_uri) = host;
-    let to = login_req.email.clone();
+    let to = login_req.0.email.clone();
 
     let message = Message::builder()
         .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
@@ -101,7 +97,7 @@ async fn verify_token(
     config: &State<AppConfig>,
     cookie_jar: &CookieJar<'_>,
     user_agent: UserAgent,
-    ip: IpAddr,
+    ip: VerifyEmailOrTokenGuard,
     token_req: Json<TokenReq>,
 ) -> EmptyResult {
     let LoginClaims {
@@ -120,7 +116,7 @@ async fn verify_token(
         return Err(AppError::bad_request("Invalid token".to_owned()));
     }
 
-    let session = UserSession::create(&mut conn, user.id.clone(), user_agent.0, ip.to_string())
+    let session = UserSession::create(&mut conn, user.id.clone(), user_agent.0, ip.0.to_string())
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 
