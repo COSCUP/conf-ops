@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use rocket::outcome::try_outcome;
-use rocket::request::FromRequest;
+use rocket::request::{FromRequest, Outcome};
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[derive(
-    Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize, AsChangeset,
+    Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize, AsChangeset, Clone
 )]
 #[diesel(table_name = projects)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
@@ -94,27 +94,35 @@ impl<'r> FromRequest<'r> for Project {
 
     async fn from_request(
         request: &'r rocket::Request<'_>,
-    ) -> rocket::request::Outcome<Self, Self::Error> {
-        let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (
-            s,
-            AppError::internal(
-                e.map_or("Unknown database problem".to_owned(), |err| err.to_string())
-            )
-        )));
+    ) -> Outcome<Self, Self::Error> {
+        let project_result = request.local_cache_async(async move {
+            let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (
+                s,
+                AppError::internal(
+                    e.map_or("Unknown database problem".to_owned(), |err| err.to_string())
+                )
+            )));
 
-        let project_not_found_error = rocket::request::Outcome::Error((
-            rocket::http::Status::NotFound,
-            AppError::not_found("Project ID not found".to_owned()),
-        ));
+            let project_not_found_error = Outcome::Error((
+                rocket::http::Status::NotFound,
+                AppError::not_found("Project ID not found".to_owned()),
+            ));
 
-        let project_id: String = match request.headers().get_one("x-project-id") {
-            Some(text) => text.to_owned(),
-            _ => return project_not_found_error,
-        };
+            let project_id: String = match request.headers().get_one("x-project-id") {
+                Some(text) => text.to_owned(),
+                _ => return project_not_found_error,
+            };
 
-        match Project::find(&mut db, project_id).await {
-            Ok(project) => rocket::request::Outcome::Success(project),
-            Err(_) => project_not_found_error,
+            match Project::find(&mut db, project_id).await {
+                Ok(project) => Outcome::Success(project),
+                Err(_) => project_not_found_error,
+            }
+        }).await;
+
+        match project_result {
+            Outcome::Success(project) => Outcome::Success(project.clone()),
+            Outcome::Error((s, e)) => Outcome::Error((*s, e.clone())),
+            Outcome::Forward(f) => Outcome::Forward(*f),
         }
     }
 }

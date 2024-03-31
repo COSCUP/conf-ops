@@ -28,6 +28,7 @@ use super::{label::Label, user_label::UserLabel};
     Eq,
     Hash,
     AsChangeset,
+    Clone
 )]
 #[diesel(belongs_to(Project))]
 #[diesel(table_name = users)]

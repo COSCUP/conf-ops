@@ -6,7 +6,7 @@ use rocket::{
 };
 use std::io::Cursor;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct AppError {
     status: Status,
     message: String,
