@@ -45,7 +45,6 @@ pub enum FormFieldValue {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(untagged)]
 #[serde(rename_all = "lowercase")]
 pub enum FormTextFieldType {
     String,
