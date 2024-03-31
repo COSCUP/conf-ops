@@ -1,6 +1,7 @@
 use std::net::IpAddr;
 
 use rocket::request::FromRequest;
+use rocket::outcome::try_outcome;
 use rocket::State;
 use rocket::Data;
 use rocket::Request;
@@ -23,16 +24,7 @@ impl<'r> FromData<'r> for LoginReqGuard {
     type Error = AppError;
 
     async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> rocket::data::Outcome<'r, Self, Self::Error> {
-        let login_req = match Json::<LoginReq>::from_data(req, data).await {
-            rocket::outcome::Outcome::Success(login_req) => login_req,
-            rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),
-            rocket::outcome::Outcome::Error((status, error)) => {
-                return rocket::outcome::Outcome::Error((
-                    status,
-                    AppError::bad_request(error.to_string())
-                ));
-            }
-        };
+        let login_req = try_outcome!(Json::<LoginReq>::from_data(req, data).await.map_error(|(s, e)| (s, AppError::bad_request(e.to_string()))));
 
         let rate_limiter = match req.guard::<&State<EmailRateLimiter>>().await {
             rocket::outcome::Outcome::Success(rate_limiter) => rate_limiter,
@@ -56,21 +48,13 @@ impl<'r> FromRequest<'r> for VerifyEmailOrTokenGuard {
     type Error = AppError;
 
     async fn from_request(req: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
-        let ip = match req.guard::<IpAddr>().await {
-            rocket::outcome::Outcome::Success(ip) => ip,
-            rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),
-            rocket::outcome::Outcome::Error((status, error)) => {
-                return rocket::outcome::Outcome::Error((status, AppError::internal(error.to_string())));
-            }
-        };
+        let ip = try_outcome!(req.guard::<IpAddr>().await.map_error(|(s, e)| (s, AppError::internal(e.to_string()))));
 
-        let rate_limiter = match req.guard::<&State<VerifyEmailOrTokenRateLimiter>>().await {
-            rocket::outcome::Outcome::Success(rate_limiter) => rate_limiter,
-            rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Error((s, AppError::internal("Failed to get rate limiter".to_owned()))),
-            rocket::outcome::Outcome::Error((status, _error)) => {
-                return rocket::outcome::Outcome::Error((status, AppError::internal("Failed to get rate limiter".to_owned())));
-            }
-        };
+        let rate_limiter = try_outcome!(
+            req.guard::<&State<VerifyEmailOrTokenRateLimiter>>()
+                .await
+                .map_error(|(s, _)| (s, AppError::internal("Failed to get rate limiter".to_owned())))
+        );
 
         match rate_limiter.check_key(&ip.to_string()) {
             Ok(_) => rocket::outcome::Outcome::Success(VerifyEmailOrTokenGuard(ip)),
@@ -92,20 +76,8 @@ impl<'r> FromRequest<'r> for AuthGuard {
     async fn from_request(
         request: &'r rocket::Request<'_>,
     ) -> rocket::request::Outcome<Self, Self::Error> {
-        let mut db = match request.guard::<DbConn>().await {
-            rocket::outcome::Outcome::Success(db) => db,
-            rocket::outcome::Outcome::Error(error) => {
-                return rocket::request::Outcome::Error((
-                    rocket::http::Status::InternalServerError,
-                    AppError::internal(
-                        error
-                            .1
-                            .map_or("Unknown database problem".to_owned(), |err| err.to_string()),
-                    ),
-                ))
-            }
-            rocket::outcome::Outcome::Forward(s) => return rocket::outcome::Outcome::Forward(s),
-        };
+        let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (s, AppError::internal(e
+            .map_or("Unknown database problem".to_owned(), |err| err.to_string())))));
 
         let session_cookie = match request.cookies().get_private("session_id") {
             Some(cookie) => cookie,
