@@ -66,7 +66,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 #[cfg(debug_assertions)]
 async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
-    println!("Not running migrations in debug mode");
+    info!("Not running migrations in debug mode");
     rocket
 }
 
@@ -83,7 +83,7 @@ async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
         async_connection_wrapper::AsyncConnectionWrapper, AsyncMysqlConnection,
     };
 
-    println!("Running migrations in release mode");
+    info!("Running migrations in release mode");
 
     let database_config = rocket
         .figment()
