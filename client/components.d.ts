@@ -49,6 +49,8 @@ declare module 'vue' {
     NSelect: typeof import('naive-ui')['NSelect']
     NSpin: typeof import('naive-ui')['NSpin']
     NStatistic: typeof import('naive-ui')['NStatistic']
+    NStep: typeof import('naive-ui')['NStep']
+    NSteps: typeof import('naive-ui')['NSteps']
     NSwitch: typeof import('naive-ui')['NSwitch']
     NText: typeof import('naive-ui')['NText']
     NThing: typeof import('naive-ui')['NThing']
@@ -65,6 +67,8 @@ declare module 'vue' {
     TicketBreadcrumb: typeof import('./src/components/system/ticket/TicketBreadcrumb.vue')['default']
     TicketFlowModule: typeof import('./src/components/system/ticket/TicketFlowModule.vue')['default']
     TicketFormFlow: typeof import('./src/components/system/ticket/module/TicketFormFlow.vue')['default']
+    TicketHeader: typeof import('./src/components/system/ticket/TicketHeader.vue')['default']
+    'TicketHeader.vue': typeof import('./src/components/system/ticket/TicketHeader.vue.vue')['default']
     TicketReviewFlow: typeof import('./src/components/system/ticket/module/TicketReviewFlow.vue')['default']
   }
 }

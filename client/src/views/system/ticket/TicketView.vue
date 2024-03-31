@@ -47,10 +47,10 @@
           </template>
           <template #description>
             <NP class="my-0">
-              {{ t('form.created_at') }}: <NTime :value="ticket.created_at" />
+              {{ t('form.created_at') }}: <NTime :time="ticket.created_at" />
             </NP>
             <NP class="my-0">
-              {{ t('form.updated_at') }}: <NTime :value="ticket.updated_at" />
+              {{ t('form.updated_at') }}: <NTime :time="ticket.updated_at" />
             </NP>
           </template>
         </NThing>
