@@ -100,46 +100,48 @@ impl<'r> FromRequest<'r> for AuthGuard {
     async fn from_request(
         request: &'r rocket::Request<'_>,
     ) -> rocket::request::Outcome<Self, Self::Error> {
-        let auth_guard_result = request.local_cache_async(async move {
-            let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (
-                s,
-                AppError::internal(
-                    e.map_or("Unknown database problem".to_owned(), |err| err.to_string())
-                )
-            )));
+        let auth_guard_result = request
+            .local_cache_async(async move {
+                let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (
+                    s,
+                    AppError::internal(
+                        e.map_or("Unknown database problem".to_owned(), |err| err.to_string())
+                    )
+                )));
 
-            let session_cookie = match request.cookies().get_private("session_id") {
-                Some(cookie) => cookie,
-                None => {
-                    return rocket::request::Outcome::Error((
-                        rocket::http::Status::Unauthorized,
-                        AppError::unauthorized(),
-                    ))
-                }
-            };
+                let session_cookie = match request.cookies().get_private("session_id") {
+                    Some(cookie) => cookie,
+                    None => {
+                        return rocket::request::Outcome::Error((
+                            rocket::http::Status::Unauthorized,
+                            AppError::unauthorized(),
+                        ))
+                    }
+                };
 
-            let session_id = match session_cookie.value().parse() {
-                Ok(session_id) => session_id,
-                _ => {
-                    return rocket::request::Outcome::Error((
-                        rocket::http::Status::Unauthorized,
-                        AppError::unauthorized(),
-                    ))
-                }
-            };
+                let session_id = match session_cookie.value().parse() {
+                    Ok(session_id) => session_id,
+                    _ => {
+                        return rocket::request::Outcome::Error((
+                            rocket::http::Status::Unauthorized,
+                            AppError::unauthorized(),
+                        ))
+                    }
+                };
 
-            let auth = match UserSession::auth(&mut db, session_id).await {
-                Ok(user) => user,
-                Err(_) => {
-                    return rocket::request::Outcome::Error((
-                        rocket::http::Status::Unauthorized,
-                        AppError::unauthorized(),
-                    ))
-                }
-            };
+                let auth = match UserSession::auth(&mut db, session_id).await {
+                    Ok(user) => user,
+                    Err(_) => {
+                        return rocket::request::Outcome::Error((
+                            rocket::http::Status::Unauthorized,
+                            AppError::unauthorized(),
+                        ))
+                    }
+                };
 
-            rocket::request::Outcome::Success(auth)
-        }).await;
+                rocket::request::Outcome::Success(auth)
+            })
+            .await;
 
         match auth_guard_result {
             Outcome::Success(auth) => Outcome::Success(auth.clone()),
