@@ -1,0 +1,37 @@
+{
+  "_version": 1,
+  "error": {
+    "unauthorized": "未登入。",
+    "wrong_fields": "您輸入的欄位不正確。",
+    "too_many_requests": "您已經發出太多請求。請稍後再試。",
+    "not_found": "您要查找的資源不存在。",
+    "unknown_host": "您嘗試訪問的主機未知。",
+    "internal_server_error": "發生內部伺服器錯誤。請稍後再試。"
+  },
+  "login": {
+    "email": {
+      "subject": "歡迎登入 %{project} ConfOps",
+      "body": "你好 %{user}<br>\n<br>\n感謝你參與 %{project}，請點擊<a href=\"%{url}\">此連結</a>登入系統，並注意此連結只在 15 分鐘內有效。<br>\n<br>\n祝 心想事成<br>\n<br>\nConfOps<br>\n%{email_from}"
+    },
+    "failed": "登入失敗。請檢查您的電子郵件。"
+  },
+  "ticket": {
+    "error": {
+      "not_join_to_this_ticket": "你沒有參與這個工單。",
+      "not_assign_to_this_flow": "你沒有被指定參與這個流程。",
+      "not_assign_to_this_schema": "你沒有不能參與這個流程。",
+      "not_probably_user_of_this_schema": "你不能建立這張工單。",
+      "not_manager_of_this_schema": "你不能管理這張工單。"
+    },
+    "rules": {
+      "required": "%{field} 欄位為必填。",
+      "text_too_long": "%{field} 欄位字數太多。",
+      "text_too_many_lines": "%{field} 欄位行數太多。",
+      "not_valid_choice": "%{field} 欄位選項不正確。",
+      "not_upload_file": "%{field} 欄位必須上傳檔案。",
+      "not_upload_image": "%{field} 欄位必須上傳圖片。",
+      "unknown": "%{field} 欄位未知的值。",
+      "too_many_choice": "%{field} 欄位選項太多。"
+    }
+  }
+}

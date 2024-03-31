@@ -1,4 +1,5 @@
 use crate::error::AppError;
+use crate::utils::i18n::I18n;
 use crate::utils::rocket::{EmailRateLimiter, VerifyEmailOrTokenRateLimiter};
 use rocket::http::Status;
 use rocket::response::Responder;
@@ -15,8 +16,9 @@ pub struct EmptyResponse;
 pub type EmptyResult = ApiResult<EmptyResponse>;
 
 #[catch(401)]
-fn catch_unauthorized() -> AppError {
-    AppError::unauthorized()
+async fn catch_unauthorized<'r>(request: &'r Request<'_>) -> AppError {
+    let i18n = request.guard::<I18n>().await.expect("i18n failed!");
+    AppError::unauthorized(i18n)
 }
 
 #[catch(404)]
@@ -25,14 +27,16 @@ fn catch_not_found() -> AppError {
 }
 
 #[catch(429)]
-fn catch_too_many_requests() -> AppError {
-    AppError::too_many_requests()
+async fn catch_too_many_requests<'r>(request: &'r Request<'_>) -> AppError {
+    let i18n = request.guard::<I18n>().await.expect("i18n failed!");
+    AppError::too_many_requests(i18n)
 }
 
 #[catch(500)]
-fn catch_internal() -> AppError {
+async fn catch_internal<'r>(request: &'r Request<'_>) -> AppError {
+    let i18n = request.guard::<I18n>().await.expect("i18n failed!");
     AppError::internal(
-        "The server encountered an internal error while processing this request.".to_owned(),
+        i18n.t("error.internal_server_error").to_string()
     )
 }
 

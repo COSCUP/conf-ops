@@ -37,6 +37,7 @@ use crate::modules::ApiResult;
 use crate::modules::{guard::AuthGuard, EmptyResponse, EmptyResult, JsonResult};
 use crate::DataFolder;
 use crate::DbConn;
+use crate::utils::i18n::I18n;
 
 #[get("/ticket/tickets")]
 async fn all_tickets(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec<TicketWithStatus>> {
@@ -56,17 +57,13 @@ pub struct TicketDetail {
 }
 
 #[get("/ticket/tickets/<ticket_id>")]
-async fn get_ticket(mut conn: DbConn, auth: AuthGuard, ticket_id: i32) -> JsonResult<TicketDetail> {
+async fn get_ticket<'a>(mut conn: DbConn, auth: AuthGuard, i18n: I18n<'a>, ticket_id: i32) -> JsonResult<TicketDetail> {
     let AuthGuard { user, .. } = auth;
     let ticket = Ticket::find(&mut conn, ticket_id)
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
     match ticket.is_user(&mut conn, &user).await {
-        Ok(false) => {
-            return Err(AppError::forbidden(
-                "You are not join to this ticket".to_owned(),
-            ))
-        }
+        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_join_to_this_ticket"))),
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -159,9 +156,10 @@ pub struct TicketFlowProcessReq {
 }
 
 #[post("/ticket/tickets/<ticket_id>/process", data = "<flow_req>")]
-async fn process_ticket_flow(
+async fn process_ticket_flow<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     ticket_id: i32,
     flow_req: Json<TicketFlowProcessReq>,
 ) -> EmptyResult {
@@ -170,11 +168,7 @@ async fn process_ticket_flow(
         .await
         .map_err(|err| crate::error::AppError::not_found(err.to_string()))?;
     match ticket.is_user(&mut conn, &user).await {
-        Ok(false) => {
-            return Err(AppError::forbidden(
-                "You are not join to this ticket".to_owned(),
-            ))
-        }
+        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_join_to_this_ticket"))),
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -188,7 +182,7 @@ async fn process_ticket_flow(
     if let Some(flow_user_id) = &process_flow.user_id {
         if flow_user_id != &user.id {
             return Err(AppError::forbidden(
-                "You are not assign to this flow".to_owned(),
+                i18n.t("ticket.error.not_assign_to_this_flow")
             ));
         }
     }
@@ -206,7 +200,7 @@ async fn process_ticket_flow(
         .map_err(|err| AppError::forbidden(err.to_string()))?;
     if !is_schema_user {
         return Err(AppError::forbidden(
-            "You are not assign to this schema".to_owned(),
+            i18n.t("ticket.error.not_assign_to_this_schema")
         ));
     }
 
@@ -221,7 +215,7 @@ async fn process_ticket_flow(
         TicketSchemaFlowValue::Form(form_schema) => {
             if let TicketProcessFlow::Form(form_data) = req.flow {
                 match form_schema
-                    .validate_and_normalize(&mut conn, &form_data)
+                    .validate_and_normalize(&mut conn, &i18n, &form_data)
                     .await
                 {
                     Ok(normalized_data) => {
@@ -252,7 +246,7 @@ async fn process_ticket_flow(
                         return Ok(EmptyResponse);
                     }
                     Err(fields) => {
-                        return Err(AppError::bad_request_with_fields(fields));
+                        return Err(AppError::bad_request_with_fields(i18n, fields));
                     }
                 }
             }
@@ -317,9 +311,10 @@ async fn all_probably_schemas(mut conn: DbConn, auth: AuthGuard) -> JsonResult<V
 }
 
 #[get("/ticket/schemas/<schema_id>")]
-async fn get_schema(
+async fn get_schema<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     schema_id: i32,
 ) -> JsonResult<TicketSchemaDetail> {
     let AuthGuard { user, .. } = auth;
@@ -327,11 +322,7 @@ async fn get_schema(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
     match schema.is_probably_join_user(&mut conn, &user).await {
-        Ok(false) => {
-            return Err(AppError::forbidden(
-                "You are not a probably user of this schema".to_owned(),
-            ))
-        }
+        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_probably_user_of_this_schema"))),
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -344,9 +335,10 @@ async fn get_schema(
 }
 
 #[get("/ticket/schemas/<schema_id>/flows/<flow_id>/probably_assign_users")]
-async fn get_probably_assign_user_in_schema_flow(
+async fn get_probably_assign_user_in_schema_flow<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     schema_id: i32,
     flow_id: i32,
 ) -> JsonResult<Vec<User>> {
@@ -355,11 +347,7 @@ async fn get_probably_assign_user_in_schema_flow(
         .await
         .map_err(|err| AppError::not_found(err.to_string()))?;
     match schema.is_probably_join_user(&mut conn, &user).await {
-        Ok(false) => {
-            return Err(AppError::forbidden(
-                "You are not a probably user of this schema".to_owned(),
-            ))
-        }
+        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_probably_user_of_this_schema"))),
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -382,9 +370,10 @@ struct AddTicketReq {
 }
 
 #[post("/ticket/schemas/<schema_id>/tickets", data = "<new_ticket_req>")]
-async fn add_ticket_for_schema(
+async fn add_ticket_for_schema<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     schema_id: i32,
     new_ticket_req: Json<AddTicketReq>,
 ) -> EmptyResult {
@@ -394,11 +383,7 @@ async fn add_ticket_for_schema(
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
     match schema.is_probably_join_user(&mut conn, &user).await {
-        Ok(false) => {
-            return Err(AppError::forbidden(
-                "You are not join to this ticket".to_owned(),
-            ))
-        }
+        Ok(false) => return Err(AppError::forbidden(i18n.t("ticket.error.not_join_to_this_ticket"))),
         Err(err) => return Err(AppError::forbidden(err.to_string())),
         _ => (),
     }
@@ -444,9 +429,10 @@ enum UploadResult {
     "/ticket/schemas/<schema_id>/form/<form_id>/field/<field_id>/upload",
     data = "<upload_file_req>"
 )]
-async fn upload_file_in_form_field(
+async fn upload_file_in_form_field<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     data_folder: &State<DataFolder>,
     schema_id: i32,
     form_id: i32,
@@ -474,7 +460,7 @@ async fn upload_file_in_form_field(
         .map_err(|err| AppError::forbidden(err.to_string()))?;
     if !is_schema_user {
         return Err(AppError::forbidden(
-            "You are not assign to this schema".to_owned(),
+            i18n.t("ticket.error.not_assign_to_this_schema"),
         ));
     }
 
@@ -504,9 +490,10 @@ async fn upload_file_in_form_field(
 }
 
 #[get("/ticket/schemas/<schema_id>/form/<form_id>/field/<field_id>/<file_id>")]
-async fn get_field_file_content(
+async fn get_field_file_content<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     schema_id: i32,
     form_id: i32,
     field_id: i32,
@@ -521,7 +508,7 @@ async fn get_field_file_content(
     match schema.is_probably_user(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                "You are not join to this ticket".to_owned(),
+                i18n.t("ticket.error.not_join_to_this_ticket")
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
@@ -573,9 +560,10 @@ pub struct TicketSchemaDetail {
 }
 
 #[get("/ticket/admin/schemas/<schema_id>")]
-async fn get_managed_schema_in_admin(
+async fn get_managed_schema_in_admin<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     schema_id: i32,
 ) -> JsonResult<TicketSchemaDetail> {
     let AuthGuard { user, .. } = auth;
@@ -585,7 +573,7 @@ async fn get_managed_schema_in_admin(
     match schema.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                "You are not a manager of this schema".to_owned(),
+                i18n.t("ticket.error.not_manager_of_this_schema")
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
@@ -635,9 +623,10 @@ async fn add_managed_schema_in_admin(
 }
 
 #[post("/ticket/admin/schemas/<schema_id>/flows", data = "<new_flow_req>")]
-async fn add_flow_to_schema_in_admin(
+async fn add_flow_to_schema_in_admin<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     schema_id: i32,
     new_flow_req: Json<TicketSchemaFlowItem>,
 ) -> EmptyResult {
@@ -648,7 +637,7 @@ async fn add_flow_to_schema_in_admin(
     match schema.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                "You are not a manager of this schema".to_owned(),
+                i18n.t("ticket.error.not_manager_of_this_schema")
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),
@@ -697,9 +686,10 @@ async fn add_flow_to_schema_in_admin(
 }
 
 #[get("/ticket/admin/schemas/<schema_id>/tickets")]
-async fn all_tickets_for_schema_in_admin(
+async fn all_tickets_for_schema_in_admin<'a>(
     mut conn: DbConn,
     auth: AuthGuard,
+    i18n: I18n<'a>,
     schema_id: i32,
 ) -> JsonResult<Vec<Ticket>> {
     let AuthGuard { user, .. } = auth;
@@ -709,7 +699,7 @@ async fn all_tickets_for_schema_in_admin(
     match schema.is_manager(&mut conn, &user).await {
         Ok(false) => {
             return Err(AppError::forbidden(
-                "You are not a manager of this schema".to_owned(),
+                i18n.t("ticket.error.not_manager_of_this_schema")
             ))
         }
         Err(err) => return Err(AppError::forbidden(err.to_string())),

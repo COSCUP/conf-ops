@@ -14,6 +14,7 @@ use crate::models::project::Project;
 use crate::models::user::User;
 use crate::models::user_session::UserSession;
 use crate::modules::common::LoginReq;
+use crate::utils::i18n::I18n;
 use crate::utils::rocket::EmailRateLimiter;
 use crate::utils::rocket::VerifyEmailOrTokenRateLimiter;
 use crate::DbConn;
@@ -25,14 +26,15 @@ impl<'r> FromData<'r> for LoginReqGuard {
     type Error = AppError;
 
     async fn from_data(
-        req: &'r Request<'_>,
+        request: &'r Request<'_>,
         data: Data<'r>,
     ) -> rocket::data::Outcome<'r, Self, Self::Error> {
-        let login_req = try_outcome!(Json::<LoginReq>::from_data(req, data)
+        let i18n = request.guard::<I18n>().await.expect("i18n failed!");
+        let login_req = try_outcome!(Json::<LoginReq>::from_data(request, data)
             .await
             .map_error(|(s, e)| (s, AppError::bad_request(e.to_string()))));
 
-        let rate_limiter = match req.guard::<&State<EmailRateLimiter>>().await {
+        let rate_limiter = match request.guard::<&State<EmailRateLimiter>>().await {
             rocket::outcome::Outcome::Success(rate_limiter) => rate_limiter,
             rocket::outcome::Outcome::Forward(s) => {
                 return rocket::outcome::Outcome::Error((
@@ -48,7 +50,7 @@ impl<'r> FromData<'r> for LoginReqGuard {
             }
         };
 
-        match rate_limiter.check_key(&login_req.email) {
+        match rate_limiter.check_key(i18n, &login_req.email) {
             Ok(_) => rocket::outcome::Outcome::Success(LoginReqGuard(login_req)),
             Err(err) => {
                 rocket::outcome::Outcome::Error((rocket::http::Status::TooManyRequests, err))
@@ -63,13 +65,14 @@ pub struct VerifyEmailOrTokenGuard(pub IpAddr);
 impl<'r> FromRequest<'r> for VerifyEmailOrTokenGuard {
     type Error = AppError;
 
-    async fn from_request(req: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
-        let ip = try_outcome!(req
+    async fn from_request(request: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+        let i18n = request.guard::<I18n>().await.expect("i18n failed!");
+        let ip = try_outcome!(request
             .guard::<IpAddr>()
             .await
             .map_error(|(s, e)| (s, AppError::internal(e.to_string()))));
 
-        let rate_limiter = try_outcome!(req
+        let rate_limiter = try_outcome!(request
             .guard::<&State<VerifyEmailOrTokenRateLimiter>>()
             .await
             .map_error(|(s, _)| (
@@ -77,7 +80,7 @@ impl<'r> FromRequest<'r> for VerifyEmailOrTokenGuard {
                 AppError::internal("Failed to get rate limiter".to_owned())
             )));
 
-        match rate_limiter.check_key(&ip.to_string()) {
+        match rate_limiter.check_key(i18n, &ip.to_string()) {
             Ok(_) => rocket::outcome::Outcome::Success(VerifyEmailOrTokenGuard(ip)),
             Err(err) => {
                 rocket::outcome::Outcome::Error((rocket::http::Status::TooManyRequests, err))
@@ -102,6 +105,8 @@ impl<'r> FromRequest<'r> for AuthGuard {
     ) -> rocket::request::Outcome<Self, Self::Error> {
         let auth_guard_result = request
             .local_cache_async(async move {
+                let i18n = request.guard::<I18n>().await.expect("i18n failed!");
+
                 let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (
                     s,
                     AppError::internal(
@@ -114,7 +119,7 @@ impl<'r> FromRequest<'r> for AuthGuard {
                     None => {
                         return rocket::request::Outcome::Error((
                             rocket::http::Status::Unauthorized,
-                            AppError::unauthorized(),
+                            AppError::unauthorized(i18n),
                         ))
                     }
                 };
@@ -124,7 +129,7 @@ impl<'r> FromRequest<'r> for AuthGuard {
                     _ => {
                         return rocket::request::Outcome::Error((
                             rocket::http::Status::Unauthorized,
-                            AppError::unauthorized(),
+                            AppError::unauthorized(i18n),
                         ))
                     }
                 };
@@ -134,7 +139,7 @@ impl<'r> FromRequest<'r> for AuthGuard {
                     Err(_) => {
                         return rocket::request::Outcome::Error((
                             rocket::http::Status::Unauthorized,
-                            AppError::unauthorized(),
+                            AppError::unauthorized(i18n),
                         ))
                     }
                 };

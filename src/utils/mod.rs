@@ -6,3 +6,4 @@ pub mod rocket;
 pub mod serde;
 pub mod string;
 pub mod vec;
+pub mod i18n;

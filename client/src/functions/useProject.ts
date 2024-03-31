@@ -26,10 +26,9 @@ export function provideProject () {
 
   const { data: features, loading: featuresLoading, execute: reloadFeatures } = useAPI(() => api.project.getFeatures(), { default: [] })
 
-  const initWatcher = watch(user, (data) => {
+  watch(user, (data) => {
     if (data) {
       locale.value = data.locale === 'zh' ? 'zh' : 'en'
-      initWatcher()
     }
   }, { immediate: true })
 

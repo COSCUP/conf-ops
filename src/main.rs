@@ -18,6 +18,8 @@ extern crate diesel;
 #[macro_use]
 extern crate serde;
 
+rust_i18n::i18n!("src/locales");
+
 mod error;
 mod models;
 mod modules;

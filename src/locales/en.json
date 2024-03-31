@@ -1,0 +1,37 @@
+{
+  "_version": 1,
+  "error": {
+    "unauthorized": "Not logged in.",
+    "wrong_fields": "The fields you have entered are incorrect.",
+    "too_many_requests": "You have made too many requests. Please try again later.",
+    "not_found": "The resource you are looking for does not exist.",
+    "unknown_host": "The host you are trying to access is unknown.",
+    "internal_server_error": "An internal server error has occurred. Please try again later."
+  },
+  "login": {
+    "email": {
+      "subject": "Welcome login to %{project} ConfOps",
+      "body": "Hello %{user}<br>\n<br>\nThank you for participating in %{project}. Please click <a href=\"%{url}\">this link</a> to log in to the system, and note that this link is only valid for 15 minutes.<br>\n<br>\nBest regards,<br>\nConfOps<br>\n%{email_from}"
+    },
+    "failed": "Login failed. Please check your email."
+  },
+  "ticket": {
+    "error": {
+      "not_join_to_this_ticket": "You are not joined in this ticket.",
+      "not_assign_to_this_flow": "You are not assigned to participate in this flow.",
+      "not_assign_to_this_schema": "You are not allowed to participate in this flow.",
+      "not_probably_user_of_this_schema": "You cannot create this ticket.",
+      "not_manager_of_this_schema": "You cannot manage this ticket."
+    },
+    "rules": {
+      "required": "%{field} field is required.",
+      "text_too_long": "%{field} field has too many characters.",
+      "text_too_many_lines": "%{field} field has too many lines.",
+      "not_valid_choice": "%{field} field has an incorrect choice.",
+      "not_upload_file": "%{field} field must upload a file.",
+      "not_upload_image": "%{field} field must upload an image.",
+      "unknown": "Unknown value for %{field} field.",
+      "too_many_choice": "%{field} field has too many choices."
+    }
+  }
+}

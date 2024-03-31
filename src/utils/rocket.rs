@@ -10,6 +10,8 @@ use rocket::{
 
 use crate::error::AppError;
 
+use super::i18n::I18n;
+
 pub struct PrefixUri(pub String);
 const HOST_WHITELIST: &[rocket::http::uri::Host<'_>; 2] = &[
     Host::new(uri!("127.0.0.1:8000")),
@@ -20,6 +22,7 @@ impl<'r> FromRequest<'r> for PrefixUri {
     type Error = AppError;
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+        let i18n = request.guard::<I18n>().await.expect("i18n failed!");
         let origin = request.headers().get_one("Origin");
 
         if let Some(origin) = origin {
@@ -32,7 +35,7 @@ impl<'r> FromRequest<'r> for PrefixUri {
 
         match uri {
             Some(host) => Success(PrefixUri(host.to_string())),
-            None => Error((Status::BadRequest, AppError::unknown_host())),
+            None => Error((Status::BadRequest, AppError::unknown_host(i18n))),
         }
     }
 }
@@ -56,10 +59,10 @@ impl EmailRateLimiter {
         EmailRateLimiter(limiter)
     }
 
-    pub fn check_key(&self, email: &String) -> Result<(), AppError> {
+    pub fn check_key(&self, i18n: I18n, email: &String) -> Result<(), AppError> {
         match self.0.check_key(email) {
             Ok(_) => Ok(()),
-            Err(_) => Err(AppError::too_many_requests()),
+            Err(_) => Err(AppError::too_many_requests(i18n)),
         }
     }
 }
@@ -71,10 +74,10 @@ impl VerifyEmailOrTokenRateLimiter {
         VerifyEmailOrTokenRateLimiter(limiter)
     }
 
-    pub fn check_key(&self, ip: &String) -> Result<(), AppError> {
+    pub fn check_key(&self, i18n: I18n, ip: &String) -> Result<(), AppError> {
         match self.0.check_key(ip) {
             Ok(_) => Ok(()),
-            Err(_) => Err(AppError::too_many_requests()),
+            Err(_) => Err(AppError::too_many_requests(i18n)),
         }
     }
 }

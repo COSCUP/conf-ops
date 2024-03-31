@@ -6,6 +6,8 @@ use rocket::{
 };
 use std::io::Cursor;
 
+use crate::utils::i18n::I18n;
+
 #[derive(Debug, Serialize, Clone)]
 pub struct AppError {
     status: Status,
@@ -21,10 +23,10 @@ impl AppError {
             fields: None,
         }
     }
-    pub fn unauthorized() -> AppError {
+    pub fn unauthorized(i18n: I18n) -> AppError {
         AppError {
             status: Status::Unauthorized,
-            message: "Unauthorized".to_owned(),
+            message: i18n.t("error.unauthorized"),
             fields: None,
         }
     }
@@ -35,10 +37,10 @@ impl AppError {
             fields: None,
         }
     }
-    pub fn bad_request_with_fields(fields: serde_json::Map<String, Value>) -> AppError {
+    pub fn bad_request_with_fields(i18n: I18n, fields: serde_json::Map<String, Value>) -> AppError {
         AppError {
             status: Status::BadRequest,
-            message: "wrong fields".to_owned(),
+            message: i18n.t("error.wrong_fields"),
             fields: Some(fields),
         }
     }
@@ -49,17 +51,17 @@ impl AppError {
             fields: None,
         }
     }
-    pub fn too_many_requests() -> AppError {
+    pub fn too_many_requests(i18n: I18n) -> AppError {
         AppError {
             status: Status::TooManyRequests,
-            message: "Too many requests".to_owned(),
+            message: i18n.t("error.too_many_requests"),
             fields: None,
         }
     }
-    pub fn unknown_host() -> AppError {
+    pub fn unknown_host(i18n: I18n) -> AppError {
         AppError {
             status: Status::BadRequest,
-            message: "Unknown host".to_owned(),
+            message: i18n.t("error.unknown_host"),
             fields: None,
         }
     }

@@ -9,6 +9,7 @@ use crate::{
     utils::{
         file::FileMime,
         image::{self, ImageMime},
+        i18n::I18n
     },
     DataFolder,
 };
@@ -51,9 +52,10 @@ impl FormSchema {
         }
     }
 
-    pub async fn validate_and_normalize(
+    pub async fn validate_and_normalize<'a>(
         &self,
         conn: &mut crate::DbConn,
+        i18n: &I18n<'a>,
         data: &serde_json::Map<String, Value>,
     ) -> Result<serde_json::Map<String, Value>, serde_json::Map<String, Value>> {
         let FormSchema { fields, .. } = self;
@@ -75,7 +77,7 @@ impl FormSchema {
                     continue;
                 }
             };
-            let new_value = match field.validate_and_normalize(conn, user_value).await {
+            let new_value = match field.validate_and_normalize(conn, i18n, user_value).await {
                 Ok(value) => value,
                 Err(err) => {
                     is_error = true;

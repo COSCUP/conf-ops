@@ -40,3 +40,6 @@ image = "0.24"
 
 # rate limiter
 governor = "0.6.3"
+
+# i18n
+rust-i18n = "3"

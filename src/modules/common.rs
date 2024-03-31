@@ -11,9 +11,7 @@ use crate::{
     models::{project::Project, user::User, user_email::UserEmail, user_session::UserSession},
     modules::{EmptyResponse, EmptyResult, JsonResult},
     utils::{
-        jwt::{self, LoginClaims},
-        lettre::send_email,
-        rocket::{PrefixUri, UserAgent},
+        i18n::I18n, jwt::{self, LoginClaims}, lettre::send_email, rocket::{PrefixUri, UserAgent}
     },
     AppConfig, DbConn,
 };
@@ -54,9 +52,10 @@ pub struct LoginReq {
 }
 
 #[post("/project/login", data = "<login_req>")]
-async fn login(
+async fn login<'a>(
     mut conn: DbConn,
     config: &State<AppConfig>,
+    i18n: I18n<'a>,
     _ip: VerifyEmailOrTokenGuard,
     host: PrefixUri,
     login_req: LoginReqGuard,
@@ -67,27 +66,38 @@ async fn login(
         login_req.0.email.clone(),
     )
     .await
-    .map_err(|err| AppError::bad_request(err.to_string()))?;
+    .map_err(|_| AppError::bad_request(i18n.t("login.failed")))?;
+
+    let project = Project::find(&mut conn, login_req.0.project_id.clone())
+        .await
+        .map_err(|_| AppError::bad_request(i18n.t("login.failed")))?;
 
     let login_token = jwt::generate_login_token(config, user.project_id.clone(), user.id.clone())
         .map_err(|err| AppError::internal(err.to_string()))?;
 
-    let email_from = &config.email_from;
+    let email_from = config.email_from.clone();
     let User { name, .. } = user;
     let PrefixUri(prefix_uri) = host;
     let to = login_req.0.email.clone();
 
+    let body = i18n.tf("login.email.body", &[
+        ("user", name.clone()),
+        ("project", project.name.clone()),
+        ("url", format!("{prefix_uri}/token/{login_token}")),
+        ("email_from", email_from.clone())
+    ]);
+
     let message = Message::builder()
         .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
         .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
-        .subject("Welcome to ConfOps!")
-        .header(ContentType::TEXT_PLAIN)
-        .body(format!(
-            "Click here to login: {prefix_uri}/token/{login_token}\nPs. this link is alive in 15 mins."
-        ))
+        .subject(i18n.tf("login.email.body", &[("project", project.name.clone())]))
+        .header(ContentType::TEXT_HTML)
+        .body(body)
         .expect("Failed to build email message");
 
-    let _ = send_email(config, message).await;
+    let _ = send_email(config, message)
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
 
     Ok(EmptyResponse)
 }

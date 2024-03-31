@@ -17,6 +17,7 @@ use crate::utils::{
     serde::{unix_time, unix_time_option},
     string::StringExt,
 };
+use crate::utils::i18n::I18n;
 
 use super::fields::{
     FormFieldDefault, FormFieldDefine, FormFieldOptionValue, FormFieldValue, FormSchemaField,
@@ -222,9 +223,10 @@ pub struct TicketSchemaFormField {
 }
 
 impl TicketSchemaFormField {
-    pub async fn validate_and_normalize(
+    pub async fn validate_and_normalize<'a>(
         &self,
         conn: &mut crate::DbConn,
+        i18n: &I18n<'a>,
         data: &serde_json::Value,
     ) -> Result<Value, String> {
         if !self.editable {
@@ -250,7 +252,7 @@ impl TicketSchemaFormField {
         match data {
             serde_json::Value::Null => {
                 if self.required {
-                    return Err(format!("Field {} is required", self.key));
+                    return Err(i18n.tf("ticket.rules.required", &[("field", self.key.clone())]));
                 } else {
                     return Ok(data.clone());
                 }
@@ -259,7 +261,7 @@ impl TicketSchemaFormField {
                 if let FormFieldDefine::Bool { .. } = self.define {
                     return Ok(data.clone());
                 } else {
-                    return Err(format!("Field {} is not a boolean", self.key));
+                    return Err(i18n.tf("ticket.rules.unknown", &[("field", self.key.clone())]));
                 }
             }
             serde_json::Value::String(value) => match self.define {
@@ -267,10 +269,10 @@ impl TicketSchemaFormField {
                     let text = value.trim();
                     let text_len = text.len() as u32;
                     if text_len == 0 && self.required {
-                        return Err(format!("Field {} is required", self.key));
+                        return Err(i18n.tf("ticket.rules.required", &[("field", self.key.clone())]));
                     }
                     if text_len > max_texts {
-                        return Err(format!("Field {} is too long", self.key));
+                        return Err(i18n.tf("ticket.rules.text_too_long", &[("field", self.key.clone())]));
                     }
                     Ok(serde_json::Value::String(text.to_owned()))
                 }
@@ -282,19 +284,19 @@ impl TicketSchemaFormField {
                     let text = value.trim();
                     let text_len = text.len() as u32;
                     if text_len == 0 && self.required {
-                        return Err(format!("Field {} is required", self.key));
+                        return Err(i18n.tf("ticket.rules.required", &[("field", self.key.clone())]));
                     }
                     if text_len > max_texts {
-                        return Err(format!("Field {} is too long", self.key));
+                        return Err(i18n.tf("ticket.rules.text_too_long", &[("field", self.key.clone())]));
                     }
                     if text.count_words("\n") > max_lines {
-                        return Err(format!("Field {} is too many lines", self.key));
+                        return Err(i18n.tf("ticket.rules.text_too_many_lines", &[("field", self.key.clone())]));
                     }
                     Ok(serde_json::Value::String(text.to_owned()))
                 }
                 FormFieldDefine::SingleChoice { ref options, .. } => {
                     if !options.iter().any(|o| is_same(&o.value, data)) {
-                        return Err(format!("Field {} is not a valid choice", self.key));
+                        return Err(i18n.tf("ticket.rules.not_valid_choice", &[("field", self.key.clone())]));
                     }
                     return Ok(data.clone());
                 }
@@ -304,7 +306,7 @@ impl TicketSchemaFormField {
                         id = id.split('.').collect::<Vec<&str>>()[0].to_owned();
                     }
                     if let Err(_) = TicketFormFile::find(conn, id).await {
-                        return Err(format!("Field {} is not a upload file", self.key));
+                        return Err(i18n.tf("ticket.rules.not_upload_file", &[("field", self.key.clone())]));
                     }
                     return Ok(data.clone());
                 }
@@ -314,20 +316,20 @@ impl TicketSchemaFormField {
                         id = id.split('.').collect::<Vec<&str>>()[0].to_owned();
                     }
                     if let Err(_) = TicketFormImage::find(conn, id).await {
-                        return Err(format!("Field {} is not a upload image", self.key));
+                        return Err(i18n.tf("ticket.rules.not_upload_image", &[("field", self.key.clone())]));
                     }
                     return Ok(data.clone());
                 }
-                _ => Err(format!("Field {} is not a string", self.key)),
+                _ => Err(i18n.tf("ticket.rules.unknown", &[("field", self.key.clone())])),
             },
             serde_json::Value::Number(_) => match self.define {
                 FormFieldDefine::SingleChoice { ref options, .. } => {
                     if !options.iter().any(|o| is_same(&o.value, data)) {
-                        return Err(format!("Field {} is not a valid choice", self.key));
+                        return Err(i18n.tf("ticket.rules.not_valid_choice", &[("field", self.key.clone())]));
                     }
                     return Ok(data.clone());
                 }
-                _ => Err(format!("Field {} is not a number", self.key)),
+                _ => Err(i18n.tf("ticket.rules.unknown", &[("field", self.key.clone())])),
             },
             serde_json::Value::Array(value) => {
                 if let FormFieldDefine::MultipleChoice {
@@ -338,22 +340,22 @@ impl TicketSchemaFormField {
                 {
                     let value_len = value.len() as u32;
                     if value_len == 0 && self.required {
-                        return Err(format!("Field {} is required", self.key));
+                        return Err(i18n.tf("ticket.rules.required", &[("field", self.key.clone())]));
                     }
                     if value_len > max_options {
-                        return Err(format!("Field {} is too many choices", self.key));
+                        return Err(i18n.tf("ticket.rules.too_many_choice", &[("field", self.key.clone())]));
                     }
                     if !value
                         .iter()
                         .all(|v| options.iter().any(|o| is_same(&o.value, v)))
                     {
-                        return Err(format!("Field {} is not a valid choice", self.key));
+                        return Err(i18n.tf("ticket.rules.not_valid_choice", &[("field", self.key.clone())]));
                     }
                     return Ok(data.clone());
                 }
-                Err(format!("Field {} is not an array", self.key))
+                Err(i18n.tf("ticket.rules.unknown", &[("field", self.key.clone())]))
             }
-            _ => return Err(format!("Field {} is not a valid type", self.key)),
+            _ => return Err(i18n.tf("ticket.rules.unknown", &[("field", self.key.clone())])),
         }
     }
 
