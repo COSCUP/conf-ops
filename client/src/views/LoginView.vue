@@ -85,7 +85,7 @@ const router = useRouter()
 
 const { data: project, loading: projectLoading } = useAPI(() => api.project.get(props.projectId), { failure: () => router.push(`/404`) })
 
-const { data: role, loading: roleLoading } = useAPI(() => props.roleId ? api.role.get(props.roleId) : makeEmptyRequest())
+const { data: role, loading: roleLoading } = useAPI(() => props.roleId ? api.role.get(props.roleId) : makeEmptyRequest(), { failure: () => router.push(`/login/${props.projectId}`) })
 
 usePageTitle(() => `${t('title', [project.value?.[`name_${locale.value}`] ?? ''])}`)
 usePageLoading(() => projectLoading.value || roleLoading.value)

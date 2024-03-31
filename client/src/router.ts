@@ -4,6 +4,7 @@ import LoginView from '@/views/LoginView.vue'
 import TokenView from '@/views/TokenView.vue'
 import SystemView from '@/views/SystemView.vue'
 import DashboardView from '@/views/system/DashboardView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', component: HomeView },
@@ -29,7 +30,8 @@ const routes: RouteRecordRaw[] = [
       },
       { path: 'manage-ticket', component: () => import('@/views/system/TicketManageView.vue') }
     ]
-  }
+  },
+  { path: '/:pathMatch(.*)*', component: NotFoundView }
 ]
 
 export const router = createRouter({
