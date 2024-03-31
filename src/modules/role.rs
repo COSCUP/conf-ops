@@ -226,7 +226,7 @@ pub async fn get_enabled_features_by_user(conn: &mut DbConn, user: &User) -> Vec
     if manager_roles.is_empty() {
         vec![]
     } else {
-        vec![EnabledFeature::RoleManage(manager_roles.len())]
+        vec![EnabledFeature::RoleManage(0)]
     }
 }
 
