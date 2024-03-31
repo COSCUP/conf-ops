@@ -2,14 +2,14 @@ use std::path::{Path, PathBuf};
 
 use rocket::fairing::AdHoc;
 use rocket::fs::{FileServer, NamedFile};
-use rocket::http::Method;
 use rocket::http::Header;
+use rocket::http::Method;
 use rocket::{Build, Rocket};
 use rocket_db_pools::diesel::MysqlPool;
-use rocket_db_pools::{Database, Connection};
+use rocket_db_pools::{Connection, Database};
 
 #[cfg(not(debug_assertions))]
-use diesel_migrations::{EmbeddedMigrations, embed_migrations};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations};
 
 #[macro_use]
 extern crate rocket;
@@ -54,9 +54,7 @@ impl DataFolder {
 }
 
 #[get("/<path..>", rank = 1)]
-async fn get_default_page(
-    path: PathBuf
-) -> Option<NamedFile> {
+async fn get_default_page(path: PathBuf) -> Option<NamedFile> {
     if path.starts_with("api/") {
         return None;
     }
@@ -75,28 +73,36 @@ async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
 #[cfg(not(debug_assertions))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SimpleDatabaseConfig {
-    url: String
+    url: String,
 }
 
 #[cfg(not(debug_assertions))]
 async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
     use diesel_migrations::MigrationHarness;
-    use rocket_db_pools::diesel::{AsyncMysqlConnection, async_connection_wrapper::AsyncConnectionWrapper};
+    use rocket_db_pools::diesel::{
+        async_connection_wrapper::AsyncConnectionWrapper, AsyncMysqlConnection,
+    };
 
     println!("Running migrations in release mode");
 
-    let database_config = rocket.figment()
+    let database_config = rocket
+        .figment()
         .focus("databases.main_db")
         .extract::<SimpleDatabaseConfig>()
         .expect("Failed to extract database config");
 
     tokio::task::spawn_blocking(move || {
-        let mut conn = <AsyncConnectionWrapper::<AsyncMysqlConnection> as diesel::Connection>::establish(&database_config.url)
+        let mut conn =
+            <AsyncConnectionWrapper<AsyncMysqlConnection> as diesel::Connection>::establish(
+                &database_config.url,
+            )
             .expect("Failed to establish connection");
 
         conn.run_pending_migrations(MIGRATIONS)
             .expect("Failed to run migrations");
-    }).await.expect("Failed to run blocking task");
+    })
+    .await
+    .expect("Failed to run blocking task");
 
     rocket
 }
@@ -124,23 +130,28 @@ fn rocket() -> _ {
         .attach(modules::stage())
         .mount("/", FileServer::from("public/").rank(0))
         .mount("/", routes![get_default_page])
-        .attach(AdHoc::on_response("cache header", |req, res| Box::pin(async move {
-            if req.method() != Method::Get || res.status().code >= 400 {
-                return
-            }
+        .attach(AdHoc::on_response("cache header", |req, res| {
+            Box::pin(async move {
+                if req.method() != Method::Get || res.status().code >= 400 {
+                    return;
+                }
 
-            if req.uri().path().starts_with("/api/") {
-                res.set_header(Header::new("Cache-Control", "max-age=0, no-store"));
-                return
-            }
-            if req.uri().path() == "/" || req.uri().path().starts_with("/index.html") {
-                res.set_header(Header::new("Cache-Control", "max-age=0, no-store"));
-                return
-            }
-            if req.uri().path().starts_with("/assets/") {
-                res.set_header(Header::new("Cache-Control", "public, max-age=604800, immutable"));
-                return
-            }
-            res.set_header(Header::new("Cache-Control", "max-age=600"));
-        })))
+                if req.uri().path().starts_with("/api/") {
+                    res.set_header(Header::new("Cache-Control", "max-age=0, no-store"));
+                    return;
+                }
+                if req.uri().path() == "/" || req.uri().path().starts_with("/index.html") {
+                    res.set_header(Header::new("Cache-Control", "max-age=0, no-store"));
+                    return;
+                }
+                if req.uri().path().starts_with("/assets/") {
+                    res.set_header(Header::new(
+                        "Cache-Control",
+                        "public, max-age=604800, immutable",
+                    ));
+                    return;
+                }
+                res.set_header(Header::new("Cache-Control", "max-age=600"));
+            })
+        }))
 }

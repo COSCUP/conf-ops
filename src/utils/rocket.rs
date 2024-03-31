@@ -1,6 +1,6 @@
 use std::{num::NonZeroU32, time::Duration};
 
-use governor::{Quota, RateLimiter, DefaultKeyedRateLimiter};
+use governor::{DefaultKeyedRateLimiter, Quota, RateLimiter};
 use rocket::{
     http::{uri::Host, Status},
     outcome::Outcome::{Error, Success},
@@ -48,7 +48,7 @@ impl<'r> FromRequest<'r> for UserAgent {
     }
 }
 
-pub struct EmailRateLimiter (DefaultKeyedRateLimiter<String>);
+pub struct EmailRateLimiter(DefaultKeyedRateLimiter<String>);
 impl EmailRateLimiter {
     pub fn new() -> Self {
         let quota = Quota::with_period(Duration::from_secs(60 * 5)).unwrap();
@@ -64,7 +64,7 @@ impl EmailRateLimiter {
     }
 }
 
-pub struct VerifyEmailOrTokenRateLimiter (DefaultKeyedRateLimiter<String>);
+pub struct VerifyEmailOrTokenRateLimiter(DefaultKeyedRateLimiter<String>);
 impl VerifyEmailOrTokenRateLimiter {
     pub fn new() -> Self {
         let limiter = RateLimiter::keyed(Quota::per_minute(NonZeroU32::new(5).unwrap()));

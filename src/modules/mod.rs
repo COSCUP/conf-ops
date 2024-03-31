@@ -4,8 +4,8 @@ use rocket::http::Status;
 use rocket::response::Responder;
 use rocket::{fairing::AdHoc, response, serde::json::Json, Request, Response};
 
-pub mod guard;
 pub mod common;
+pub mod guard;
 pub mod role;
 pub mod ticket;
 
@@ -62,7 +62,12 @@ pub fn stage() -> AdHoc {
             )
             .register(
                 "/api",
-                catchers![catch_unauthorized, catch_not_found, catch_internal, catch_too_many_requests],
+                catchers![
+                    catch_unauthorized,
+                    catch_not_found,
+                    catch_internal,
+                    catch_too_many_requests
+                ],
             )
     })
 }

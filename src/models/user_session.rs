@@ -5,7 +5,8 @@ use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::{
-    modules::guard::AuthGuard, schema::{projects, user_sessions, users}
+    modules::guard::AuthGuard,
+    schema::{projects, user_sessions, users},
 };
 
 use super::{project::Project, user::User};

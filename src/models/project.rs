@@ -1,8 +1,8 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
+use rocket::outcome::try_outcome;
 use rocket::request::FromRequest;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
-use rocket::outcome::try_outcome;
 
 use crate::{
     error::AppError,
@@ -95,8 +95,12 @@ impl<'r> FromRequest<'r> for Project {
     async fn from_request(
         request: &'r rocket::Request<'_>,
     ) -> rocket::request::Outcome<Self, Self::Error> {
-        let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (s, AppError::internal(e
-            .map_or("Unknown database problem".to_owned(), |err| err.to_string())))));
+        let mut db = try_outcome!(request.guard::<DbConn>().await.map_error(|(s, e)| (
+            s,
+            AppError::internal(
+                e.map_or("Unknown database problem".to_owned(), |err| err.to_string())
+            )
+        )));
 
         let project_not_found_error = rocket::request::Outcome::Error((
             rocket::http::Status::NotFound,

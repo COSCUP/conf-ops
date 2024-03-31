@@ -1,6 +1,9 @@
 use lettre::{message::header::ContentType, Message};
 use rocket::{
-    http::{Cookie, CookieJar}, serde::json::Json, time::{Duration, OffsetDateTime}, Route, State
+    http::{Cookie, CookieJar},
+    serde::json::Json,
+    time::{Duration, OffsetDateTime},
+    Route, State,
 };
 
 use crate::{
@@ -15,7 +18,10 @@ use crate::{
     AppConfig, DbConn,
 };
 
-use super::{guard::{AuthGuard, LoginReqGuard, VerifyEmailOrTokenGuard}, role, ticket, EnabledFeature};
+use super::{
+    guard::{AuthGuard, LoginReqGuard, VerifyEmailOrTokenGuard},
+    role, ticket, EnabledFeature,
+};
 
 #[get("/")]
 async fn ping() -> &'static str {
