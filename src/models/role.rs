@@ -25,14 +25,17 @@ use crate::{
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Role {
     pub id: String,
-    pub name: String,
+    pub name_zh: String,
     pub project_id: String,
-    pub login_message: Option<String>,
-    pub welcome_message: Option<String>,
+    pub login_message_zh: Option<String>,
+    pub welcome_message_zh: Option<String>,
     #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
     #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
+    pub name_en: String,
+    pub login_message_en: Option<String>,
+    pub welcome_message_en: Option<String>,
 }
 
 #[derive(

@@ -14,7 +14,7 @@
       >
         <NInput
           v-model:value="addTicketValue.title"
-          :default-value="schema.title"
+          :default-value="schema[`title_${locale}`]"
           show-count
           :maxlength="150"
         />
@@ -32,7 +32,7 @@
             <NFormItem
               v-for="flow in schema.flows"
               :key="flow.id"
-              :label="`${flow.order}. ${flow.name}`"
+              :label="`${flow.order}. ${flow[`name_${locale}`]}`"
               :path="`assign_flow_users.[${flow.id}]`"
             >
               <RoleUserSelect
@@ -72,6 +72,7 @@ import { FormInst, useDialog } from 'naive-ui'
 import RoleUserSelect from '@/components/system/common/RoleUserSelect.vue'
 import { useRouter } from 'vue-router'
 import { useBreakpoint } from '@/functions/useBreakpoint'
+import { useLocale } from '@/i18n'
 
 const props = defineProps<{
   id: number
@@ -80,6 +81,7 @@ const props = defineProps<{
 const dialog = useDialog()
 const router = useRouter()
 const { t } = useI18n()
+const { locale } = useLocale()
 const { isMobile } = useBreakpoint()
 
 const breadcrumbs = useTicketBreadcrumb([TicketBreadcrumbType.HOME, TicketBreadcrumbType.ADD1, TicketBreadcrumbType.ADD2])
@@ -95,7 +97,7 @@ const addTicketValue = ref<AddTicketReq>({
 
 watch(schema, () => {
   if (schema.value) {
-    addTicketValue.value.title = schema.value.title
+    addTicketValue.value.title = schema.value[`title_${locale.value}`]
   }
 })
 

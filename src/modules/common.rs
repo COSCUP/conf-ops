@@ -79,10 +79,15 @@ async fn login<'a>(
     let User { name, .. } = user;
     let PrefixUri(prefix_uri) = host;
     let to = login_req.0.email.clone();
+    let project_name = if i18n.locale == "zh" {
+        project.name_zh.clone()
+    } else {
+        project.name_en.clone()
+    };
 
     let body = i18n.tf("login.email.body", &[
         ("user", name.clone()),
-        ("project", project.name.clone()),
+        ("project", project_name.clone()),
         ("url", format!("{prefix_uri}/token/{login_token}")),
         ("email_from", email_from.clone())
     ]);
@@ -90,7 +95,7 @@ async fn login<'a>(
     let message = Message::builder()
         .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
         .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
-        .subject(i18n.tf("login.email.body", &[("project", project.name.clone())]))
+        .subject(i18n.tf("login.email.body", &[("project", project_name.clone())]))
         .header(ContentType::TEXT_HTML)
         .body(body)
         .expect("Failed to build email message");

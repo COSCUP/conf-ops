@@ -5,21 +5,23 @@
       align="center"
     >
       <img class="mt-4 max-w-full w-xs" src="@/assets/logo.svg">
-      <NH1 class="mb-1">
-        {{ project?.name }}
-        <template v-if="role">
-          <span> - {{ role.name }}</span>
-        </template>
-      </NH1>
-      <NP class="mt-1">
-        {{ project?.description }}
-      </NP>
+      <template v-if="project">
+        <NH1 class="mb-1">
+          {{ project[`name_${locale}`] }}
+          <template v-if="role">
+            <span> - {{ role[`name_${locale}`] }}</span>
+          </template>
+        </NH1>
+        <NP class="mt-1">
+          {{ project[`description_${locale}`] }}
+        </NP>
+      </template>
       <NAlert
         v-if="role"
         type="info"
         class="w-xs"
       >
-        {{ role.login_message }}
+        {{ role[`login_message_${locale}`] }}
       </NAlert>
       <NCard
         :title="t('title')"
@@ -69,6 +71,7 @@ import { FormInst, FormRules, useDialog } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useLocale } from '@/i18n'
 
 const props = defineProps<{
   projectId: string,
@@ -76,14 +79,15 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { locale } = useLocale()
 const dialog = useDialog()
 const router = useRouter()
 
-const { data: project, loading: projectLoading } = useAPI(() => api.project.get(props.projectId))
+const { data: project, loading: projectLoading } = useAPI(() => api.project.get(props.projectId), { failure: () => router.push(`/404`) })
 
 const { data: role, loading: roleLoading } = useAPI(() => props.roleId ? api.role.get(props.roleId) : makeEmptyRequest())
 
-usePageTitle(() => `${t('title', [project.value?.name ?? ''])}`)
+usePageTitle(() => `${t('title', [project.value?.[`name_${locale.value}`] ?? ''])}`)
 usePageLoading(() => projectLoading.value || roleLoading.value)
 usePageNotFound(() => !projectLoading.value && !project.value)
 

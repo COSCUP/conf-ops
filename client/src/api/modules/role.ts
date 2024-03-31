@@ -2,16 +2,21 @@ import { instance, makeRequest } from '@/api/base'
 import { User } from '@/api/modules/project'
 
 export interface PublicRole {
-  name: string
-  login_message?: string
+  name_zh: string
+  login_message_zh?: string
+  name_en: string
+  login_message_en?: string
 }
 
 export interface Role {
   id: string
-  name: string
+  name_zh: string
+  name_en: string
   project_id: string
-  login_message?: string
-  welcome_message?: string
+  login_message_zh?: string
+  welcome_message_zh?: string
+  login_message_en?: string
+  welcome_message_en?: string
 }
 
 export interface RoleUser {

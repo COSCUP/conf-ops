@@ -2,8 +2,10 @@ import { instance, makeRequest } from '../base'
 
 export interface Project {
   id: string
-  name: string
-  description: string
+  name_zh: string
+  description_zh: string
+  name_en: string
+  description_en: string
 }
 
 export interface User {

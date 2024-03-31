@@ -19,11 +19,11 @@
           class="no-underline"
         >
           <NCard
-            :title="project.name"
+            :title="project[`name_${locale}`]"
             hoverable
             class="hover:scale-x-102 hover:scale-y-108 relative pb-6"
           >
-            {{ project.description }}
+            {{ project[`description_${locale}`] }}
             <NButton type="primary" secondary circle class="absolute bottom-4 right-4">
               <template #icon>
                 <NIcon>
@@ -43,10 +43,12 @@ import { api } from '@/api';
 import HomeLayout from '@/components/HomeLayout.vue'
 import { useAPI } from '@/functions/useAPI'
 import { usePageLoading, usePageTitle } from '@/functions/usePage'
+import { useLocale } from '@/i18n'
 import { ArrowRight } from '@vicons/carbon'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+const { locale } = useLocale()
 
 const { data: projects, loading } = useAPI(api.project.getList, { default: [] })
 

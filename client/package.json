@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "optimize": "vite optimize",
+    "typecheck": "vue-tsc",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },

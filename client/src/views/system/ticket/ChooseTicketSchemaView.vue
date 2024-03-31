@@ -19,14 +19,14 @@
       >
         <NThing>
           <template #header>
-            {{ schema.title }}
+            {{ schema[`title_${locale}`] }}
           </template>
           <template #header-extra>
             {{ t('last_updated', [schema.updated_at.toLocaleString()]) }}
           </template>
           <template #description>
             <NText class="whitespace-pre-line">
-              {{ schema.description }}
+              {{ schema[`description_${locale}`] }}
             </NText>
           </template>
           <template #action>
@@ -53,8 +53,10 @@ import { api } from '@/api'
 import { usePageLoading } from '@/functions/usePage'
 import { RouterLink } from 'vue-router'
 import { Add } from '@vicons/carbon'
+import { useLocale } from '@/i18n'
 
 const { t } = useI18n()
+const { locale } = useLocale()
 
 const breadcrumbs = useTicketBreadcrumb([TicketBreadcrumbType.HOME, TicketBreadcrumbType.ADD1])
 const { data: schemas, loading } = useAPI(api.ticket.getProbablySchemas, { default: [] })

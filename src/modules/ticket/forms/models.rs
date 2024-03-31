@@ -173,8 +173,10 @@ impl TicketSchemaForm {
                 (
                     ticket_schema_form_fields::ticket_schema_form_id.eq(self.id),
                     ticket_schema_form_fields::order.eq(order + i as i32),
-                    ticket_schema_form_fields::name.eq(field.name),
-                    ticket_schema_form_fields::description.eq(field.description),
+                    ticket_schema_form_fields::name_zh.eq(field.name_zh),
+                    ticket_schema_form_fields::name_en.eq(field.name_en),
+                    ticket_schema_form_fields::description_zh.eq(field.description_zh),
+                    ticket_schema_form_fields::description_en.eq(field.description_en),
                     ticket_schema_form_fields::key.eq(field.key),
                     ticket_schema_form_fields::define.eq(field.define),
                     ticket_schema_form_fields::required.eq(field.required),
@@ -211,8 +213,8 @@ pub struct TicketSchemaFormField {
     pub ticket_schema_form_id: i32,
     pub order: i32,
     pub key: String,
-    pub name: String,
-    pub description: String,
+    pub name_zh: String,
+    pub description_zh: String,
     pub define: FormFieldDefine<FormFieldOptionValue>,
     pub required: bool,
     pub editable: bool,
@@ -220,6 +222,8 @@ pub struct TicketSchemaFormField {
     pub created_at: NaiveDateTime,
     #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
+    pub name_en: String,
+    pub description_en: String,
 }
 
 impl TicketSchemaFormField {

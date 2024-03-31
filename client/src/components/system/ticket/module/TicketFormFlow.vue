@@ -11,18 +11,18 @@
       ref="formItemRefs"
       class="mb-6"
       :path="field.key"
-      :label="field.name"
+      :label="field[`name_${locale}`]"
       label-placement="top"
     >
       <NFlex
         class="w-full"
         vertical
       >
-        <template v-if="field.description">
+        <template v-if="field[`description_${locale}`]">
           <NText
             class="ml-[2px] text-sm text-gray whitespace-pre-line"
           >
-            {{ field.description }}
+            {{ field[`description_${locale}`] }}
           </NText>
         </template>
         <template v-if="field.define.type === 'SingleLineText'">
@@ -158,6 +158,7 @@ import { getAPIErrorMessage, useFormAPI } from '@/functions/useAPI'
 import { api } from '@/api'
 import { FormInst, FormItemInst, FormItemRule, FormRules, NFlex, UploadFileInfo, useDialog, useMessage } from 'naive-ui'
 import { getImageSize } from '@/utils/image'
+import { useLocale } from '@/i18n'
 
 const props = defineProps<{
   id: number
@@ -173,6 +174,7 @@ const emit = defineEmits<{
 const dialog = useDialog()
 const message = useMessage()
 const { t } = useI18n()
+const { locale } = useLocale()
 
 const getFieldDefaultValue = <T>(field?: FormFieldDefault<T>) => {
   if (!field) {
@@ -284,7 +286,7 @@ const { execute, loading } = useFormAPI(
     failure: (error) => {
       let content = getAPIErrorMessage(error)
       if (Object.keys(error.fields).length > 0) {
-        content = Object.keys(error.fields).map((key) => `${props.schema.fields.find((f) => f.key === key)?.name ?? key}: ${error.fields[key]}`).join('\n')
+        content = Object.keys(error.fields).map((key) => `${props.schema.fields.find((f) => f.key === key)?.[`name_${locale.value}`] ?? key}: ${error.fields[key]}`).join('\n')
       }
 
       dialog.error({

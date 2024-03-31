@@ -4,7 +4,7 @@
       v-for="flow in previousFlows"
       :key="flow.flow?.id"
     >
-      <NDivider>{{ flow.schema.name }}</NDivider>
+      <NDivider>{{ flow.schema[`name_${locale}`] }}</NDivider>
       <TicketFlowModule
         :id="id"
         :current="flow"
@@ -64,6 +64,7 @@ import { FormInst, FormRules, useDialog } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TicketFlowModule from '../TicketFlowModule.vue'
+import { useLocale } from '@/i18n'
 
 const props = defineProps<{
   id: number
@@ -80,6 +81,7 @@ const emit = defineEmits<{
 
 const dialog = useDialog()
 const { t } = useI18n()
+const { locale } = useLocale()
 
 const formRef = ref<FormInst | null>(null)
 const formData = ref({

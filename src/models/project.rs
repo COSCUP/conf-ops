@@ -30,12 +30,14 @@ use crate::{
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Project {
     pub id: String,
-    pub name: String,
-    pub description: String,
+    pub name_zh: String,
+    pub description_zh: String,
     #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
     #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
+    pub name_en: String,
+    pub description_en: String,
 }
 
 impl Project {

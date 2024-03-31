@@ -43,6 +43,7 @@
 import { api } from '@/api'
 import { Role } from '@/api/modules/role'
 import { useFormAPI } from '@/functions/useAPI'
+import { useLocale } from '@/i18n'
 import { FormInst, useDialog } from 'naive-ui'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -54,13 +55,14 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: [] }>()
 
 const { t } = useI18n()
+const { locale } = useLocale()
 const dialog = useDialog()
 
 const formRef = ref<FormInst | null>(null)
 const formValue = ref({
-  name: props.role.name,
-  login_message: props.role.login_message,
-  welcome_message: props.role.welcome_message
+  name: props.role[`name_${locale.value}`],
+  login_message: props.role[`login_message_${locale.value}`],
+  welcome_message: props.role[`welcome_message_${locale.value}`]
 })
 
 

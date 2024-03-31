@@ -589,8 +589,10 @@ async fn get_managed_schema_in_admin<'a>(
 
 #[derive(Serialize, Deserialize, Debug)]
 struct NewTicketSchemaReq {
-    pub title: String,
-    pub description: String,
+    pub title_zh: String,
+    pub title_en: String,
+    pub description_zh: String,
+    pub description_en: String,
 }
 
 #[post("/ticket/admin/schemas", data = "<new_schema_req>")]
@@ -604,8 +606,10 @@ async fn add_managed_schema_in_admin(
         async move {
             let schema = TicketSchema::create(
                 conn,
-                new_schema_req.title.clone(),
-                new_schema_req.description.clone(),
+                new_schema_req.title_zh.clone(),
+                new_schema_req.title_en.clone(),
+                new_schema_req.description_zh.clone(),
+                new_schema_req.description_en.clone(),
                 project.id,
             )
             .await?;
@@ -649,7 +653,7 @@ async fn add_flow_to_schema_in_admin<'a>(
             schema.updated_at = chrono::Utc::now().naive_utc();
             let _ = schema.save(conn).await?;
             let flow = schema
-                .add_flow(conn, new_flow_req.schema.name.clone())
+                .add_flow(conn, new_flow_req.schema.name_zh.clone(), new_flow_req.schema.name_en.clone())
                 .await?;
 
             match new_flow_req.into_inner().module {
@@ -660,8 +664,10 @@ async fn add_flow_to_schema_in_admin<'a>(
                         .fields
                         .into_iter()
                         .map(|field| FormSchemaField {
-                            name: field.name,
-                            description: field.description,
+                            name_zh: field.name_zh,
+                            description_zh: field.description_zh,
+                            name_en: field.name_en,
+                            description_en: field.description_en,
                             key: field.key,
                             define: field.define,
                             required: field.required,

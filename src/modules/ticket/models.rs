@@ -41,26 +41,32 @@ use super::{
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct TicketSchema {
     pub id: i32,
-    pub title: String,
-    pub description: String,
+    pub title_zh: String,
+    pub description_zh: String,
     pub project_id: String,
     #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
     #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
+    pub title_en: String,
+    pub description_en: String,
 }
 
 impl TicketSchema {
     pub async fn create(
         conn: &mut crate::DbConn,
-        title: String,
-        description: String,
+        title_zh: String,
+        title_en: String,
+        description_zh: String,
+        description_en: String,
         project_id: String,
     ) -> Result<TicketSchema, diesel::result::Error> {
         let _ = diesel::insert_into(ticket_schemas::table)
             .values((
-                ticket_schemas::title.eq(title),
-                ticket_schemas::description.eq(description),
+                ticket_schemas::title_zh.eq(title_zh),
+                ticket_schemas::description_zh.eq(description_zh),
+                ticket_schemas::title_en.eq(title_en),
+                ticket_schemas::description_en.eq(description_en),
                 ticket_schemas::project_id.eq(project_id),
             ))
             .execute(conn)
@@ -372,7 +378,8 @@ impl TicketSchema {
     pub async fn add_flow(
         &self,
         conn: &mut crate::DbConn,
-        name: String,
+        name_zh: String,
+        name_en: String,
     ) -> Result<TicketSchemaFlow, diesel::result::Error> {
         let max_order: Option<i32> = ticket_schema_flows::table
             .filter(ticket_schema_flows::ticket_schema_id.eq(self.id))
@@ -389,7 +396,8 @@ impl TicketSchema {
             .values((
                 ticket_schema_flows::ticket_schema_id.eq(self.id),
                 ticket_schema_flows::order.eq(order),
-                ticket_schema_flows::name.eq(name),
+                ticket_schema_flows::name_zh.eq(name_zh),
+                ticket_schema_flows::name_en.eq(name_en),
             ))
             .execute(conn)
             .await;
@@ -454,11 +462,12 @@ pub struct TicketSchemaFlow {
     pub ticket_schema_id: i32,
     pub order: i32,
     pub operator_id: i32,
-    pub name: String,
+    pub name_zh: String,
     #[serde(with = "unix_time")]
     pub created_at: NaiveDateTime,
     #[serde(with = "unix_time")]
     pub updated_at: NaiveDateTime,
+    pub name_en: String,
 }
 
 impl TicketSchemaFlow {

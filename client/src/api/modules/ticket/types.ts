@@ -13,8 +13,10 @@ export interface Ticket {
 
 export interface TicketSchema {
   id: number
-  title: string
-  description: string
+  title_zh: string
+  description_zh: string
+  title_en: string
+  description_en: string
   created_at: Date
   updated_at: Date
 }
@@ -24,7 +26,8 @@ export interface TicketSchemaFlow {
   ticket_schema_id: number
   operator_id: string
   order: number
-  name: string
+  name_zh: string
+  name_en: string
   created_at: Date
   updated_at: Date
 }
@@ -108,8 +111,10 @@ export interface TicketFormSchema {
     ticket_schema_form_id: number
     order: number
     key: string
-    name: string
-    description: string
+    name_zh: string
+    description_zh: string
+    name_en: string
+    description_en: string
     define: FormFieldDefine
     required: boolean
     editable: boolean

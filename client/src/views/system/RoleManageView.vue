@@ -11,7 +11,7 @@
       <NCollapseItem
         v-for="role in roles"
         :key="role.id"
-        :title="role.name"
+        :title="role[`name_${locale}`]"
         :name="role.id"
       >
         <NCollapse>
@@ -44,9 +44,11 @@ import RoleForm from '@/components/system/role/RoleForm.vue'
 import RoleMember from '@/components/system/role/RoleMember.vue'
 import { useAPI } from '@/functions/useAPI'
 import { usePageLoading, usePageTitle } from '@/functions/usePage'
+import { useLocale } from '@/i18n'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+const { locale } = useLocale()
 
 usePageTitle(() => t('title'))
 

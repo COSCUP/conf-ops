@@ -1,7 +1,7 @@
 use rocket::{request::{self, FromRequest}, Request};
 
 pub struct I18n<'a> {
-    locale: &'a str
+    pub locale: &'a str
 }
 
 impl<'a> I18n<'a> {

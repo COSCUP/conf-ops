@@ -32,7 +32,7 @@
           class="block"
           :type="getFlowType(flow)"
         >
-          {{ flow.schema.name }}
+          {{ flow.schema[`name_${locale}`] }}
         </NText>
         <component
           class="mt-1"
@@ -103,6 +103,7 @@ import { NTag } from 'naive-ui'
 import TicketFlowModule from '@/components/system/ticket/TicketFlowModule.vue'
 import { useRouter } from 'vue-router'
 import { useProject } from '@/functions/useProject'
+import { useLocale } from '@/i18n'
 
 const props = defineProps<{
   id: number
@@ -110,6 +111,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const { t } = useI18n()
+const { locale } = useLocale()
 
 const { reloadFeatures } = useProject()
 const breadcrumbs = useTicketBreadcrumb([TicketBreadcrumbType.HOME, TicketBreadcrumbType.DETAIL])
@@ -125,7 +127,7 @@ usePageLoading(() => loading.value)
 
 const isPending = computed(() => ticket.value?.status === 'Pending')
 
-const processFlow = computed(() => 
+const processFlow = computed(() =>
   ticket.value?.flows.find(flow => flow.flow?.finished === false) ?? ticket.value?.flows[ticket.value?.flows.length - 1]
 )
 
@@ -216,7 +218,7 @@ const getOperatorText = (flow: TicketFlowStatus) => {
           t('operator.role')
         ),
         ' ',
-        operator.name
+        operator[`name_${locale.value}`]
       ]
     )
   }

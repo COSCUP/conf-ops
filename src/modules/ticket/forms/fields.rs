@@ -122,8 +122,10 @@ impl ToSql<sql_types::Json, Mysql> for FormFieldDefine<FormFieldOptionValue> {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct FormSchemaField {
-    pub name: String,
-    pub description: String,
+    pub name_zh: String,
+    pub name_en: String,
+    pub description_zh: String,
+    pub description_en: String,
     pub key: String,
     pub define: FormFieldDefine<FormFieldOptionValue>,
     pub required: bool,

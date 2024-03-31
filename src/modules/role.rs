@@ -16,8 +16,10 @@ async fn get_role(mut conn: DbConn, role_id: String) -> ApiResult<Value> {
         .map_err(|err| AppError::not_found(err.to_string()))?;
 
     Ok(json!({
-        "name": role.name,
-        "login_message": role.login_message,
+        "name_zh": role.name_zh,
+        "name_en": role.name_en,
+        "login_message_zh": role.login_message_zh,
+        "login_message_en": role.login_message_en,
     }))
 }
 
@@ -39,9 +41,12 @@ async fn all_roles_in_admin(mut conn: DbConn, auth: AuthGuard) -> JsonResult<Vec
 
 #[derive(Deserialize)]
 struct AdminRoleReq {
-    pub name: Option<String>,
-    pub login_message: Option<String>,
-    pub welcome_message: Option<String>,
+    pub name_zh: Option<String>,
+    pub name_en: Option<String>,
+    pub login_message_zh: Option<String>,
+    pub login_message_en: Option<String>,
+    pub welcome_message_zh: Option<String>,
+    pub welcome_message_en: Option<String>,
 }
 
 #[put("/role/admin/roles/<role_id>", data = "<role_req>")]
@@ -66,14 +71,24 @@ async fn put_role_in_admin(
         _ => (),
     }
 
-    if let Some(name) = role_req.name.clone() {
-        role.name = name;
+    if let Some(name_zh) = role_req.name_zh.clone() {
+        role.name_zh = name_zh;
     }
-    if let Some(login_message) = role_req.login_message.clone() {
-        role.login_message = Some(login_message);
+    if let Some(login_message_zh) = role_req.login_message_zh.clone() {
+        role.login_message_zh = Some(login_message_zh);
     }
-    if let Some(welcome_message) = role_req.welcome_message.clone() {
-        role.welcome_message = Some(welcome_message);
+    if let Some(welcome_message_zh) = role_req.welcome_message_zh.clone() {
+        role.welcome_message_zh = Some(welcome_message_zh);
+    }
+
+    if let Some(name_en) = role_req.name_en.clone() {
+        role.name_en = name_en;
+    }
+    if let Some(login_message_en) = role_req.login_message_en.clone() {
+        role.login_message_en = Some(login_message_en);
+    }
+    if let Some(welcome_message_en) = role_req.welcome_message_en.clone() {
+        role.welcome_message_en = Some(welcome_message_en);
     }
 
     role.save(&mut conn)

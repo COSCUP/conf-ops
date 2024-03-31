@@ -21,7 +21,7 @@
           type="primary"
           class="text-lg font-bold cursor-default"
         >
-          {{ project?.name }} ConfOps
+          {{ project?.[`name_${locale}`] }} ConfOps
         </n-text>
       </NFlex>
       <NDropdown
@@ -71,8 +71,10 @@ import { NBadge, NFlex, useDialog } from 'naive-ui'
 import { Feature } from '@/api/modules/project'
 import { api } from '@/api'
 import { useBreakpoint } from '@/functions/useBreakpoint'
+import { useLocale } from '@/i18n'
 
 const { t } = useI18n()
+const { locale } = useLocale()
 const dialog = useDialog()
 const router = useRouter()
 const { project, features, loading } = provideProject()

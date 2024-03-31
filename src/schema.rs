@@ -19,10 +19,13 @@ diesel::table! {
         #[max_length = 50]
         id -> Varchar,
         #[max_length = 100]
-        name -> Varchar,
-        description -> Text,
+        name_zh -> Varchar,
+        description_zh -> Text,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        #[max_length = 100]
+        name_en -> Varchar,
+        description_en -> Text,
     }
 }
 
@@ -42,13 +45,17 @@ diesel::table! {
         #[max_length = 50]
         id -> Varchar,
         #[max_length = 50]
-        name -> Varchar,
+        name_zh -> Varchar,
         #[max_length = 50]
         project_id -> Varchar,
-        login_message -> Nullable<Text>,
-        welcome_message -> Nullable<Text>,
+        login_message_zh -> Nullable<Text>,
+        welcome_message_zh -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        #[max_length = 50]
+        name_en -> Varchar,
+        login_message_en -> Nullable<Text>,
+        welcome_message_en -> Nullable<Text>,
     }
 }
 
@@ -138,9 +145,11 @@ diesel::table! {
         order -> Integer,
         operator_id -> Integer,
         #[max_length = 100]
-        name -> Varchar,
+        name_zh -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        #[max_length = 100]
+        name_en -> Varchar,
     }
 }
 
@@ -152,13 +161,16 @@ diesel::table! {
         #[max_length = 100]
         key -> Varchar,
         #[max_length = 100]
-        name -> Varchar,
-        description -> Text,
+        name_zh -> Varchar,
+        description_zh -> Text,
         define -> Json,
         required -> Bool,
         editable -> Bool,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        #[max_length = 100]
+        name_en -> Varchar,
+        description_en -> Text,
     }
 }
 
@@ -196,12 +208,15 @@ diesel::table! {
     ticket_schemas (id) {
         id -> Integer,
         #[max_length = 100]
-        title -> Varchar,
-        description -> Text,
+        title_zh -> Varchar,
+        description_zh -> Text,
         #[max_length = 50]
         project_id -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        #[max_length = 100]
+        title_en -> Varchar,
+        description_en -> Text,
     }
 }
 
