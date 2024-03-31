@@ -51,7 +51,7 @@ impl User {
         project_id: String,
         locale: String,
     ) -> Result<User, diesel::result::Error> {
-        let id = Uuid::new_v4().to_string();
+        let id = Uuid::new_v4().to_string().to_uppercase();
 
         let _ = diesel::insert_into(users::table)
             .values((

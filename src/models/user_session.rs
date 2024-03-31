@@ -34,7 +34,7 @@ impl UserSession {
         user_agent: String,
         ip: String,
     ) -> Result<UserSession, diesel::result::Error> {
-        let id = Uuid::new_v4().to_string();
+        let id = Uuid::new_v4().to_string().to_uppercase();
 
         let _ = diesel::insert_into(user_sessions::table)
             .values((
