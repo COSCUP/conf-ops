@@ -42,3 +42,5 @@ COPY --from=frontend-builder /usr/src/app/public ./public
 COPY --from=backend-builder /usr/src/app/target/release/conf-ops ./
 
 CMD ["./conf-ops"]
+
+EXPOSE 8000
