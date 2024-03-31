@@ -44,11 +44,21 @@ pub enum FormFieldValue {
     Array(Vec<FormFieldOptionValue>),
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[serde(untagged)]
+#[serde(rename_all = "lowercase")]
+pub enum FormTextFieldType {
+    String,
+    Email,
+    Url,
+}
+
 #[derive(FromSqlRow, AsExpression, Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(tag = "type")]
 #[diesel(sql_type = sql_types::Json)]
 pub enum FormFieldDefine<OV> {
     SingleLineText {
+        text_type: Option<FormTextFieldType>,
         max_texts: u32,
         default: Option<FormFieldDefault>,
     },

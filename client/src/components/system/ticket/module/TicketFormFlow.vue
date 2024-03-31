@@ -342,6 +342,13 @@ const rules = computed(() => {
           trigger: ['input', 'blur']
         })
       }
+      if (field.define.type === 'SingleLineText' && field.define.text_type) {
+        rules.push({
+          type: field.define.text_type,
+          message: t(`rule.${field.define.text_type}`),
+          trigger: ['input', 'blur']
+        })
+      }
     }
 
     if (field.define.type === 'MultipleChoice') {
@@ -445,7 +452,10 @@ const rules = computed(() => {
       "image_mimes": "The image must be in {0} format",
       "size": "The image size must be between {0}x{2} and {1}x{3}",
       "file_mimes": "The file must be in {0} format",
-      "max_size": "The file size must be less than {0} bytes"
+      "max_size": "The file size must be less than {0} bytes",
+      "string": "Please enter a string",
+      "email": "Please enter a valid email address",
+      "url": "Please enter a valid URL"
     }
   },
   "zh": {
@@ -458,7 +468,10 @@ const rules = computed(() => {
       "image_mimes": "圖片必須為 {0} 格式",
       "size": "圖片尺寸必須介於 {0}x{2} 與 {1}x{3} 之間",
       "file_mimes": "檔案必須為 {0} 格式",
-      "max_size": "檔案大小必須小於 {0} bytes"
+      "max_size": "檔案大小必須小於 {0} bytes",
+      "string": "請輸入字串",
+      "email": "請輸入正確的電子郵件格式",
+      "url": "請輸入正確的網址格式"
     }
   }
 }

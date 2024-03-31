@@ -45,6 +45,7 @@ export type FormFieldDefault<C> = {
 export type FormFieldDefine<V = number | string> = {
   type: 'SingleLineText',
   max_texts: number
+  text_type?: 'email' | 'string' | 'url'
   default?: FormFieldDefault<string>
 } | {
   type: 'MultiLineText',

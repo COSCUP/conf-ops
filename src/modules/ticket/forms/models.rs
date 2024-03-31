@@ -365,7 +365,7 @@ impl TicketSchemaFormField {
         user: &User,
     ) -> FormFieldDefine<FormFieldOptionValue> {
         match self.define.clone() {
-            FormFieldDefine::SingleLineText { max_texts, default } => {
+            FormFieldDefine::SingleLineText { max_texts, text_type, default } => {
                 let new_default = match default {
                     Some(FormFieldDefault::Dynamic {
                         schema_form_id,
@@ -389,6 +389,7 @@ impl TicketSchemaFormField {
                 };
                 FormFieldDefine::SingleLineText {
                     default: new_default,
+                    text_type,
                     max_texts,
                 }
             }
