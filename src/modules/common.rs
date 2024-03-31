@@ -95,7 +95,7 @@ async fn login<'a>(
     let message = Message::builder()
         .from(format!("ConfOps <{email_from}>").parse().expect("Failed to parse from email address"))
         .to(format!("{name} <{to}>").parse().expect("Failed to parse to email address"))
-        .subject(i18n.tf("login.email.body", &[("project", project_name.clone())]))
+        .subject(i18n.tf("login.email.subject", &[("project", project_name.clone())]))
         .header(ContentType::TEXT_HTML)
         .body(body)
         .expect("Failed to build email message");
