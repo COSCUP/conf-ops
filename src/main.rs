@@ -6,10 +6,12 @@ use rocket::http::Header;
 use rocket::http::Method;
 use rocket::{Build, Rocket};
 use rocket_db_pools::diesel::MysqlPool;
-use rocket_db_pools::{Connection, Database};
+use rocket_db_pools::Database;
 
 #[cfg(not(debug_assertions))]
 use diesel_migrations::{embed_migrations, EmbeddedMigrations};
+
+use utils::db::Connection;
 
 #[macro_use]
 extern crate rocket;
