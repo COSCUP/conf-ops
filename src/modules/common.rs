@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use lettre::{message::header::ContentType, Message};
 use rocket::{
     http::{Cookie, CookieJar},
@@ -59,7 +61,7 @@ async fn login<'a>(
     mut conn: DbConn,
     config: &State<AppConfig>,
     i18n: I18n<'a>,
-    _ip: VerifyEmailOrTokenGuard,
+    // _ip: VerifyEmailOrTokenGuard,
     host: PrefixUri,
     login_req: LoginReqGuard,
 ) -> EmptyResult {
@@ -130,7 +132,8 @@ async fn verify_token(
     config: &State<AppConfig>,
     cookie_jar: &CookieJar<'_>,
     user_agent: UserAgent,
-    ip: VerifyEmailOrTokenGuard,
+    ip: IpAddr,
+    // ip: VerifyEmailOrTokenGuard,
     token_req: Json<TokenReq>,
 ) -> EmptyResult {
     let LoginClaims {
@@ -149,7 +152,7 @@ async fn verify_token(
         return Err(AppError::bad_request("Invalid token".to_owned()));
     }
 
-    let session = UserSession::create(&mut conn, user.id.clone(), user_agent.0, ip.0.to_string())
+    let session = UserSession::create(&mut conn, user.id.clone(), user_agent.0, ip.to_string())
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 
