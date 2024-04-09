@@ -207,7 +207,7 @@ const getDefaultFormData = () => {
           id: value,
           name: '',
           status: 'finished',
-          url: `${window.location.protocol}//${window.location.host}/api/project/ticket/schemas/${props.id}/form/${props.schema.form.id}/field/${field.id}/${value}`
+          url: `${window.location.protocol}//${window.location.host}/api/project/ticket/schemas/${props.ticketSchemaId}/form/${props.schema.form.id}/field/${field.id}/${value}`
         }
       ] as UploadFileInfo[]
       continue
