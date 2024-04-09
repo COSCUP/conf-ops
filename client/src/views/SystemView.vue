@@ -77,7 +77,7 @@ const { t } = useI18n()
 const { locale } = useLocale()
 const dialog = useDialog()
 const router = useRouter()
-const { project, features, loading } = provideProject()
+const { project, features, roles, loading } = provideProject()
 const { isMobile } = useBreakpoint()
 
 usePageLoading(() => loading.value)
@@ -97,9 +97,10 @@ const generateMenuLabel = (feature: Feature, detail: FeatureDetail) => () => h(
       {
         default: () => {
           const [required, optional] = feature.todo
+          const text = t(`feature.${detail.key}`, { role: roles.value[0] ? roles.value[0][`name_${locale.value}`] : '' })
           if (required || optional) {
             return [
-              t(`feature.${detail.key}`),
+            text,
               h(
                 NBadge,
                 {
@@ -109,7 +110,7 @@ const generateMenuLabel = (feature: Feature, detail: FeatureDetail) => () => h(
               )
             ]
           }
-          return [t(`feature.${detail.key}`)]
+          return [text]
         }
       }
     )
@@ -216,7 +217,7 @@ const handleUserDropdownClick = (key: string) => {
     "feature": {
       "role-manage": "Manage Role",
       "ticket-manage": "Manage Ticket",
-      "ticket": "Ticket"
+      "ticket": "{role} sheet"
     },
     "logout": {
       "title": "Logout",
@@ -230,7 +231,7 @@ const handleUserDropdownClick = (key: string) => {
     "feature": {
       "role-manage": "角色管理",
       "ticket-manage": "工單管理",
-      "ticket": "工單處理"
+      "ticket": "{role}表單"
     },
     "logout": {
       "title": "登出",

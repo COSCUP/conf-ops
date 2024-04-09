@@ -35,8 +35,6 @@
 </template>
 
 <script setup lang="ts">
-import { api } from '@/api'
-import { useAPI } from '@/functions/useAPI'
 import { usePageLoading, usePageTitle } from '@/functions/usePage'
 import { useProject } from '@/functions/useProject'
 import { useLocale } from '@/i18n'
@@ -46,16 +44,14 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const { locale } = useLocale()
 
-const { user, features, loading: projectLoading } = useProject()
-
-const { data: roles, loading } = useAPI(api.role.getMyRoles, { default: [] })
+const { user, features, roles, loading } = useProject()
 
 const requiredTodo = computed(() => features.value.reduce((count, feature) => count + feature.todo[0], 0))
 
 const optionalTodo = computed(() => features.value.reduce((count, feature) => count + feature.todo[1], 0))
 
 usePageTitle(() => t('title'))
-usePageLoading(() => loading.value || projectLoading.value)
+usePageLoading(() => loading.value)
 </script>
 
 <i18n lang="json">
