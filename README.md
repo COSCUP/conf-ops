@@ -11,7 +11,7 @@ curl https://get.volta.sh | bash
 volta install node:lts
 
 # install pnpm
-corepack enable pnpm
+volta install pnpm
 
 # frontend folder
 cd client
