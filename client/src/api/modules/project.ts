@@ -31,11 +31,11 @@ export const createProject = () => ({
   },
   login (project_id: string, email: string) {
     return makeRequest<void>(
-      instance('/project/login', { method: 'POST', body: { project_id, email } })
+      instance('/project/login', { method: 'POST', body: { project_id, email }, retry: false })
     )
   },
   verifyToken (token: string) {
-    return makeRequest<void>(instance('/project/token', { method: 'POST', body: { token } }))
+    return makeRequest<void>(instance('/project/token', { method: 'POST', body: { token }, retry: false }))
   },
   logout () {
     return makeRequest<void>(instance('/project/logout', { method: 'POST' }))
