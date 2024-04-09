@@ -45,7 +45,7 @@
       collapse-mode="transform"
       :show-trigger="!isMobile"
       :collapsed-width="0"
-      :width="isMobile ? '100vw' : '240px'"
+      :width="isMobile ? '100vw' : '300px'"
     >
       <NMenu
         :options="menus"
