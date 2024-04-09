@@ -89,7 +89,7 @@ const notApprovedTicketReviewValue = computed(() => {
     "not_approved": "Not approved"
   },
   "zh": {
-    "not_approved": "未通过"
+    "not_approved": "未通過"
   }
 }
 </i18n>
