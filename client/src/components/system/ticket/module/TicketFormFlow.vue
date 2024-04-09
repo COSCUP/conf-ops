@@ -92,6 +92,7 @@
             :accept="field.define.mimes.join(',')"
             :disabled="!field.editable || isReview"
             @finish="handleUploadFinished"
+            @error="handleUploadError"
             @before-upload="handleBeforeUpload(field.key)($event)"
             @update-file-list="formItemRefs[index]?.validate"
           >
@@ -119,6 +120,7 @@
             :accept="field.define.mimes.join(',')"
             :disabled="!field.editable || isReview"
             @finish="handleUploadFinished"
+            @error="handleUploadError"
             @before-upload="handleBeforeUpload(field.key)($event)"
             @update-file-list="formItemRefs[index]?.validate"
           >
@@ -249,6 +251,11 @@ const handleBeforeUpload = (key: string) => async ({ file }: { file: UploadFileI
   return true
 }
 
+const handleUploadError = ({ event }: { file: UploadFileInfo, event?: ProgressEvent }) => {
+  const error = (event?.target as XMLHttpRequest).response as { message: string }
+  message.error(error.message)
+}
+
 const handleUploadFinished = ({ file, event }: { file: UploadFileInfo, event?: ProgressEvent }) => {
   const response = (event?.target as XMLHttpRequest).response as { id: string } | undefined
   if (response) {
@@ -363,7 +370,7 @@ const rules = computed(() => {
     }
 
     if (field.define.type === 'Image') {
-      const { mimes, min_width, max_width, min_height, max_height } = field.define
+      const { mimes, min_width, max_width, min_height, max_height, max_size } = field.define
       rules.push({
         validator: (_rule, value: UploadFileInfo[]) => {
           if (value.length === 0) {
@@ -404,6 +411,19 @@ const rules = computed(() => {
           }
         },
         message: t('rule.size', [min_width, max_width, min_height, max_height])
+      })
+      rules.push({
+        validator: (_rule, value: UploadFileInfo[]) => {
+          if (value.length === 0) {
+            return true
+          }
+          if (formFiles.has(value[0].id)) {
+            return true
+          }
+          return (value[0]?.file?.size ?? 0) <= max_size
+        },
+        message: t('rule.max_size', [max_size]),
+        trigger: 'change',
       })
     }
 

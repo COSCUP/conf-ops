@@ -76,6 +76,7 @@ export type FormFieldDefine<V = number | string> = {
   default?: FormFieldDefault<boolean>
 } | {
   type: 'Image',
+  max_size: number,
   min_width?: number,
   max_width?: number,
   min_height?: number,
