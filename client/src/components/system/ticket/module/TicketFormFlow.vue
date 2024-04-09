@@ -31,6 +31,7 @@
             show-count
             :maxlength="field.define.max_texts"
             :disabled="!field.editable || isReview"
+            :default-value="defaultFieldValue[field.id]"
           />
         </template>
         <template v-else-if="field.define.type === 'MultiLineText'">
@@ -40,6 +41,7 @@
             show-count
             :maxlength="field.define.max_texts"
             :disabled="!field.editable || isReview"
+            :default-value="defaultFieldValue[field.id]"
           />
         </template>
         <template v-else-if="field.define.type === 'SingleChoice'">
@@ -47,6 +49,7 @@
             v-model:value="formData[field.key]"
             :options="convertOptions(field.define.options)"
             :disabled="!field.editable || isReview"
+            :default-value="defaultFieldValue[field.id]"
           />
         </template>
         <template v-else-if="field.define.type === 'MultipleChoice'">
@@ -54,6 +57,7 @@
             <NCheckboxGroup
               v-model:value="formData[field.key]"
               :disabled="!field.editable || isReview"
+              :default-value="defaultFieldValue[field.id]"
             >
               <NFlex>
                 <NCheckbox
@@ -71,6 +75,7 @@
               multiple
               :options="convertOptions(field.define.options)"
               :disabled="!field.editable || isReview"
+              :default-value="defaultFieldValue[field.id]"
             />
           </template>
         </template>
@@ -78,6 +83,7 @@
           <NCheckbox
             v-model:checked="formData[field.key]"
             :disabled="!field.editable || isReview"
+            :default-checked="defaultFieldValue[field.id]"
           />
         </template>
         <template v-else-if="field.define.type === 'Image'">
@@ -91,6 +97,7 @@
             trigger-class="!w-96px !h-96px"
             :accept="field.define.mimes.join(',')"
             :disabled="!field.editable || isReview"
+            :default-file-list="defaultFieldValue[field.id]"
             @finish="handleUploadFinished"
             @error="handleUploadError"
             @before-upload="handleBeforeUpload(field.key)($event)"
@@ -119,6 +126,7 @@
             :max="1"
             :accept="field.define.mimes.join(',')"
             :disabled="!field.editable || isReview"
+            :default-file-list="defaultFieldValue[field.id]"
             @finish="handleUploadFinished"
             @error="handleUploadError"
             @before-upload="handleBeforeUpload(field.key)($event)"
@@ -212,10 +220,37 @@ const getDefaultFormData = () => {
       ] as UploadFileInfo[]
       continue
     }
+    if (field.key === '') continue
     data[field.key] = value
   }
   return data
 }
+
+const defaultFieldValue = computed(() => {
+  const data: Record<number, any> = {}
+  for (const field of props.schema.fields) {
+    if (field.define.type === 'IfEqual' || field.define.type === 'IfEnd') continue
+    const value = getFieldDefaultValue<unknown>(field.define.default)
+    if (field.define.type === 'Image' || field.define.type === 'File') {
+      if (!value) {
+        data[field.id] = []
+        continue
+      }
+      formFiles.set(value as string, value as string)
+      data[field.id] = [
+        {
+          id: value,
+          name: '',
+          status: 'finished',
+          url: `${window.location.protocol}//${window.location.host}/api/project/ticket/schemas/${props.ticketSchemaId}/form/${props.schema.form.id}/field/${field.id}/${value}`
+        }
+      ] as UploadFileInfo[]
+      continue
+    }
+    data[field.id] = value
+  }
+  return data
+})
 
 const formRef = ref<FormInst | null>(null)
 const formItemRefs = ref<FormItemInst[]>([])
