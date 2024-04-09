@@ -481,6 +481,7 @@ impl TicketSchemaFlow {
     pub async fn get_detail(
         &self,
         conn: &mut crate::DbConn,
+        optional_user: Option<&User>
     ) -> Result<TicketSchemaFlowItem, diesel::result::Error> {
         let (flow, form, review) = ticket_schema_flows::table
             .filter(ticket_schema_flows::id.eq(self.id))
@@ -500,15 +501,30 @@ impl TicketSchemaFlow {
                 .load(conn)
                 .await?;
 
-            let mut form_schema = FormSchema {
-                form,
-                fields: fields
-                    .iter()
-                    .cloned()
-                    .filter(|field| field.ticket_schema_form_id == form_id)
-                    .collect::<Vec<_>>(),
-            };
-            form_schema.fields.sort_by_key(|field| field.order);
+            if let Some(user) = optional_user {
+                let form_schema = FormSchema::new_with_user(
+                    conn,
+                    user,
+                    form,
+                    fields
+                        .iter()
+                        .cloned()
+                        .filter(|field| field.ticket_schema_form_id == form_id)
+                        .collect::<Vec<_>>(),
+                )
+                .await;
+
+                return Ok(TicketSchemaFlowItem {
+                    schema: flow,
+                    module: TicketSchemaFlowValue::Form(form_schema),
+                });
+            }
+
+            let form_schema = FormSchema::new(form, fields
+                .iter()
+                .cloned()
+                .filter(|field| field.ticket_schema_form_id == form_id)
+                .collect::<Vec<_>>());
 
             return Ok(TicketSchemaFlowItem {
                 schema: flow,
@@ -970,10 +986,11 @@ impl TicketFlow {
     pub async fn get_schema(
         &self,
         conn: &mut crate::DbConn,
+        user: &User,
     ) -> Result<TicketSchemaFlowItem, diesel::result::Error> {
         let schema_flow = TicketSchemaFlow::find(conn, self.ticket_schema_flow_id).await?;
 
-        schema_flow.get_detail(conn).await
+        schema_flow.get_detail(conn, Some(user)).await
     }
 
     pub async fn save(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
