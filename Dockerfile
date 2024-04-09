@@ -31,7 +31,7 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 WORKDIR /usr/src/app
-RUN apt-get update && apt-get install -y libssl-dev libmariadb-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libssl-dev libmariadb-dev ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY README.md README.md
 COPY LICENSE LICENSE
