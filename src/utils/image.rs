@@ -16,6 +16,7 @@ pub enum ImageMime {
     Gif,
     Webp,
     Svg,
+    Ai,
 }
 
 impl ImageMime {
@@ -26,6 +27,7 @@ impl ImageMime {
             ImageMime::Gif => "image/gif",
             ImageMime::Webp => "image/webp",
             ImageMime::Svg => "image/svg+xml",
+            ImageMime::Ai => "application/pdf",
         }
     }
     pub fn from_str(s: &str) -> Option<ImageMime> {
@@ -35,6 +37,7 @@ impl ImageMime {
             "image/gif" => Some(ImageMime::Gif),
             "image/webp" => Some(ImageMime::Webp),
             "image/svg+xml" => Some(ImageMime::Svg),
+            "application/pdf" => Some(ImageMime::Ai),
             _ => None,
         }
     }
