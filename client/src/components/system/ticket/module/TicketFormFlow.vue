@@ -83,7 +83,7 @@
         <template v-else-if="field.define.type === 'Image'">
           <NUpload
             v-model:file-list="formData[field.key]"
-            :action="`/api/project/ticket/schemas/${id}/form/${schema.form.id}/field/${field.id}/upload`"
+            :action="`/api/project/ticket/schemas/${ticketSchemaId}/form/${schema.form.id}/field/${field.id}/upload`"
             with-credentials
             response-type="json"
             :max="1"
@@ -113,7 +113,7 @@
         <template v-else-if="field.define.type === 'File'">
           <NUpload
             v-model:file-list="formData[field.key]"
-            :action="`/api/project/ticket/schemas/${id}/form/${schema.form.id}/field/${field.id}/upload`"
+            :action="`/api/project/ticket/schemas/${ticketSchemaId}/form/${schema.form.id}/field/${field.id}/upload`"
             with-credentials
             response-type="json"
             :max="1"
@@ -164,6 +164,7 @@ import { useLocale } from '@/i18n'
 
 const props = defineProps<{
   id: number
+  ticketSchemaId: number
   schema: TicketFormSchema,
   formValue: TicketFormValue | null,
   isReview?: boolean

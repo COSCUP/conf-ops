@@ -12,6 +12,7 @@
   <template v-if="current.schema.module.type === 'Form' && current.flow?.module.type === 'Form'">
     <TicketFormFlow
       :id="id"
+      :ticket-schema-id="current.schema.ticket_schema_id"
       :schema="current.schema.module"
       :form-value="current.flow?.module"
       :isReview="isReview"
@@ -21,6 +22,7 @@
   <template v-else-if="current.schema.module.type === 'Form'">
     <TicketFormFlow
       :id="id"
+      :ticket-schema-id="current.schema.ticket_schema_id"
       :schema="current.schema.module"
       :form-value="null"
       :isReview="isReview"
