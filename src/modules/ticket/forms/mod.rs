@@ -311,7 +311,7 @@ impl PartFormSchema {
             let file_name = format!("{}.{}", hash, file_extension);
             let file_path = data_folder.image_path(&file_name);
             temp_file
-                .persist_to(&file_path)
+                .move_copy_to(&file_path)
                 .await
                 .map_err(|err| format!("Error saving file: {}", err))?;
 
@@ -404,7 +404,7 @@ impl PartFormSchema {
             let file_name = format!("{}.{}", hash, file_extension);
             let file_path = data_folder.file_path(&file_name);
             temp_file
-                .persist_to(&file_path)
+                .move_copy_to(&file_path)
                 .await
                 .map_err(|err| format!("Error saving file: {}", err))?;
 
