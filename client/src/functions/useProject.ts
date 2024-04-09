@@ -4,6 +4,7 @@ import { Role } from '@/api/modules/role'
 import { useAPI } from '@/functions/useAPI'
 import { useLocale } from '@/i18n'
 import { InjectionKey, ComputedRef, ShallowRef, computed, provide, watch, inject } from 'vue'
+import { useRoute } from 'vue-router'
 
 
 interface ProjectContext {
@@ -22,6 +23,7 @@ const projectSymbol: InjectionKey<ProjectContext> = Symbol('project')
 
 export function provideProject () {
   const { locale } = useLocale()
+  const route = useRoute()
 
   const { data: user, loading: userLoading, execute: reloadUser } = useAPI(api.project.getMeInfo)
 
@@ -36,6 +38,10 @@ export function provideProject () {
       locale.value = data.locale === 'zh' ? 'zh' : 'en'
     }
   }, { immediate: true })
+
+  watch(route, () => {
+    reloadFeatures()
+  })
 
   const loading = computed(() => userLoading.value || projectLoading.value || featuresLoading.value || rolesLoading.value)
 
