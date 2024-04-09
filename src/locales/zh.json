@@ -19,7 +19,7 @@
     "error": {
       "not_join_to_this_ticket": "你沒有參與這個工單。",
       "not_assign_to_this_flow": "你沒有被指定參與這個流程。",
-      "not_assign_to_this_schema": "你沒有不能參與這個流程。",
+      "not_assign_to_this_schema": "你沒有能參與這個流程。",
       "not_probably_user_of_this_schema": "你不能建立這張工單。",
       "not_manager_of_this_schema": "你不能管理這張工單。"
     },
@@ -29,7 +29,15 @@
       "text_too_many_lines": "%{field} 欄位行數太多。",
       "not_valid_choice": "%{field} 欄位選項不正確。",
       "not_upload_file": "%{field} 欄位必須上傳檔案。",
+      "file_too_large": "%{field} 欄位檔案太大。",
+      "invalid_file_type": "%{field} 欄位檔案類型不正確。",
       "not_upload_image": "%{field} 欄位必須上傳圖片。",
+      "image_too_large": "%{field} 欄位圖片太大。",
+      "image_width_too_large": "%{field} 欄位圖片寬度太大。",
+      "image_height_too_large": "%{field} 欄位圖片高度太大。",
+      "image_width_too_small": "%{field} 欄位圖片寬度太小。",
+      "image_height_too_small": "%{field} 欄位圖片高度太小。",
+      "invalid_image_type": "%{field} 欄位圖片類型不正確。",
       "unknown": "%{field} 欄位未知的值。",
       "too_many_choice": "%{field} 欄位選項太多。"
     }

@@ -24,14 +24,22 @@
       "not_manager_of_this_schema": "You cannot manage this ticket."
     },
     "rules": {
-      "required": "%{field} field is required.",
-      "text_too_long": "%{field} field has too many characters.",
-      "text_too_many_lines": "%{field} field has too many lines.",
-      "not_valid_choice": "%{field} field has an incorrect choice.",
-      "not_upload_file": "%{field} field must upload a file.",
-      "not_upload_image": "%{field} field must upload an image.",
-      "unknown": "Unknown value for %{field} field.",
-      "too_many_choice": "%{field} field has too many choices."
+      "required": "%{field} is required.",
+      "text_too_long": "%{field} has too many characters.",
+      "text_too_many_lines": "%{field} has too many lines.",
+      "not_valid_choice": "%{field} has an incorrect choice.",
+      "not_upload_file": "%{field} must upload a file.",
+      "file_too_large": "%{field} file is too large.",
+      "invalid_file_type": "%{field} has an incorrect file type.",
+      "not_upload_image": "%{field} must upload an image.",
+      "image_too_large": "%{field} image is too large.",
+      "image_width_too_large": "%{field} image width is too large.",
+      "image_height_too_large": "%{field} image height is too large.",
+      "image_width_too_small": "%{field} image width is too small.",
+      "image_height_too_small": "%{field} image height is too small.",
+      "invalid_image_type": "%{field} has an incorrect image type.",
+      "unknown": "%{field} has an unknown value.",
+      "too_many_choice": "%{field} has too many choices."
     }
   }
 }

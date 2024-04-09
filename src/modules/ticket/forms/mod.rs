@@ -56,14 +56,47 @@ impl FormSchema {
         &self,
         conn: &mut crate::DbConn,
         i18n: &I18n<'a>,
-        data: &serde_json::Map<String, Value>,
+        data: &serde_json::Map<String, Value>
     ) -> Result<serde_json::Map<String, Value>, serde_json::Map<String, Value>> {
         let FormSchema { fields, .. } = self;
 
         let mut is_error = false;
         let mut result = serde_json::Map::new();
         let mut errors = serde_json::Map::new();
+
+        let mut last_falsy_if: Option<String> = None;
         for field in fields.iter() {
+            if let Some(ref falsy_if_key) = last_falsy_if {
+                if let TicketSchemaFormField {
+                    define: FormFieldDefine::IfEnd { key },
+                    ..
+                } = field
+                {
+                    if key == falsy_if_key {
+                        last_falsy_if = None;
+                    }
+                }
+                continue;
+            }
+            if let TicketSchemaFormField {
+                define: FormFieldDefine::IfEqual { key, from, value },
+                ..
+            } = field.clone()
+            {
+                let condition_result = match from {
+                    FormFieldDefault::Static(from_value) => value.contains(&from_value),
+                    FormFieldDefault::Dynamic {
+                        value: from_value, ..
+                    } => match from_value {
+                        Some(from_value) => value.contains(&from_value),
+                        None => false,
+                    },
+                };
+                if !condition_result {
+                    last_falsy_if = Some(key);
+                }
+                continue;
+            }
             let user_value = match data.get::<String>(&field.key) {
                 Some(value) => value,
                 None => {
@@ -174,10 +207,11 @@ pub struct PartFormSchema {
 }
 
 impl PartFormSchema {
-    pub async fn upload_image(
+    pub async fn upload_image<'a>(
         &self,
         conn: &mut crate::DbConn,
         data_folder: &State<DataFolder>,
+        i18n: &I18n<'a>,
         mut temp_file: TempFile<'_>,
     ) -> Result<TicketFormImage, String> {
         let PartFormSchema { field, .. } = self;
@@ -208,7 +242,7 @@ impl PartFormSchema {
         } = field.define
         {
             if file_size > max_size {
-                return Err(format!("Image {} is too large", field.key));
+                return Err(i18n.tf("ticket.rules.image_too_large", &[("field", field.key.clone())]));
             }
 
             let file_content = get_file_content().await?;
@@ -219,39 +253,36 @@ impl PartFormSchema {
 
                 if let Some(min_width) = min_width {
                     if width < min_width {
-                        return Err(format!("Image {} width is too small", field.key));
+                        return Err(i18n.tf("ticket.rules.image_width_too_small", &[("field", field.key.clone())]));
                     }
                 }
 
                 if let Some(max_width) = max_width {
                     if width > max_width {
-                        return Err(format!("Image {} width is too large", field.key));
+                        return Err(i18n.tf("ticket.rules.image_width_too_large", &[("field", field.key.clone())]));
                     }
                 }
 
                 if let Some(min_height) = min_height {
                     if height < min_height {
-                        return Err(format!("Image {} height is too small", field.key));
+                        return Err(i18n.tf("ticket.rules.image_height_too_small", &[("field", field.key.clone())]));
                     }
                 }
 
                 if let Some(max_height) = max_height {
                     if height > max_height {
-                        return Err(format!("Image {} height is too large", field.key));
+                        return Err(i18n.tf("ticket.rules.image_height_too_large", &[("field", field.key.clone())]));
                     }
                 }
 
                 match mime {
                     Some(mime) => {
                         if !mimes.contains(&mime) {
-                            return Err(format!(
-                                "Image {} is not in the correct format",
-                                field.key
-                            ));
+                            return Err(i18n.tf("ticket.rules.invalid_image_type", &[("field", field.key.clone())]));
                         }
                         Ok((mime, (width, height), file_size))
                     }
-                    _ => return Err(format!("Image {} is not in the correct format", field.key)),
+                    _ => return Err(i18n.tf("ticket.rules.invalid_image_type", &[("field", field.key.clone())])),
                 }
             };
 
@@ -311,10 +342,11 @@ impl PartFormSchema {
         Err(format!("Field {} is not an image", field.key))
     }
 
-    pub async fn upload_file(
+    pub async fn upload_file<'a>(
         &self,
         conn: &mut crate::DbConn,
         data_folder: &State<DataFolder>,
+        i18n: &I18n<'a>,
         mut temp_file: TempFile<'_>,
     ) -> Result<TicketFormFile, String> {
         let PartFormSchema { field, .. } = self;
@@ -341,7 +373,7 @@ impl PartFormSchema {
         } = field.define
         {
             if file_size > max_size {
-                return Err(format!("File {} is too large", field.key));
+                return Err(i18n.tf("ticket.rules.file_too_large", &[("field", field.key.clone())]));
             }
 
             let file_content = get_file_content().await?;
@@ -352,19 +384,16 @@ impl PartFormSchema {
                     match mime {
                         Some(mime) => {
                             if !mimes.contains(&mime) {
-                                return Err(format!(
-                                    "File {} is not in the correct format",
-                                    field.key
-                                ));
+                                return Err(i18n.tf("ticket.rules.invalid_file_type", &[("field", field.key.clone())]));
                             }
                             mime
                         }
                         _ => {
-                            return Err(format!("File {} is not in the correct format", field.key))
+                            return Err(i18n.tf("ticket.rules.invalid_file_type", &[("field", field.key.clone())]))
                         }
                     }
                 }
-                _ => return Err(format!("File {} is not in the correct format", field.key)),
+                _ => return Err(i18n.tf("ticket.rules.invalid_file_type", &[("field", field.key.clone())])),
             };
 
             let file_extension = &temp_file

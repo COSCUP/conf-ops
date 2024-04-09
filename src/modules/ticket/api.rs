@@ -491,7 +491,7 @@ async fn upload_file_in_form_field<'a>(
 
     if form.field.is_file_define() {
         return form
-            .upload_file(&mut conn, data_folder, file)
+            .upload_file(&mut conn, data_folder, &i18n, file)
             .await
             .map(|mut f: TicketFormFile| {
                 f.path = String::new();
@@ -502,7 +502,7 @@ async fn upload_file_in_form_field<'a>(
 
     if form.field.is_image_define() {
         return form
-            .upload_image(&mut conn, data_folder, file)
+            .upload_image(&mut conn, data_folder, &i18n, file)
             .await
             .map(|mut f| {
                 f.path = String::new();
