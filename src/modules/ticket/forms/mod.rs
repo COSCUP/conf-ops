@@ -5,7 +5,6 @@ use sha256::digest;
 use tokio::io::AsyncReadExt;
 
 use crate::{
-    models::user::User,
     utils::{
         file::FileMime,
         i18n::I18n,
@@ -29,13 +28,13 @@ pub struct FormSchema {
 }
 
 impl FormSchema {
-    pub async fn new_with_user(
+    pub async fn new_with_ticket(
         conn: &mut crate::DbConn,
-        user: &User,
+        ticket_id: &i32,
         form: TicketSchemaForm,
         fields: Vec<TicketSchemaFormField>,
     ) -> FormSchema {
-        let mut new_fields = FormSchema::get_processed_fields(conn, fields, user).await;
+        let mut new_fields = FormSchema::get_processed_fields(conn, fields, ticket_id).await;
         new_fields.sort_by_key(|field| field.order);
         FormSchema {
             form,
@@ -134,7 +133,7 @@ impl FormSchema {
     pub async fn get_processed_fields(
         conn: &mut crate::DbConn,
         fields: Vec<TicketSchemaFormField>,
-        user: &User,
+        ticket_id: &i32,
     ) -> Vec<TicketSchemaFormField> {
         let mut result: Vec<TicketSchemaFormField> = vec![];
         let mut last_falsy_if: Option<String> = None;
@@ -152,7 +151,7 @@ impl FormSchema {
                 continue;
             }
             let mut field = raw_field.clone();
-            let new_define = field.get_define_with_default_value(conn, user).await;
+            let new_define = field.get_define_with_default_value(conn, ticket_id).await;
             field.define = new_define;
             if let TicketSchemaFormField {
                 define: FormFieldDefine::IfEqual { key, from, value },

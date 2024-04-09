@@ -5,8 +5,7 @@ use rocket::serde::json::serde_json;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use serde_json::Value;
 
-use crate::models::user::User;
-use crate::modules::ticket::models::{Ticket, TicketFlow, TicketSchemaFlow};
+use crate::modules::ticket::models::{TicketFlow, TicketSchemaFlow};
 use crate::schema::{
     ticket_flows, ticket_form_answers, ticket_form_files, ticket_form_images,
     ticket_schema_form_fields, ticket_schema_forms, tickets,
@@ -397,7 +396,7 @@ impl TicketSchemaFormField {
     pub async fn get_define_with_default_value(
         &self,
         conn: &mut crate::DbConn,
-        user: &User,
+        ticket_id: &i32,
     ) -> FormFieldDefine<FormFieldOptionValue> {
         match self.define.clone() {
             FormFieldDefine::SingleLineText {
@@ -417,7 +416,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -449,7 +448,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -479,7 +478,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -511,7 +510,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -540,7 +539,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -574,7 +573,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -610,7 +609,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -638,7 +637,7 @@ impl TicketSchemaFormField {
                         field_key: field_key.clone(),
                         value: TicketFormAnswer::get_field_value(
                             conn,
-                            user,
+                            ticket_id,
                             &schema_form_id,
                             &flow_id,
                             &field_key,
@@ -813,19 +812,20 @@ impl TicketFormAnswer {
 
     pub async fn get_field_value(
         conn: &mut crate::DbConn,
-        user: &User,
+        ticket_id: &i32,
         ticket_schema_form_id: &i32,
         flow_id: &Option<i32>,
         field_key: &String,
     ) -> Option<FormFieldValue> {
         let mut query = ticket_form_answers::table
             .inner_join(ticket_flows::table.inner_join(tickets::table))
-            .filter(tickets::id.eq_any(Ticket::build_ticket_ids_by_user_query(user)))
             .filter(ticket_form_answers::ticket_schema_form_id.eq(ticket_schema_form_id))
             .into_boxed();
 
         if let Some(id) = flow_id {
             query = query.filter(ticket_flows::id.eq(id));
+        } else {
+            query = query.filter(tickets::id.eq(ticket_id));
         }
 
         let answer: Result<TicketFormAnswer, _> = query

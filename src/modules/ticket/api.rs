@@ -82,7 +82,7 @@ async fn get_ticket<'a>(
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
     let (schema, schema_flows) = ticket
-        .get_schema(&mut conn, &user)
+        .get_schema(&mut conn)
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 
@@ -201,7 +201,7 @@ async fn process_ticket_flow<'a>(
     }
 
     let process_schema = process_flow
-        .get_schema(&mut conn, &user)
+        .get_schema(&mut conn)
         .await
         .map_err(|err| AppError::internal(err.to_string()))?;
 

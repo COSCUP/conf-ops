@@ -308,7 +308,7 @@ impl TicketSchema {
     pub async fn get_detail_flows_with_user(
         &self,
         conn: &mut crate::DbConn,
-        user: &User,
+        ticket_id: &i32,
     ) -> Result<Vec<TicketSchemaFlowItem>, diesel::result::Error> {
         let flows: Vec<(
             TicketSchemaFlow,
@@ -344,9 +344,9 @@ impl TicketSchema {
         for (schema_flow, raw_form, raw_review) in flows.into_iter() {
             if let Some(form) = raw_form {
                 let form_id = form.id;
-                let form_schema = FormSchema::new_with_user(
+                let form_schema = FormSchema::new_with_ticket(
                     conn,
-                    user,
+                    ticket_id,
                     form,
                     fields
                         .iter()
@@ -481,7 +481,7 @@ impl TicketSchemaFlow {
     pub async fn get_detail(
         &self,
         conn: &mut crate::DbConn,
-        optional_user: Option<&User>
+        ticket_id: &i32,
     ) -> Result<TicketSchemaFlowItem, diesel::result::Error> {
         let (flow, form, review) = ticket_schema_flows::table
             .filter(ticket_schema_flows::id.eq(self.id))
@@ -501,30 +501,17 @@ impl TicketSchemaFlow {
                 .load(conn)
                 .await?;
 
-            if let Some(user) = optional_user {
-                let form_schema = FormSchema::new_with_user(
-                    conn,
-                    user,
-                    form,
-                    fields
-                        .iter()
-                        .cloned()
-                        .filter(|field| field.ticket_schema_form_id == form_id)
-                        .collect::<Vec<_>>(),
-                )
-                .await;
-
-                return Ok(TicketSchemaFlowItem {
-                    schema: flow,
-                    module: TicketSchemaFlowValue::Form(form_schema),
-                });
-            }
-
-            let form_schema = FormSchema::new(form, fields
-                .iter()
-                .cloned()
-                .filter(|field| field.ticket_schema_form_id == form_id)
-                .collect::<Vec<_>>());
+            let form_schema = FormSchema::new_with_ticket(
+                conn,
+                ticket_id,
+                form,
+                fields
+                    .iter()
+                    .cloned()
+                    .filter(|field| field.ticket_schema_form_id == form_id)
+                    .collect::<Vec<_>>(),
+            )
+            .await;
 
             return Ok(TicketSchemaFlowItem {
                 schema: flow,
@@ -770,11 +757,10 @@ impl Ticket {
 
     pub async fn get_schema(
         &self,
-        conn: &mut crate::DbConn,
-        user: &User,
+        conn: &mut crate::DbConn
     ) -> Result<(TicketSchema, Vec<TicketSchemaFlowItem>), diesel::result::Error> {
         let schema = TicketSchema::find(conn, self.ticket_schema_id).await?;
-        let flows = schema.get_detail_flows_with_user(conn, user).await?;
+        let flows = schema.get_detail_flows_with_user(conn, &self.id).await?;
 
         Ok((schema, flows))
     }
@@ -985,12 +971,11 @@ impl TicketFlow {
 
     pub async fn get_schema(
         &self,
-        conn: &mut crate::DbConn,
-        user: &User,
+        conn: &mut crate::DbConn
     ) -> Result<TicketSchemaFlowItem, diesel::result::Error> {
         let schema_flow = TicketSchemaFlow::find(conn, self.ticket_schema_flow_id).await?;
 
-        schema_flow.get_detail(conn, Some(user)).await
+        schema_flow.get_detail(conn, &self.ticket_id).await
     }
 
     pub async fn save(&self, conn: &mut crate::DbConn) -> Result<usize, diesel::result::Error> {
