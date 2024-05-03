@@ -1,6 +1,7 @@
 <template>
   <TicketBreadcrumb :value="breadcrumbs">
     <RouterLink
+      v-if="schemas.length > 0"
       class="no-underline"
       to="/system/ticket/add"
     >
@@ -74,8 +75,9 @@ const { t } = useI18n()
 const breadcrumbs = useTicketBreadcrumb([TicketBreadcrumbType.HOME])
 
 const { data: tickets, loading } = useAPI(api.ticket.getMyTickets, { default: [] })
+const { data: schemas, loading: schemaLoading } = useAPI(api.ticket.getProbablySchemas, { default: [] })
 
-usePageLoading(() => loading.value)
+usePageLoading(() => loading.value || schemaLoading.value)
 </script>
 
 <i18n lang="json">
