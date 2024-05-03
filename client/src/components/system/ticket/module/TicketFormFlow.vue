@@ -362,7 +362,7 @@ const rules = computed(() => {
   const result: FormRules = {}
   for (const field of props.schema.fields) {
     const rules: FormItemRule[] = []
-    if (field.required) {
+    if (field.required && field.define.type !== 'Bool') {
       rules.push({
         type: getType(field.define),
         required: true,
