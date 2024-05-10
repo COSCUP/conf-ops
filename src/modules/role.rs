@@ -178,6 +178,59 @@ async fn add_role_users_in_admin(
     .map_err(|err| AppError::internal(err.to_string()))
 }
 
+#[put("/role/admin/roles/<role_id>/users/<user_id>", data = "<update_role_user_req>")]
+async fn update_role_user_in_admin(
+    mut conn: DbConn,
+    auth: AuthGuard,
+    role_id: String,
+    user_id: String,
+    update_role_user_req: Json<AdminAddRoleUser>,
+) -> EmptyResult {
+    let AuthGuard { user, .. } = auth;
+    let role = Role::find(&mut conn, role_id.clone())
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    match role.is_manager(&mut conn, &user).await {
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                "You are not a manager of this role".to_owned(),
+            ))
+        }
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => (),
+    }
+
+    let mut user = User::find(&mut conn, user_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+
+    if (update_role_user_req.name != user.name) || (update_role_user_req.locale != user.locale) {
+        user.name = update_role_user_req.name.clone();
+        user.locale = update_role_user_req.locale.clone();
+        user.save(&mut conn)
+            .await
+            .map_err(|err| AppError::internal(err.to_string()))?;
+    }
+
+    let emails = user.get_emails(&mut conn)
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
+
+    if emails != update_role_user_req.emails {
+        let _ = user.remove_emails(&mut conn)
+            .await
+            .map_err(|err| AppError::internal(err.to_string()))?;
+
+        let _ = user.add_emails(&mut conn, &update_role_user_req.emails)
+            .await
+            .map_err(|err| AppError::internal(err.to_string()))?;
+    }
+
+    Ok(EmptyResponse)
+
+}
+
 #[delete("/role/admin/roles/<role_id>/users/<user_id>")]
 async fn delete_role_user_in_admin(
     mut conn: DbConn,
@@ -238,6 +291,7 @@ pub fn routes() -> Vec<Route> {
         put_role_in_admin,
         all_role_users_in_admin,
         add_role_users_in_admin,
-        delete_role_user_in_admin
+        delete_role_user_in_admin,
+        update_role_user_in_admin,
     ]
 }

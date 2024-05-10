@@ -29,6 +29,7 @@ use super::{label::Label, user_label::UserLabel};
     Hash,
     AsChangeset,
     Clone,
+    Insertable
 )]
 #[diesel(belongs_to(Project))]
 #[diesel(table_name = users)]
@@ -104,6 +105,18 @@ impl User {
             )
             .execute(conn)
             .await
+    }
+
+    pub async fn remove_emails(
+        &self,
+        conn: &mut DbConn
+    ) -> Result<usize, diesel::result::Error> {
+        diesel::delete(
+            user_emails::table
+                .filter(user_emails::user_id.eq(self.id.to_owned()))
+        )
+        .execute(conn)
+        .await
     }
 
     pub async fn get_labels(&self, conn: &mut DbConn) -> Result<Vec<Label>, diesel::result::Error> {
@@ -184,5 +197,26 @@ impl User {
         )
         .execute(conn)
         .await
+    }
+
+    pub async fn save(&self, conn: &mut DbConn) -> Result<usize, diesel::result::Error> {
+        match diesel::replace_into(users::table)
+            .values(self)
+            .execute(conn)
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => {
+                diesel::update(users::table)
+                    .filter(users::id.eq(&self.id))
+                    .set(self)
+                    .execute(conn)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 }
