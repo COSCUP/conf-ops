@@ -788,6 +788,11 @@ async fn export_tickets_for_schema_in_admin<'a>(
 
     let schema_flows = schema.get_detail_flows(&mut conn).await.map_err(|err| AppError::internal(err.to_string()))?;
 
+    response.fields.push(serde_json::json!({
+        "module_type": "Base",
+        "key": "ticket_id"
+    }));
+
     for schema_flow in &schema_flows {
         match &schema_flow.module {
             TicketSchemaFlowValue::Form(form) => {
@@ -820,6 +825,7 @@ async fn export_tickets_for_schema_in_admin<'a>(
 
     for ticket in tickets {
         let mut ticket_data = Map::new();
+        ticket_data.insert("ticket_id".to_owned(), serde_json::Value::Number(serde_json::Number::from(ticket.id)));
         for flow in ticket.get_flows(&mut conn).await.map_err(|err| AppError::internal(err.to_string()))? {
             let schema_flow = schema_flows.iter().find(|f| f.schema.id == flow.flow.ticket_schema_flow_id).expect("Schema flow not found");
 
