@@ -114,23 +114,28 @@ impl<'r> FromRequest<'r> for AuthGuard {
                     )
                 )));
 
-                let session_cookie = match request.cookies().get_private("session_id") {
-                    Some(cookie) => cookie,
+                let session_id = match request.headers().get_one("Authorization").and_then(|v| v.split_whitespace().last()) {
+                    Some(session_id) => session_id.to_owned(),
                     None => {
-                        return rocket::request::Outcome::Error((
-                            rocket::http::Status::Unauthorized,
-                            AppError::unauthorized(i18n),
-                        ))
-                    }
-                };
+                        let session_cookie = match request.cookies().get_private("session_id") {
+                            Some(cookie) => cookie,
+                            None => {
+                                return rocket::request::Outcome::Error((
+                                    rocket::http::Status::Unauthorized,
+                                    AppError::unauthorized(i18n),
+                                ))
+                            }
+                        };
 
-                let session_id = match session_cookie.value().parse() {
-                    Ok(session_id) => session_id,
-                    _ => {
-                        return rocket::request::Outcome::Error((
-                            rocket::http::Status::Unauthorized,
-                            AppError::unauthorized(i18n),
-                        ))
+                        match session_cookie.value().parse() {
+                            Ok(session_id) => session_id,
+                            _ => {
+                                return rocket::request::Outcome::Error((
+                                    rocket::http::Status::Unauthorized,
+                                    AppError::unauthorized(i18n),
+                                ))
+                            }
+                        }
                     }
                 };
 
