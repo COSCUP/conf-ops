@@ -11,6 +11,7 @@ use rocket::Route;
 use rocket::State;
 use rocket_db_pools::diesel::scoped_futures::ScopedFutureExt;
 use rocket_db_pools::diesel::AsyncConnection;
+use serde_json::Map;
 
 use super::forms::fields::FormFieldDefine;
 use super::forms::fields::FormSchemaField;
@@ -24,6 +25,7 @@ use super::reviews::models::TicketReview;
 use super::reviews::models::TicketSchemaReview;
 use super::TicketFlowItem;
 use super::TicketFlowStatus;
+use super::TicketFlowValue;
 use super::TicketSchemaFlowItem;
 use super::TicketSchemaFlowValue;
 use super::TicketStatus;
@@ -747,6 +749,98 @@ async fn all_tickets_for_schema_in_admin<'a>(
     Ok(Json(tickets))
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ExportTicketData {
+    pub fields: Vec<Value>,
+    pub data: Vec<Map<String, Value>>
+}
+
+#[get("/ticket/admin/schemas/<schema_id>/exports")]
+async fn export_tickets_for_schema_in_admin<'a>(
+    mut conn: DbConn,
+    auth: AuthGuard,
+    i18n: I18n<'a>,
+    schema_id: i32,
+) -> JsonResult<ExportTicketData> {
+    let AuthGuard { user, .. } = auth;
+    let schema = TicketSchema::find(&mut conn, schema_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+    match schema.is_manager(&mut conn, &user).await {
+        Ok(false) => {
+            return Err(AppError::forbidden(
+                i18n.t("ticket.error.not_manager_of_this_schema"),
+            ))
+        }
+        Err(err) => return Err(AppError::forbidden(err.to_string())),
+        _ => (),
+    }
+
+    let tickets = schema
+        .get_tickets(&mut conn)
+        .await
+        .map_err(|err| AppError::internal(err.to_string()))?;
+
+    let mut response = ExportTicketData {
+        fields: vec![],
+        data: vec![]
+    };
+
+    let schema_flows = schema.get_detail_flows(&mut conn).await.map_err(|err| AppError::internal(err.to_string()))?;
+
+    for schema_flow in &schema_flows {
+        match &schema_flow.module {
+            TicketSchemaFlowValue::Form(form) => {
+                for form_field in &form.fields {
+                    response.fields.push(serde_json::json!({
+                        "module_type": "Form",
+                        "key": form_field.key,
+                        "define": form_field.define,
+                        "name_zh": form_field.name_zh,
+                        "name_en": form_field.name_en,
+                    }));
+                }
+            },
+            TicketSchemaFlowValue::Review(_) => {
+                let review_key_prefix = format!("review_{}", schema_flow.schema.order);
+                response.fields.push(serde_json::json!({
+                    "module_type": "Review",
+                    "key": format!("{}_approved", review_key_prefix)
+                }));
+                response.fields.push(serde_json::json!({
+                    "module_type": "Review",
+                    "key": format!("{}_comment", review_key_prefix)
+                }));
+            }
+        }
+    }
+
+    for ticket in tickets {
+        let mut ticket_data = Map::new();
+        for flow in ticket.get_flows(&mut conn).await.map_err(|err| AppError::internal(err.to_string()))? {
+            let schema_flow = schema_flows.iter().find(|f| f.schema.id == flow.flow.ticket_schema_flow_id).expect("Schema flow not found");
+
+            match flow.module {
+                TicketFlowValue::Form(form) => {
+                    if let serde_json::Value::Object(form_value) = form.value {
+                        ticket_data.append(&mut form_value.clone());
+                    }
+                },
+                TicketFlowValue::Review(review) => {
+                    let review_key_prefix = format!("review_{}", schema_flow.schema.order);
+                    ticket_data.insert(format!("{}_approved", review_key_prefix), serde_json::Value::Bool(review.approved));
+                    ticket_data.insert(format!("{}_comment", review_key_prefix), serde_json::Value::String(review.comment.unwrap_or("".to_owned())));
+                },
+                TicketFlowValue::None => ()
+            }
+        }
+        response.data.push(ticket_data);
+    }
+
+
+    Ok(Json(response))
+}
+
 pub fn routes() -> Vec<Route> {
     routes![
         all_tickets,
@@ -763,5 +857,6 @@ pub fn routes() -> Vec<Route> {
         add_managed_schema_in_admin,
         add_flow_to_schema_in_admin,
         all_tickets_for_schema_in_admin,
+        export_tickets_for_schema_in_admin,
     ]
 }
