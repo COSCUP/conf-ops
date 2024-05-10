@@ -516,6 +516,19 @@ async fn upload_file_in_form_field<'a>(
     Err(AppError::bad_request("Invalid request".to_owned()))
 }
 
+#[get("/ticket/images/<image_id>")]
+async fn get_public_image_content(
+    mut conn: DbConn,
+    image_id: String
+) -> ApiResult<NamedFile> {
+    let image = TicketFormImage::find(&mut conn, image_id)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))?;
+    NamedFile::open(image.path)
+        .await
+        .map_err(|err| AppError::not_found(err.to_string()))
+}
+
 #[get("/ticket/schemas/<schema_id>/form/<form_id>/field/<field_id>/<file_id>")]
 async fn get_field_file_content<'a>(
     mut conn: DbConn,
@@ -863,6 +876,7 @@ pub fn routes() -> Vec<Route> {
         add_ticket_for_schema,
         upload_file_in_form_field,
         get_field_file_content,
+        get_public_image_content,
         all_managed_schemas_in_admin,
         get_managed_schema_in_admin,
         add_managed_schema_in_admin,
