@@ -792,6 +792,9 @@ async fn export_tickets_for_schema_in_admin<'a>(
         match &schema_flow.module {
             TicketSchemaFlowValue::Form(form) => {
                 for form_field in &form.fields {
+                    if form_field.key == "" {
+                        continue;
+                    };
                     response.fields.push(serde_json::json!({
                         "module_type": "Form",
                         "key": form_field.key,
@@ -823,7 +826,9 @@ async fn export_tickets_for_schema_in_admin<'a>(
             match flow.module {
                 TicketFlowValue::Form(form) => {
                     if let serde_json::Value::Object(form_value) = form.value {
-                        ticket_data.append(&mut form_value.clone());
+                        for (key, value) in form_value {
+                            ticket_data.insert(key, value);
+                        }
                     }
                 },
                 TicketFlowValue::Review(review) => {
