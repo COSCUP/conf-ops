@@ -38,6 +38,8 @@ Conf-Ops 是一套以 AI 輔助的研討會/活動專案管理系統，專為重
 
 ---
 
+> **命名慣例說明：** 本文件使用 JSON/API 層 camelCase 命名（如 `sourceTemplate`、`sourceProject`、`ownerTag`），對應資料庫 snake_case 欄位名（如 `source_template_id`、`source_project_id`、`owner_tag_id`）。
+
 ## 一、核心實體 (Entities)
 
 ### 1. Account（帳號）
@@ -48,9 +50,12 @@ Conf-Ops 是一套以 AI 輔助的研討會/活動專案管理系統，專為重
 - **Passkey**：基於 WebAuthn 標準的免密碼登入
 - **Email Magic Link**：系統寄送一次性登入連結到帳號 Email
 
+> **自動註冊：** 當透過 Magic Link 登入的 Email 尚未對應任何帳號時，系統自動建立新帳號。無論 Email 是否已存在，回應訊息一致（如「Magic Link 已發送至您的 Email」），以防止 Email 列舉攻擊。
+
 **屬性：**
-- 名稱 `name`、Email `email`、頭像 `avatar`
+- 名稱 `name`、Email `email`、頭像 `avatar_url`
 - **自我介紹 `bio`**：公開的自我介紹文字，可供專案內其他成員查閱
+- **語系偏好 `locale`**：使用者偏好語系（VARCHAR，預設 `'zh-TW'`），用於介面語言與 AI 回應語言
 - 個人記憶 `memories`：存放個人偏好，如溝通語言、介面習慣等。工作經驗應優先存入組織或專案相關層級，僅純粹個人偏好留在帳號記憶中
 - **個人資料表 `profileData`**：私人的結構化資料（如聯絡電話、地址、銀行帳號、飲食偏好等），僅帳號本人可查看與編輯。不對其他成員公開，也不傳送給 AI。欄位為自由新增的 JSON 格式，可手動新增或透過 `saveToProfile` 工具從任務資料中存入。系統程式自動維護個人欄位結構 `profileSchema`（含 `key`、`label`、`description`、`type`），AI 僅接收此結構以判斷對應關係（詳見「隱私系統」）
 - 通知偏好設定 `notificationPreferences`
@@ -64,7 +69,7 @@ Conf-Ops 是一套以 AI 輔助的研討會/活動專案管理系統，專為重
 代表一個團體或社群（如 COSCUP 籌備團隊、開源社群基金會等）。組織是專案的容器，管理跨專案共用的設定與記憶。
 
 **包含：**
-- 名稱 `name`、描述 `description`、Logo `logo`
+- 名稱 `name`、描述 `description`、Logo `logoUrl`
 - 成員列表 `members`（帳號在組織中的身份）
 - 外部聯絡人列表 `contacts`（組織層級管理，跨專案共用）
 - 專案列表 `projects`
@@ -118,6 +123,8 @@ Conf-Ops 是一套以 AI 輔助的研討會/活動專案管理系統，專為重
 | 外部聯絡人 `contacts` | **不複製**（Contact 屬於組織層級，仍可在新專案中使用，但成員標籤指派不複製） |
 | 資料表資料 `dataEntries` | **不複製**（僅複製定義，不複製實際資料列） |
 
+> **分階段實作：** 專案複製功能分階段交付。Phase 2 提供基本複製（成員標籤、任務模板含待辦模板與資料表定義、專案記憶、工具設定、權限設定）。Phase 12 擴充深複製能力（含資料快照、歷史資料遷移等進階功能）。
+
 > **典型場景：** 每年 COSCUP 從上一屆專案複製，繼承完整的組織結構（成員標籤、任務模板）與累積的經驗（記憶），但以乾淨的狀態開始新一屆的工作。
 
 ### 4. Member（成員）
@@ -163,7 +170,9 @@ Conf-Ops 是一套以 AI 輔助的研討會/活動專案管理系統，專為重
 - Contact 不能被指派待辦事項
 - Contact 不能確認 AI 建議
 
-> **統一來源類型：** 在任務對話中，Member 和 Contact 的訊息都使用 `member` 來源類型，透過 `sourceId` 區分身份。
+> **來源類型區分：** 在任務對話中，Member 透過 Web 介面的發言使用 `member` 來源類型；Contact 無法登入 Web 介面，僅能透過 Email 回信進入對話，使用 `email_inbound` 來源類型，保留完整的郵件來源資訊。透過 `sourceId` 區分身份。
+
+> **跨專案標籤視圖：** `MemberTagAssignment` 包含 `project_id` 欄位，支援同一 Contact 在不同專案擁有不同標籤角色。查詢特定專案下的 Contact 標籤時，API 透過 `GET /api/v1/projects/{projectId}/contacts?includeTags=true` 回傳含專案上下文的標籤列表。
 
 ### 6. Member Tag（成員標籤）
 
@@ -197,7 +206,7 @@ Conf-Ops 是一套以 AI 輔助的研討會/活動專案管理系統，專為重
 - 名稱 `name`（可自訂，如「與 A 贊助商保持聯絡」）
 - 所屬成員標籤 `ownerTag`（任務歸屬的成員標籤，建立時指定）
 - 建立者 `createdBy`（建立此任務的成員）
-- 來源任務模板 `sourceTemplate`（參考）
+- 來源任務模板 `taskTemplateId`（參考）
 - 狀態 `status`：待開始 `pending` / 進行中 `in_progress` / 已完成 `completed` / 已取消 `cancelled`
 - **參與人 `participants`**（自動計算，詳見下方）
 - **任務對話 `conversation`**（Task Conversation）
@@ -215,7 +224,11 @@ Conf-Ops 是一套以 AI 輔助的研討會/活動專案管理系統，專為重
 - 任務建立者 `createdBy`
 - 待辦事項的被指派者 `assignees`
 
+> **Contact 非參與人：** 外部聯絡人（Contact）透過 `email_inbound` 參與任務對話，但**不計入**任務參與人。Contact 無帳號、不能登入系統、不能被指派待辦事項、不能確認 AI 建議，其參與僅限於 Email 往來記錄於對話中。
+
 AI 建議生成後，會顯示給所有參與人，由任一參與人進行決策。
+
+> **參與人計算效能：** 系統使用 `moka` in-memory cache 快取參與人計算結果（key = `task_id`，TTL 1–2 分鐘），任何影響參與人組成的寫入操作（任務指派變更、訊息 @mention、todo assignee 變更）主動 invalidate cache entry。`@mention` 解析結果寫入結構化索引（`messages` 表新增 `mentioned_member_ids UUID[]` 欄位搭配 GIN 索引），避免全文掃描。
 
 #### 狀態轉換規則
 
@@ -231,7 +244,7 @@ AI 建議生成後，會顯示給所有參與人，由任一參與人進行決�
 **每則訊息 `Message` 包含：**
 - 訊息 ID `messageId`：唯一識別碼，依時間序遞增
 - 時間戳 `timestamp`
-- 來源類型 `sourceType`：`member`（Member 或 Contact 的發言，含 Web 介面留言與 Email 來信）/ `ai_suggestion`（AI 建議）/ `tool_execution`（工具執行結果，包含待辦事項變化、資料表變化等）/ `system`（系統事件）
+- 來源類型 `sourceType`：`member`（Member 透過 Web 介面的發言）/ `email_inbound`（Email 來信，Member 或 Contact 的郵件；Contact 僅能透過此來源類型參與對話）/ `ai_suggestion`（AI 建議）/ `tool_execution`（工具執行結果，包含待辦事項變化、資料表變化等）/ `system`（系統事件）
 - 來源者 `sourceId`（哪位成員）
 - 內容 `content`
 - 附件 `attachments`（可選）：檔案列表，每個附件包含 `fileName`、`mimeType`、`fileSize`、`storagePath`。來源包含 Email 附件、成員上傳的檔案等
@@ -256,6 +269,16 @@ CRDT 確保資料一致性，但任務對話額外需要確保使用者在操作
 - **通過驗證**：操作正常執行並記錄到對話中
 
 > **設計考量：** CRDT 解決的是「多人同時操作不衝突」，`lastSeenMessageId` 解決的是「操作前必須掌握完整資訊」。兩者互補：CRDT 保證技術層面的資料一致性，已讀保護確保業務層面的決策品質。
+
+> **`lastSeenMessageId` 適用範圍：** 所有會在任務對話中產生訊息記錄的寫入操作（包含 `SendMessage`、`UpsertDataEntry`、`UpdateTodo`、`UpdateTaskStatus`、`SuggestionDecision`、`ToolExecute` 等）都須附帶 `lastSeenMessageId`，確保操作者在掌握最新上下文的情況下做出變更。API 層面統一在 request body 中以 `lastSeenMessageId` 欄位攜帶（UUID 格式），所有相關 Request Schema 皆包含此必填欄位。
+
+> **`lastSeenMessageId` vs `last_read_message_id`：** 系統使用兩個獨立的已讀追蹤機制：`lastSeenMessageId` 是 API request body 中的必填欄位，用於寫入操作前的已讀保護（確保操作者已看到最新訊息）；`last_read_message_id` 儲存於 `conversation_states` 表，用於 UI 層的未讀計數追蹤（標記使用者已讀到哪則訊息）。兩者獨立運作，互不影響。
+
+> **CRDT 與 REST 共存邊界：** CRDT（WebSocket Binary）負責即時協作同步（多人同時編輯 content、status 等），REST API（PUT/PATCH）用於離線或非即時場景（如 AI 工具執行結果寫入、外部 API 更新）。REST 寫入時，後端先將變更轉換為 CRDT 操作再合併至操作日誌，確保物化狀態始終由 CRDT 日誌驅動，REST 不直接覆寫物化表。
+
+> **斷線重連位置追蹤：** 系統透過 `last_seen_positions` 表追蹤每位使用者的 Yjs clock position，記錄使用者最後同步的 CRDT 狀態位置。當使用者斷線後重新連線時，系統僅需傳送自該 position 之後的差異更新，而非完整狀態，大幅降低重連時的資料傳輸量。
+
+> **API 分層規則：** 內部 API（使用者操作、前端呼叫）使用 `/api/v1/` 前綴，由 JWT Bearer Token 認證；外部資料 API（第三方系統串接）使用 `/external/v1/` 前綴，由專案層級 API Key（`X-API-Key` header）認證。兩者在 OpenAPI 規格中共存但路由與認證策略明確分離。
 
 ### 10. Todo（待辦事項）
 
@@ -331,9 +354,11 @@ DataSchema {
 - **對話中可見**：資料變化（新增、修改、刪除）透過執行工具操作，自動以 `tool_execution` 類型記錄到任務對話，以區塊形式呈現
 - **執行工具可操作**：透過 `upsertDataEntry` 工具新增或修改資料
 - **跨任務聚合**：以任務模板為單位，彙整所有任務的資料列，方便總覽與統計（如所有贊助商的聯絡狀態一覽）
-- **跨任務資料分享**：透過 `shareDataToTask` 工具，可將指定欄位的資料複製到其他任務的資料表中，並建立來源關聯。來源資料變更時通知目標任務（詳見「跨組協作機制」）
+- **跨任務資料分享**：透過 `shareDataToTask` 工具，可將指定欄位的資料複製到其他任務的資料表中，並建立來源關聯。來源資料變更時通知目標任務（詳見「跨組協作機制」）。`ShareDataToTaskRequest` 須指定 `targetSchemaId`，明確資料要分享到目標任務的哪一個 DataSchema；若目標任務僅有單一 Schema，前端可自動填入
 - **外部 API 存取**：提供 REST API 端點，可依專案、任務模板、任務查詢與聚合資料，供外部系統串接使用
 - **AI 上下文（僅結構）**：基於隱私設計，AI 僅接收資料表的欄位結構（Schema），不接收實際資料值。AI 透過佔位符語法引用欄位，由系統在執行時帶入實際資料（詳見「隱私系統」）
+
+> **變更歷史追蹤：** `data_entries` 的變更透過審計日誌（`audit_logs`）追蹤，不另建獨立的版本歷史表。每次資料修改皆記錄操作者、變更欄位與前後值至審計日誌，提供完整的變更追溯能力。
 
 ### 12. Execution Tool（執行工具）
 
@@ -357,7 +382,7 @@ DataSchema {
 - **建立待辦事項 `createTodo`**：在任務中新增待辦
 - **更新待辦事項 `updateTodo`**：更新待辦事項的狀態（標記完成等）、指派成員、截止日期、描述等
 - **新增/更新資料 `upsertDataEntry`**：新增或修改資料表中的資料列。AI 使用佔位符語法指定欄位值，系統在執行前帶入實際資料供人類確認
-- **分享資料到其他任務 `shareDataToTask`**：將當前任務資料表中指定欄位的資料，複製到目標任務的資料表中。目標任務需有對應的欄位可接收。複製時建立來源關聯 `sourceLink`，當來源資料變更時，目標任務對話會收到變更通知，由目標任務成員決定是否更新
+- **分享資料到其他任務 `shareDataToTask`**：將當前任務資料表中指定欄位的資料，複製到目標任務的資料表中。目標任務需有對應的欄位可接收。複製時建立來源關聯 `sourceLink`，當來源資料變更時，目標任務對話會收到 `system` 通知並觸發 `source_data_changed` AI Pipeline 事件，AI 自動生成 SuggestionGroup 建議同步更新相關欄位，由目標任務成員審核決策
 - **儲存到個人資料表 `saveToProfile`**：將任務資料表中的指定欄位值存入當前操作成員的個人資料表。若 `profileSchema` 中已存在該 `key` 的欄位結構，則不需提供結構參數，直接存入值即可；若為新欄位，參數中須包含欄位結構資訊（`label`、`description`、`type`），來源是任務資料表欄位時可直接從 DataSchema 帶入，若缺少則工具回傳錯誤不執行，由 AI 建議補上或人類手動補填後重新執行。系統程式以固定邏輯維護 `profileSchema`。AI 可在偵測到成員重複填寫相同個人資料時建議使用
 - **建立/更新記憶 `upsertMemory`**：新增或修改記憶條目。可同時指定 `libraryRef` 參考記憶庫文件
 - **建立/更新記憶庫文件 `upsertLibraryDocument`**：新增或修改記憶庫中的文件（如 SOP、範本、詳細指南等）
@@ -458,6 +483,8 @@ DataSchema {
 觸發事件 (Trigger) → AI 生成建議 (Suggestion) → 人類決策 (Decision) → 執行 (Execution) → 記錄 (Record)
 ```
 
+> **事件持久化：** 觸發事件以 PostgreSQL `ai_pipeline_events` 表持久化，包含 retry 與 timeout 機制。Tokio worker 從持久化佇列消費事件，服務重啟時自動恢復未處理的事件。詳見 `docs/system/04-ai-pipeline.md` §7.3。
+
 #### 觸發事件（Trigger）
 
 以下事件會觸發 AI 生成建議，由程式碼明確定義：
@@ -530,6 +557,17 @@ Suggestion {
 - 待辦事項超過截止日期 `due_date_overdue`
 - 待辦事項長時間未推進 `todo_stale`
 
+#### 提醒排程完整流程
+
+提醒系統的執行由 Worker 負責，完整流程如下：
+
+1. **排程觸發**：Worker 以每分鐘為週期執行排程器
+2. **查詢符合條件提醒**：查詢 `scheduled_reminders` 表中 `trigger_at <= NOW() AND fired = false` 的記錄
+3. **狀態檢查**：對每筆提醒檢查關聯的待辦事項狀態，若已完成或已刪除則跳過（僅標記 `fired`，不產生通知）
+4. **產生通知**：為仍處於 `open` 狀態的待辦事項產生 `Notification` 記錄
+5. **多管道發送**：依接收者的 `notificationPreferences` 透過 in_app、Web Push、Email 等管道投遞通知
+6. **更新提醒記錄**：將 `fired` 設為 `true`、`fired_at` 設為當前時間、`notification_id` 設為產生的通知 ID
+
 #### 通知方式
 
 - 系統內通知（通知中心、Web Push）
@@ -563,7 +601,8 @@ AI 生成建議時，沿著任務的 `ownerTag` 所在的繼承鏈收集所有�
 #### 自動記憶提取 Auto Extraction
 
 - 任務完成時，AI 可以從對話歷史中提取經驗教訓
-- 提取結果必須經人類確認後才會存入記憶
+- 提取結果標記為 `auto_extracted` 來源，必須經人類確認後才會存入記憶
+- 完整流程：AI 分析對話歷史 → 生成記憶提取建議（`upsertMemory` 工具呼叫，標記 `source: auto_extracted`）→ 人類審核（可編輯、拒絕或補充）→ 確認後存入對應層級的記憶
 - 人類可以編輯、拒絕或補充 AI 提取的記憶
 
 #### 記憶可見性
@@ -609,7 +648,7 @@ externalTaskCreation: [
 
 - 資料表不會自動共享，需透過 `shareDataToTask` 工具明確複製指定欄位到目標任務
 - 複製時建立來源關聯 `sourceLink`，記錄資料來自哪個任務的哪些欄位
-- 來源資料變更時，目標任務對話收到 `system` 通知（如「來源任務『與 X 公司聯絡』的公司簡介欄位已更新」），由目標成員決定是否同步更新
+- 來源資料變更時，目標任務對話收到 `system` 通知（如「來源任務『與 X 公司聯絡』的公司簡介欄位已更新」），同時觸發 `source_data_changed` AI Pipeline 事件，AI 自動生成 SuggestionGroup 建議同步更新相關欄位，由目標成員審核決策
 - 各任務的資料表互相獨立，目標組別可在複製資料的基礎上自行修改
 - 每次資料分享都記錄在雙方的任務對話中（`tool_execution`）
 
@@ -630,9 +669,10 @@ externalTaskCreation: [
    - **Contact 來信**：寄件者 Email 匹配到專案中的外部聯絡人，或自動建立新的 Contact
    - **成員轉寄**：寄件者為成員，但信件內容為外部來信轉寄。系統解析原始寄件者，以 Contact 身份記錄（而非轉寄者）
 3. 嘗試匹配到對應的任務：優先依據 Email Header（`In-Reply-To`、`References`）匹配到既有 Thread 所屬的任務；次要依據寄件者身份、主旨關鍵字啟發式匹配
-4. 在匹配的任務對話中新增 `member` 類型的訊息，附件以 `attachments` 儲存於訊息中（詳見下方「Email 附件處理」）
+4. 在匹配的任務對話中新增 `email_inbound` 類型的訊息，附件以 `attachments` 儲存於訊息中（詳見下方「Email 附件處理」）
 5. 觸發 AI 建議流程
 6. 若無法匹配，歸入專案的未分類收件匣 `unassignedInbox`，等待成員分配
+   > **注意**：`unassignedInbox` 是一個**虛擬概念**，不對應獨立的資料表。它是一個查詢結果——篩選 `email_threads` 中 `task_id IS NULL` 的信件串，即尚未關聯到任何任務的 Email。成員可從此列表中將信件手動分配到合適的任務。
 
 #### Email 互動方式
 
@@ -656,6 +696,10 @@ Email 來信的附件會儲存於系統中，並作為任務對話訊息的一�
 **AI 上下文：** AI 接收附件的metadata（檔案名稱、類型、大小），不接收檔案內容本身。AI 根據 metadata 與對話上下文判斷附件用途並生成建議。
 
 > **範例：** 贊助商回信附上公司 Logo 圖檔與合約 PDF。AI 根據檔案名稱與類型，建議將 Logo 存入資料表的「公司 Logo」欄位、合約存入「合約文件」欄位。成員確認後執行。
+
+#### Email Thread 手動修正
+
+當系統自動匹配的 Email Thread 歸屬有誤時（如主旨相似但實際屬於不同任務），成員可透過 `POST /api/v1/email/threads/{threadId}/reassign` 將 Thread 重新歸屬到正確的任務，或將未分類收件匣中的信件關聯至指定任務。操作會在相關任務對話中產生 `system` 類型訊息，記錄重新歸屬的操作。
 
 #### Webhook/API 整合
 
@@ -718,11 +762,15 @@ AI 在生成建議時，使用佔位符引用資料欄位值：
 
 人類在確認步驟中可以看到替換後的實際資料，確保內容正確。
 
+#### 佔位符預覽與解析
+
+前端可透過 `POST /api/v1/ai/resolve-placeholders` 端點預覽佔位符的解析結果。前端傳入含佔位符的參數（如信件草稿），後端替換為真實值後回傳供人類審核。此設計確保前端不需持有全量敏感資料，同時讓人類在採納 AI 建議前可預覽真實內容。此端點也用於前端顯示 AI 建議卡片時的即時預覽。
+
 #### 個人資料表的自動填入與累積
 
 - **自動填入**：AI 在任何寫入工具的參數中，都可使用 `{{profile.<fieldKey>}}` 語法引用個人資料表欄位。例如在 `upsertDataEntry` 建議中，AI 可將任務資料表欄位值設為 `{{profile.phone}}`，系統在執行前帶入實際值。不需要獨立的填入工具
 - **自動累積**：AI 偵測到成員在不同任務中重複手動填寫相同個人資料時，建議使用 `saveToProfile` 工具，將資料存入個人資料表供未來自動填入
-- **欄位結構自動維護**：`saveToProfile` 執行時，系統程式以固定邏輯維護 `profileSchema`。若該 `key` 已存在於 `profileSchema` 中，直接更新值，不需提供結構參數；若為新欄位，需從執行參數中取得結構資訊（`label`、`description`、`type`，如來源為任務資料表欄位則自動帶入），缺少時工具回傳錯誤不執行，錯誤訊息記錄到對話中，由 AI 建議補上或人類手動補填後重新執行
+- **欄位結構自動維護**：`saveToProfile` 執行時，系統程式以固定邏輯維護 `profileSchema`。若該 `key` 已存在於 `profileSchema` 中，直接更新值，不需提供結構參數；若為新欄位，需從執行參數中取得結構資訊（`label`、`description`、`type`，如來源為任務資料表欄位則自動帶入），缺少時工具回傳錯誤不執行，錯誤訊息記錄到對話中，由 AI 建議補上或人類手動補填後重新執行。API 層面，`saveToProfile` 的欄位結構資訊透過通用工具執行端點（`POST /projects/{projectId}/tools/{toolName}/execute`）的 `parameters` JSONB 傳遞，`AccountResponse.profileSchema` 始終反映最新狀態
 - 所有操作都需經人類確認後執行
 
 ### 7. 審計追蹤 `AuditTrail`
@@ -850,7 +898,7 @@ AI 在生成建議時，使用佔位符引用資料欄位值：
 
 - 介面支援多語言（i18n）
 - 記憶和內容本身的語言不受限制
-- AI 根據帳號的語言偏好 `locale`（存於帳號記憶中）生成對應語言的建議
+- AI 根據帳號的語言偏好 `locale`（帳號欄位，預設 `'zh-TW'`）生成對應語言的建議
 
 ---
 
@@ -882,7 +930,7 @@ AI 在生成建議時，使用佔位符引用資料欄位值：
 #### Story 2：收到贊助商回信
 
 1. X 公司聯絡人回覆 Email，表示有興趣了解贊助方案
-2. 系統匹配寄件者 Email → 找到外部成員「X 公司聯絡人」→ 將信件內容以 `member` 類型訊息加入任務對話
+2. 系統匹配寄件者 Email → 找到外部成員「X 公司聯絡人」→ 將信件內容以 `email_inbound` 類型訊息加入任務對話
 3. 觸發 `message_sent` → AI 生成建議組：
    - **建議 1**（`updateTodo`）：建議標記「初次聯絡」待辦為完成
    - **建議 2**（`smtp/sendEmail`）：生成贊助方案信件草稿，附上贊助方案文件連結
