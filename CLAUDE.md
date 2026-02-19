@@ -1,0 +1,85 @@
+# Conf-Ops — Claude Code 開發指引
+
+## 專案概述
+
+AI 輔助的研討會/活動專案管理系統（以 COSCUP 為設計對象）。
+Modular Monolith 架構，單一 Rust binary，9 個內部模組。
+
+## 技術棧
+
+- 後端：Rust（Tokio + Axum + sqlx + PostgreSQL）
+- 前端：Vue.js + TypeScript（strict mode）
+- 即時協作：CRDT（yrs）+ WebSocket
+- AI：Google Gemini API
+- 部署：Docker Compose + Caddy
+
+## 開發準則
+
+完整開發準則詳見 `docs/development-guidelines.md`，以下為必須遵循的核心規則。
+
+### TDD 開發流程
+
+所有功能開發與 bug 修復採用 TDD：Red → Green → Refactor。
+
+### 提交前品質要求（全部必須通過）
+
+**Lint 修復原則：** 禁止以 `#[allow(...)]`、`// eslint-disable`、`@ts-ignore` 等忽略方式修復 lint 問題。必須使用時先詢問確認。
+
+**後端：**
+- `cargo clippy -- -D warnings` — 零錯誤、零警告（含 info 層級）
+- `cargo fmt -- --check` — 格式檢查通過
+- `cargo test` — 所有測試通過
+
+**前端：**
+- `npm run lint -- --max-warnings 0` — 零錯誤、零警告
+- `npm run typecheck` — TypeScript strict 模式類型檢查通過
+- `npm run test` — 所有測試通過
+
+### 測試要求
+
+- 測試分三層：單元測試、API 測試、整合測試
+- 每個 bug 修復必須附帶迴歸測試
+- DB 測試禁止 mock，使用 `pg_lite` 搭配真實 PostgreSQL
+- 前端測試使用 Vitest + Vue Test Utils
+
+### Rust 規範
+
+- 錯誤處理使用 `thiserror`，業務邏輯禁止 `unwrap()` / `expect()`
+- 非同步使用 Tokio，阻塞操作用 `spawn_blocking`
+- 模組間依賴透過 trait 注入（`Arc<dyn Trait>`）
+- 資料庫使用 `sqlx` compile-time query checking，禁止跨模組 JOIN
+- HTTP 錯誤回應使用 RFC 7807 Problem Details
+
+### TypeScript / Vue 規範
+
+- `tsconfig.json` 啟用 `strict: true` + `noUncheckedIndexedAccess`
+- 使用 `<script setup lang="ts">` Composition API
+- 區塊順序固定：`<script>` → `<template>` → `<style>`
+- Props / Emits 使用 TypeScript 類型定義
+- 狀態管理使用 Pinia
+
+### 前後端契約
+
+- OpenAPI 3.1 spec（`docs/api/openapi.yaml`）為唯一真相來源
+- 後端類型：`cargo xtask generate-api-types` 生成至 `src/api/generated/`
+- 前端類型：`npx openapi-typescript` 生成至 `src/api/schema.d.ts`
+- 禁止手動定義 API 通訊相關類型
+
+### Git 規範
+
+- Commit 格式：Conventional Commits — `<type>(<scope>): <description>`
+- 常用 type：`feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+- 常用 scope：`auth`, `core`, `conversation`, `ai`, `tools`, `email`, `notifications`, `storage`, `audit`, `frontend`
+
+## 文件結構
+
+```
+docs/
+  architecture.md              # 功能架構規格
+  development-guidelines.md    # 完整開發準則
+  data-model/                  # 18 個資料模型定義
+  api/                         # OpenAPI 3.1 規格（24 個檔案）
+  system/                      # 系統架構文件（13 個檔案）
+scripts/
+  check-cross-refs.py          # 跨文件一致性檢查
+```
