@@ -1,0 +1,479 @@
+# Webhook 相關路徑
+# Webhooks — CRUD, test, logs, inbound endpoint
+
+# --- Webhook CRUD ---
+
+/projects/{projectId}/webhooks:
+  get:
+    operationId: listWebhooks
+    summary: 列出 Webhook 設定
+    description: |
+      列出指定專案的所有 Webhook 設定，包含推送端點 URL、
+      訂閱的事件類型、啟用狀態等。
+    tags:
+      - Webhooks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: Webhook 設定列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - webhooks
+              properties:
+                webhooks:
+                  type: array
+                  items:
+                    $ref: '../schemas/webhooks.yaml#/Webhook'
+            example:
+              webhooks:
+                - id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+                  projectId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  name: "Slack 通知"
+                  url: "https://hooks.slack.com/services/T00/B00/xxx"
+                  events:
+                    - "task.completed"
+                    - "todo.completed"
+                  enabled: true
+                  secret: "whsec_****"
+                  createdAt: "2025-01-15T10:00:00Z"
+                  updatedAt: "2025-01-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  post:
+    operationId: createWebhook
+    summary: 建立 Webhook 設定
+    description: |
+      在指定專案中建立新的 Webhook 設定。
+      需指定推送端點 URL 與訂閱的事件類型。
+      系統會自動產生 webhook secret 用於簽章驗證。
+    tags:
+      - Webhooks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/webhooks.yaml#/CreateWebhookRequest'
+          example:
+            name: "Slack 通知"
+            url: "https://hooks.slack.com/services/T00/B00/xxx"
+            events:
+              - "task.completed"
+              - "todo.completed"
+            enabled: true
+    responses:
+      '201':
+        description: Webhook 建立成功（回傳包含完整 secret，僅此一次顯示）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/webhooks.yaml#/WebhookWithSecret'
+            example:
+              id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+              projectId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+              name: "Slack 通知"
+              url: "https://hooks.slack.com/services/T00/B00/xxx"
+              events:
+                - "task.completed"
+                - "todo.completed"
+              enabled: true
+              secret: "whsec_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+              createdAt: "2025-01-15T10:00:00Z"
+              updatedAt: "2025-01-15T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+
+/projects/{projectId}/webhooks/{webhookId}:
+  get:
+    operationId: getWebhook
+    summary: 取得 Webhook 詳情
+    description: |
+      取得指定 Webhook 設定的詳細資訊。
+      Secret 欄位以遮蔽形式回傳（如 `whsec_****`）。
+    tags:
+      - Webhooks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: webhookId
+        in: path
+        required: true
+        description: Webhook ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: Webhook 詳情
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/webhooks.yaml#/Webhook'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateWebhook
+    summary: 更新 Webhook 設定
+    description: |
+      更新指定的 Webhook 設定，包含端點 URL、訂閱事件、啟用狀態等。
+      無法透過此端點更新 secret，需使用刪除後重建。
+    tags:
+      - Webhooks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: webhookId
+        in: path
+        required: true
+        description: Webhook ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/webhooks.yaml#/UpdateWebhookRequest'
+          example:
+            name: "Slack 通知（含完成事件）"
+            events:
+              - "task.completed"
+              - "todo.completed"
+              - "data_entry.updated"
+            enabled: true
+    responses:
+      '200':
+        description: Webhook 更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/webhooks.yaml#/Webhook'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteWebhook
+    summary: 刪除 Webhook（軟刪除）
+    description: |
+      軟刪除指定的 Webhook 設定。刪除後不再推送事件，
+      但歷史推送紀錄仍可查閱。
+    tags:
+      - Webhooks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: webhookId
+        in: path
+        required: true
+        description: Webhook ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '204':
+        description: Webhook 已軟刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# --- 測試與紀錄 ---
+
+/projects/{projectId}/webhooks/{webhookId}/test:
+  post:
+    operationId: testWebhook
+    summary: 發送測試事件
+    description: |
+      向指定 Webhook 端點發送一個測試事件，用於驗證端點是否正常接收。
+      測試事件會記錄在推送紀錄中，標記為測試類型。
+    tags:
+      - Webhooks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: webhookId
+        in: path
+        required: true
+        description: Webhook ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 測試事件發送結果
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/webhooks.yaml#/WebhookTestResponse'
+            example:
+              success: true
+              statusCode: 200
+              responseTime: 120
+              logId: "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/webhooks/{webhookId}/logs:
+  get:
+    operationId: listWebhookLogs
+    summary: 列出 Webhook 推送紀錄
+    description: |
+      列出指定 Webhook 的事件推送紀錄，包含推送狀態、回應碼、回應時間等。
+      支援游標分頁，按推送時間降冪排序。
+    tags:
+      - Webhooks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: webhookId
+        in: path
+        required: true
+        description: Webhook ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: status
+        in: query
+        description: 依推送狀態過濾
+        schema:
+          $ref: '../schemas/common.yaml#/WebhookEventStatus'
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    responses:
+      '200':
+        description: 推送紀錄列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - logs
+                - pagination
+              properties:
+                logs:
+                  type: array
+                  items:
+                    $ref: '../schemas/webhooks.yaml#/WebhookLog'
+                pagination:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+            example:
+              logs:
+                - id: "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
+                  webhookId: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+                  event: "task.completed"
+                  status: "success"
+                  statusCode: 200
+                  responseTime: 85
+                  isTest: false
+                  createdAt: "2025-02-15T14:00:00Z"
+                - id: "018e4a2c-b002-7d8e-9a1b-2c3d4e5f6a7b"
+                  webhookId: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+                  event: "test"
+                  status: "success"
+                  statusCode: 200
+                  responseTime: 120
+                  isTest: true
+                  createdAt: "2025-02-15T10:00:00Z"
+              pagination:
+                hasMore: false
+                nextCursor: null
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# --- 外部系統 Inbound Webhook ---
+
+/webhooks/inbound/{endpointId}:
+  post:
+    operationId: receiveInboundWebhook
+    summary: 接收外部系統的 Inbound Webhook 事件
+    description: |
+      接收外部系統推送的事件（如第三方服務的狀態通知、CI/CD 結果等）。
+      系統根據 `endpointId` 路由到對應的專案與任務，
+      將事件內容新增至任務對話，並觸發 AI 建議流程。
+
+      請求簽章驗證：使用 `X-Webhook-Signature` header，
+      以 HMAC-SHA256 簽章驗證請求內容完整性。
+    tags:
+      - Webhooks
+    security: []
+    parameters:
+      - name: endpointId
+        in: path
+        required: true
+        description: Inbound Webhook 端點 ID（系統產生的唯一識別碼）
+        schema:
+          type: string
+      - name: X-Webhook-Signature
+        in: header
+        required: false
+        description: HMAC-SHA256 請求簽章（若端點設定需要簽章驗證）
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            description: "外部系統推送的事件 payload，格式依來源系統而異"
+            additionalProperties: true
+          example:
+            event: "deployment.completed"
+            repository: "conf-ops/frontend"
+            status: "success"
+            timestamp: "2025-02-15T14:00:00Z"
+            details:
+              commit: "abc1234"
+              environment: "production"
+    responses:
+      '200':
+        description: 事件接收成功
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - received
+              properties:
+                received:
+                  type: boolean
+                  description: "是否成功接收"
+                taskId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                  description: "路由到的任務 ID（若成功匹配）"
+                messageId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                  description: "新增至對話的訊息 ID（若成功匹配）"
+            example:
+              received: true
+              taskId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+              messageId: "018e4a2c-c014-7d8e-9a1b-2c3d4e5f6a7b"
+      '400':
+        description: 請求格式錯誤
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+      '401':
+        description: 簽章驗證失敗
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://api.conf-ops.dev/errors/unauthorized"
+              title: "Unauthorized"
+              status: 401
+              detail: "Webhook 簽章驗證失敗"
+      '404':
+        description: 端點不存在
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://api.conf-ops.dev/errors/not-found"
+              title: "Endpoint Not Found"
+              status: 404
+              detail: "找不到指定的 Inbound Webhook 端點"

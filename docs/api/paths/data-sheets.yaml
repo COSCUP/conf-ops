@@ -1,0 +1,407 @@
+# Conf-Ops API - 資料表相關路徑
+# Data Entries CRUD, Sharing, Aggregated Data Sheet
+
+# ===========================================================
+# /tasks/{taskId}/data-entries
+# ===========================================================
+
+/tasks/{taskId}/data-entries:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  get:
+    operationId: listDataEntries
+    summary: "列出任務的資料列"
+    description: |
+      列出任務的所有資料列，依據任務模板定義的資料表結構（DataSchema）組織。
+
+      每個 DataSchema 對應一筆資料列，包含各欄位的實際值。
+    tags:
+      - DataSheets
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: schemaId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依資料表定義篩選特定 schema 的資料"
+    responses:
+      "200":
+        description: "資料列列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/DataEntryListResponse"
+            examples:
+              sponsorData:
+                summary: "贊助商任務的資料列"
+                value:
+                  taskId: "018e4a2c-0004-7000-8000-000000000001"
+                  entries:
+                    - schemaId: "018e4a2c-0003-7000-8000-000000000001"
+                      schemaName: "贊助商資訊"
+                      values:
+                        companyName: "X 科技股份有限公司"
+                        contactEmail: "sponsor@xtech.com"
+                        amount: 100000
+                        companyLogo: null
+                      sourceLinks:
+                        - fieldKey: "companyName"
+                          sourceTaskId: null
+                        - fieldKey: "contactEmail"
+                          sourceTaskId: null
+                      createdAt: "2026-01-15T08:00:00Z"
+                      updatedAt: "2026-02-10T14:30:00Z"
+      "403":
+        description: "無權限查看此任務的資料"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /tasks/{taskId}/data-entries/{schemaId}
+# ===========================================================
+
+/tasks/{taskId}/data-entries/{schemaId}:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+    - name: schemaId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "資料表定義 ID"
+
+  put:
+    operationId: upsertDataEntry
+    summary: "新增或更新資料列"
+    description: |
+      新增或更新任務中指定 DataSchema 的資料列（JSONB values）。
+
+      - 若該 schema 尚無資料列，則建立新的資料列
+      - 若已有資料列，則合併更新（僅更新提供的欄位，未提供的欄位保持不變）
+      - 值的格式需符合 DataSchema 中定義的欄位類型與限制
+      - 變化自動記錄到任務對話中（tool_execution 類型）
+    tags:
+      - DataSheets
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpsertDataEntryRequest"
+          examples:
+            partial:
+              summary: "部分更新 — 僅更新贊助金額"
+              value:
+                values:
+                  amount: 150000
+            full:
+              summary: "完整填寫贊助商資訊"
+              value:
+                values:
+                  companyName: "X 科技股份有限公司"
+                  contactEmail: "sponsor@xtech.com"
+                  amount: 100000
+                  status: "已確認"
+    responses:
+      "200":
+        description: "資料列更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/DataEntryResponse"
+      "400":
+        description: "請求參數驗證失敗（如值不符合 schema 定義的類型或限制）"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+            examples:
+              invalidType:
+                summary: "欄位類型不符"
+                value:
+                  type: "https://api.conf-ops.dev/errors/validation"
+                  title: "Validation Error"
+                  status: 400
+                  detail: "資料欄位驗證失敗"
+                  errors:
+                    - field: "values.amount"
+                      message: "預期為數字類型，但收到字串"
+                      code: "invalid_type"
+      "403":
+        description: "無權限編輯此任務的資料"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務或 DataSchema 不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  delete:
+    operationId: deleteDataEntry
+    summary: "刪除資料列"
+    description: |
+      刪除任務中指定 DataSchema 的資料列。
+      刪除操作記錄到任務對話中。
+    tags:
+      - DataSheets
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      "204":
+        description: "刪除成功"
+      "403":
+        description: "無權限刪除此任務的資料"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "資料列不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /tasks/{taskId}/data-entries/{schemaId}/share
+# ===========================================================
+
+/tasks/{taskId}/data-entries/{schemaId}/share:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "來源任務 ID"
+    - name: schemaId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "來源資料表定義 ID"
+
+  post:
+    operationId: shareDataToTask
+    summary: "分享資料到另一個任務"
+    description: |
+      將當前任務資料表中指定欄位的資料，複製到目標任務的資料表中（shareDataToTask）。
+
+      - 目標任務需有對應的 DataSchema 可接收
+      - 複製時建立來源關聯（sourceLink），當來源資料變更時，目標任務對話會收到變更通知
+      - 目標任務成員可決定是否同步更新
+      - 操作記錄在雙方的任務對話中
+    tags:
+      - DataSheets
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/ShareDataToTaskRequest"
+          examples:
+            basic:
+              summary: "分享贊助商資訊到公關組任務"
+              value:
+                targetTaskId: "018e4a2c-0004-7000-8000-000000000003"
+                targetSchemaId: "018e4a2c-0003-7000-8000-000000000005"
+                fieldMappings:
+                  - sourceField: "companyName"
+                    targetField: "sponsorName"
+                  - sourceField: "companyLogo"
+                    targetField: "logo"
+                  - sourceField: "contactEmail"
+                    targetField: "sponsorContact"
+    responses:
+      "200":
+        description: "資料分享成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/ShareDataResponse"
+            examples:
+              success:
+                summary: "分享成功回應"
+                value:
+                  sourceTaskId: "018e4a2c-0004-7000-8000-000000000001"
+                  targetTaskId: "018e4a2c-0004-7000-8000-000000000003"
+                  fieldsCopied: 3
+                  sourceLinks:
+                    - sourceField: "companyName"
+                      targetField: "sponsorName"
+                    - sourceField: "companyLogo"
+                      targetField: "logo"
+                    - sourceField: "contactEmail"
+                      targetField: "sponsorContact"
+      "400":
+        description: "請求參數驗證失敗（如目標 schema 無對應欄位）"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限分享資料"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "來源或目標任務/schema 不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /task-templates/{templateId}/data-sheet/{schemaId}
+# ===========================================================
+
+/task-templates/{templateId}/data-sheet/{schemaId}:
+  parameters:
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+    - name: schemaId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "資料表定義 ID"
+
+  get:
+    operationId: getAggregatedDataSheet
+    summary: "查看聚合資料表（依 schema）"
+    description: |
+      查看指定任務模板下，特定 DataSchema 的所有任務資料列聚合檢視。
+
+      以任務模板為單位，彙整所有任務的資料列，方便總覽與統計。
+      例如查看所有贊助商的聯絡狀態。
+
+      支援游標分頁與排序。
+    tags:
+      - DataSheets
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: "每頁數量"
+      - name: sortBy
+        in: query
+        schema:
+          type: string
+        description: "排序欄位（資料表的 field key 或 taskName、createdAt）"
+      - name: sortOrder
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/SortOrder"
+        description: "排序方向"
+    responses:
+      "200":
+        description: "聚合資料表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/AggregatedDataSheetResponse"
+            examples:
+              sponsorSheet:
+                summary: "贊助商資訊聚合"
+                value:
+                  templateId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  schema:
+                    id: "018e4a2c-0003-7000-8000-000000000001"
+                    name: "贊助商資訊"
+                    fields:
+                      - key: "companyName"
+                        label: "公司名稱"
+                        type: "single_line_text"
+                      - key: "amount"
+                        label: "贊助金額"
+                        type: "number"
+                      - key: "status"
+                        label: "狀態"
+                        type: "select"
+                  entries:
+                    - taskId: "018e4a2c-0004-7000-8000-000000000001"
+                      taskName: "與 X 公司聯絡"
+                      values:
+                        companyName: "X 科技股份有限公司"
+                        amount: 100000
+                        status: "已確認"
+                    - taskId: "018e4a2c-0004-7000-8000-000000000002"
+                      taskName: "與 Y 公司聯絡"
+                      values:
+                        companyName: "Y 軟體有限公司"
+                        amount: 50000
+                        status: "洽談中"
+                  pagination:
+                    hasMore: false
+                    nextCursor: null
+                    totalCount: 2
+      "403":
+        description: "無權限查看此資料表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務模板或 DataSchema 不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"

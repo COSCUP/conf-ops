@@ -1,0 +1,138 @@
+# 檔案儲存相關路徑
+
+/files/upload:
+  post:
+    operationId: uploadFile
+    summary: 上傳檔案
+    description: |
+      上傳檔案到伺服器。支援 multipart/form-data。
+      檔案大小限制：50MB。
+      回傳檔案 ID 和元資料，可用於訊息附件或資料表欄位。
+    tags:
+      - Files
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+            properties:
+              file:
+                type: string
+                format: binary
+                description: 要上傳的檔案
+              projectId:
+                type: string
+                format: uuid
+                description: 關聯的專案 ID（用於權限檢查和配額管理）
+    responses:
+      '201':
+        description: 檔案上傳成功
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - filename
+                - mimeType
+                - size
+                - createdAt
+              properties:
+                id:
+                  $ref: '../schemas/common.yaml#/UUID'
+                filename:
+                  type: string
+                  example: "sponsorship-agreement.pdf"
+                mimeType:
+                  type: string
+                  example: "application/pdf"
+                size:
+                  type: integer
+                  description: 檔案大小（bytes）
+                  example: 1048576
+                createdAt:
+                  type: string
+                  format: date-time
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000900"
+              filename: "sponsorship-agreement.pdf"
+              mimeType: "application/pdf"
+              size: 1048576
+              createdAt: "2025-07-01T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '413':
+        description: 檔案過大
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/file-too-large"
+              title: "Payload Too Large"
+              status: 413
+              detail: "檔案大小超過 50MB 限制"
+
+/files/{fileId}:
+  parameters:
+    - name: fileId
+      in: path
+      required: true
+      description: 檔案 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: downloadFile
+    summary: 下載檔案
+    description: |
+      下載指定檔案。回傳 302 重導向到檔案下載 URL。
+    tags:
+      - Files
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '302':
+        description: 重導向到檔案下載 URL
+        headers:
+          Location:
+            schema:
+              type: string
+              format: uri
+            description: 檔案下載 URL
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteFile
+    summary: 刪除檔案
+    description: 刪除指定檔案。僅檔案上傳者或專案擁有者可操作。
+    tags:
+      - Files
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '204':
+        description: 檔案已刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

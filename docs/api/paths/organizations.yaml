@@ -1,0 +1,504 @@
+# 組織相關路徑
+# Organization paths — CRUD, members, contacts
+
+/organizations:
+  post:
+    operationId: createOrganization
+    summary: 建立組織
+    description: |
+      建立新的組織。建立者自動成為組織擁有者（`org_owner`），
+      同時在 `organization_members` 中新增對應記錄。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/organizations.yaml#/CreateOrganizationRequest'
+          example:
+            name: "COSCUP 籌備團隊"
+            description: "COSCUP 年度開源人年會籌備組織"
+    responses:
+      '201':
+        description: 組織建立成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/OrganizationResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000100"
+              name: "COSCUP 籌備團隊"
+              description: "COSCUP 年度開源人年會籌備組織"
+              logoUrl: null
+              createdBy: "019409a2-c5f2-7000-8000-000000000001"
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-15T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+  get:
+    operationId: listOrganizations
+    summary: 列出使用者的組織
+    description: |
+      列出當前帳號所屬的所有組織。回傳組織基本資訊與使用者在各組織中的角色。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: 分頁游標
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 每頁數量
+    responses:
+      '200':
+        description: 組織列表
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/OrganizationListResponse'
+            example:
+              items:
+                - id: "019409a2-c5f2-7000-8000-000000000100"
+                  name: "COSCUP 籌備團隊"
+                  description: "COSCUP 年度開源人年會籌備組織"
+                  logoUrl: null
+                  role: "org_owner"
+                  createdAt: "2025-06-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/organizations/{orgId}:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: getOrganization
+    summary: 取得組織詳細資訊
+    description: |
+      取得指定組織的詳細資訊。使用者必須是該組織的成員。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_member
+      - org_admin
+      - org_owner
+    responses:
+      '200':
+        description: 組織詳細資訊
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/OrganizationDetailResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000100"
+              name: "COSCUP 籌備團隊"
+              description: "COSCUP 年度開源人年會籌備組織"
+              logoUrl: null
+              createdBy: "019409a2-c5f2-7000-8000-000000000001"
+              memberCount: 42
+              projectCount: 3
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateOrganization
+    summary: 更新組織資訊
+    description: |
+      更新組織的基本資訊（名稱、描述、Logo）。
+      僅組織擁有者（`org_owner`）與組織管理者（`org_admin`）可操作。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+      - org_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/organizations.yaml#/UpdateOrganizationRequest'
+          example:
+            name: "COSCUP 2025 籌備團隊"
+            description: "COSCUP 2025 年度開源人年會籌備組織"
+    responses:
+      '200':
+        description: 組織更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/OrganizationResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000100"
+              name: "COSCUP 2025 籌備團隊"
+              description: "COSCUP 2025 年度開源人年會籌備組織"
+              logoUrl: null
+              createdBy: "019409a2-c5f2-7000-8000-000000000001"
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-16T08:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteOrganization
+    summary: 刪除組織（軟刪除）
+    description: |
+      軟刪除組織。刪除前應確認無進行中的專案。
+      僅組織擁有者（`org_owner`）可操作。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+    responses:
+      '204':
+        description: 組織已刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 組織仍有進行中的專案，無法刪除
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "組織仍有進行中的專案，請先完成或封存所有專案後再刪除"
+
+# ===========================================================
+# /organizations/{orgId}/restore
+# ===========================================================
+
+/organizations/{orgId}/restore:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: restoreOrganization
+    summary: 還原已刪除的組織
+    description: |
+      還原軟刪除的組織，清除 `deletedAt` 時間戳。
+      僅組織擁有者（`org_owner`）可操作。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+    responses:
+      '200':
+        description: 組織還原成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/OrganizationResponse'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 組織未處於已刪除狀態
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+
+/organizations/{orgId}/members:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: listOrganizationMembers
+    summary: 列出組織成員
+    description: |
+      列出指定組織的所有成員，包含各成員的角色。
+      使用者必須是該組織的成員。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_member
+      - org_admin
+      - org_owner
+    parameters:
+      - name: role
+        in: query
+        description: 依角色篩選
+        schema:
+          type: string
+          enum:
+            - org_owner
+            - org_admin
+            - org_member
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: 分頁游標
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 每頁數量
+    responses:
+      '200':
+        description: 組織成員列表
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/OrgMemberListResponse'
+            example:
+              items:
+                - id: "019409a2-c5f2-7000-8000-000000000200"
+                  accountId: "019409a2-c5f2-7000-8000-000000000001"
+                  name: "Alice Chen"
+                  email: "alice@example.com"
+                  avatarUrl: "https://cdn.example.com/avatars/alice.jpg"
+                  role: "org_owner"
+                  createdAt: "2025-06-15T10:00:00Z"
+                - id: "019409a2-c5f2-7000-8000-000000000201"
+                  accountId: "019409a2-c5f2-7000-8000-000000000002"
+                  name: "Bob Wang"
+                  email: "bob@example.com"
+                  avatarUrl: null
+                  role: "org_member"
+                  createdAt: "2025-06-16T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/organizations/{orgId}/members/invite:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: inviteOrganizationMember
+    summary: 邀請成員加入組織
+    description: |
+      透過 Email 邀請成員加入組織。若該 Email 已有帳號，直接加入組織；
+      若尚無帳號，寄送邀請信，註冊後自動加入。
+      僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+      - org_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/organizations.yaml#/InviteMemberRequest'
+          example:
+            email: "newmember@example.com"
+            role: "org_member"
+    responses:
+      '201':
+        description: 邀請已送出（已有帳號則直接加入）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/InviteMemberResponse'
+            example:
+              status: "invited"
+              email: "newmember@example.com"
+              message: "邀請信已寄出"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '409':
+        description: 該成員已在組織中
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "該 Email 已是組織成員"
+
+/organizations/{orgId}/members/{memberId}:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+    - name: memberId
+      in: path
+      required: true
+      description: 組織成員 ID
+      schema:
+        type: string
+        format: uuid
+
+  put:
+    operationId: updateOrganizationMember
+    summary: 更新組織成員角色
+    description: |
+      更新組織成員的角色。僅組織擁有者（`org_owner`）可操作。
+      不可將最後一位擁有者降級。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/organizations.yaml#/UpdateOrgMemberRequest'
+          example:
+            role: "org_admin"
+    responses:
+      '200':
+        description: 成員角色更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/organizations.yaml#/OrgMemberResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000201"
+              accountId: "019409a2-c5f2-7000-8000-000000000002"
+              name: "Bob Wang"
+              email: "bob@example.com"
+              role: "org_admin"
+              updatedAt: "2025-06-17T09:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 無法降級最後一位組織擁有者
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "組織必須至少有一位擁有者"
+
+  delete:
+    operationId: removeOrganizationMember
+    summary: 移除組織成員
+    description: |
+      從組織中移除成員（直接刪除 `organization_members` 記錄）。
+      僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
+      不可移除最後一位擁有者。
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+      - org_admin
+    responses:
+      '204':
+        description: 成員已從組織中移除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 無法移除最後一位組織擁有者
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "組織必須至少有一位擁有者"

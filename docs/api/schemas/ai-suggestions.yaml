@@ -1,0 +1,268 @@
+# Conf-Ops API - AI 建議相關 Schema 定義
+# AI Suggestions schemas: suggestion groups, decisions, manual request
+
+# =============================================================================
+# SuggestionGroup（AI 建議群組完整詳情）
+# =============================================================================
+
+SuggestionGroup:
+  type: object
+  description: "AI 建議群組完整資訊，包含所有建議的詳細內容與決策狀態"
+  required:
+    - id
+    - taskId
+    - trigger
+    - suggestions
+    - createdAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    taskId:
+      $ref: "./common.yaml#/UUID"
+      description: "所屬任務 ID"
+    trigger:
+      type: string
+      enum:
+        - task_created
+        - todo_completed
+        - message_sent
+        - tool_error
+        - source_data_changed
+        - manual_request
+      description: "觸發此建議群組的事件類型"
+    triggerMessageId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "觸發事件的訊息 ID（trigger = message_sent 時有值）"
+    suggestions:
+      type: array
+      items:
+        $ref: "#/Suggestion"
+      minItems: 1
+      maxItems: 5
+      description: "建議列表（1~5 個建議）"
+    createdAt:
+      type: string
+      format: date-time
+      description: "建議群組建立時間（UTC）"
+
+Suggestion:
+  type: object
+  description: "單一 AI 建議的完整資訊"
+  required:
+    - id
+    - summary
+    - tool
+    - parameters
+    - reasoning
+    - decision
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    summary:
+      type: string
+      description: "人類可讀的建議摘要"
+    tool:
+      type: string
+      description: "建議執行的 MCP 工具名稱（如 'smtp/sendEmail'、'upsertDataEntry'）"
+    parameters:
+      type: object
+      description: "工具呼叫參數（對應 MCP tool call 的 arguments）"
+    reasoning:
+      type: string
+      description: "AI 提出此建議的推理說明"
+    contextUsed:
+      type: array
+      items:
+        $ref: "#/SuggestionContextRef"
+      description: "建議生成時參考的記憶與上下文引用"
+    decision:
+      $ref: "./common.yaml#/SuggestionDecisionType"
+    decidedBy:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "做出決策的成員帳號 ID"
+    decidedAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: "決策時間（UTC）"
+    modifiedParameters:
+      type: object
+      nullable: true
+      description: "修改後的參數（decision = modify_and_accept 時有值）"
+    executionResult:
+      type: object
+      nullable: true
+      description: "工具執行結果（accept / modify_and_accept 後有值）"
+
+SuggestionContextRef:
+  type: object
+  description: "建議生成時引用的記憶上下文"
+  properties:
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+      description: "記憶的作用域類型"
+    memoryId:
+      $ref: "./common.yaml#/UUID"
+      description: "引用的記憶 ID"
+    content:
+      type: string
+      description: "記憶內容摘要"
+
+# =============================================================================
+# SuggestionGroupSummary（建議群組列表項目）
+# =============================================================================
+
+SuggestionGroupSummary:
+  type: object
+  description: "AI 建議群組摘要，用於列表顯示"
+  required:
+    - id
+    - trigger
+    - suggestionsCount
+    - decidedCount
+    - createdAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    trigger:
+      type: string
+      enum:
+        - task_created
+        - todo_completed
+        - message_sent
+        - tool_error
+        - source_data_changed
+        - manual_request
+      description: "觸發此建議的事件類型"
+    triggerMessageId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "觸發事件的訊息 ID"
+    suggestionsCount:
+      type: integer
+      description: "建議總數"
+    decidedCount:
+      type: integer
+      description: "已決策的建議數量"
+    createdAt:
+      type: string
+      format: date-time
+      description: "建議群組建立時間（UTC）"
+
+# =============================================================================
+# SuggestionDecisionRequest（建議決策請求）
+# =============================================================================
+
+SuggestionDecisionRequest:
+  type: object
+  description: "對 AI 建議做出決策的請求主體"
+  required:
+    - decision
+    - lastSeenMessageId
+  properties:
+    decision:
+      type: string
+      enum:
+        - accept
+        - modify_and_accept
+        - reject
+        - re_suggest
+      description: |
+        決策類型：
+        - accept：直接執行建議的工具呼叫
+        - modify_and_accept：修改參數後執行（需提供 modifiedParameters）
+        - reject：拒絕建議（可附帶 reason）
+        - re_suggest：要求 AI 重新生成建議（可附帶 reason 與 additionalInstructions）
+    modifiedParameters:
+      type: object
+      description: "修改後的工具參數（decision = modify_and_accept 時必填）"
+    reason:
+      type: string
+      description: "拒絕或要求重新建議的原因（decision = reject / re_suggest 時可選）"
+    additionalInstructions:
+      type: string
+      description: "給 AI 的額外指示（decision = re_suggest 時可選）"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "已讀保護：客戶端已讀的最後一則訊息 ID，確保決策者已閱讀最新對話"
+
+# =============================================================================
+# SuggestionDecisionResponse（建議決策回應）
+# =============================================================================
+
+SuggestionDecisionResponse:
+  type: object
+  description: "建議決策結果回應，採納時包含工具執行結果"
+  required:
+    - suggestion
+  properties:
+    suggestion:
+      type: object
+      description: "決策後的建議狀態"
+      required:
+        - id
+        - summary
+        - tool
+        - decision
+        - decidedBy
+        - decidedAt
+      properties:
+        id:
+          $ref: "./common.yaml#/UUID"
+        summary:
+          type: string
+          description: "建議摘要"
+        tool:
+          type: string
+          description: "建議使用的工具名稱"
+        decision:
+          type: string
+          enum:
+            - accept
+            - modify_and_accept
+            - reject
+            - re_suggest
+          description: "決策類型"
+        decidedBy:
+          $ref: "./common.yaml#/UUID"
+          description: "做出決策的成員帳號 ID"
+        decidedAt:
+          type: string
+          format: date-time
+          description: "決策時間（UTC）"
+    executionResult:
+      type: object
+      nullable: true
+      description: "工具執行結果（accept / modify_and_accept 時有值）"
+      properties:
+        success:
+          type: boolean
+          description: "執行是否成功"
+        result:
+          type: object
+          description: "工具回傳的結果資料"
+        error:
+          type: string
+          nullable: true
+          description: "執行錯誤訊息（success = false 時有值）"
+    messageId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "決策結果產生的對話訊息 ID"
+
+# =============================================================================
+# RequestSuggestionsBody（手動請求 AI 建議）
+# =============================================================================
+
+RequestSuggestionsBody:
+  type: object
+  description: "手動觸發 AI 建議的請求主體"
+  properties:
+    instructions:
+      type: string
+      description: "給 AI 的額外指示，描述希望 AI 協助的內容"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "已讀保護：客戶端已讀的最後一則訊息 ID"

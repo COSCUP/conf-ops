@@ -1,0 +1,301 @@
+# Conf-Ops API - 記憶與記憶庫文件 Schema 定義
+# Memory, LibraryDocument, 版本歷史, 記憶繼承鏈, 及請求結構
+
+# =============================================================================
+# Memory（記憶）
+# =============================================================================
+
+Memory:
+  type: object
+  description: "記憶完整物件"
+  required:
+    - id
+    - scopeType
+    - scopeId
+    - content
+    - source
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    content:
+      type: string
+      description: "記憶摘要內容（保持簡短扼要）"
+    libraryRef:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "關聯的記憶庫文件 ID"
+    source:
+      $ref: "./common.yaml#/MemorySource"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+MemorySummary:
+  type: object
+  description: "記憶摘要（用於列表顯示）"
+  required:
+    - id
+    - content
+    - source
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    content:
+      type: string
+      description: "記憶摘要內容"
+    source:
+      $ref: "./common.yaml#/MemorySource"
+    libraryRef:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "關聯的記憶庫文件 ID"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+MemoryVersion:
+  type: object
+  description: "記憶版本歷史記錄"
+  required:
+    - version
+    - content
+    - editedBy
+    - editedAt
+  properties:
+    version:
+      type: integer
+      description: "版本號（降冪排列，最新版本號最大）"
+    content:
+      type: string
+      description: "該版本的記憶內容"
+    editedBy:
+      $ref: "./common.yaml#/UUID"
+      description: "修改者帳號 ID"
+    editedAt:
+      type: string
+      format: date-time
+      description: "修改時間（UTC）"
+
+# =============================================================================
+# MemoryChainResponse（記憶繼承鏈）
+# =============================================================================
+
+MemoryChainResponse:
+  type: object
+  description: |
+    任務的記憶繼承鏈聚合回應。沿著任務的 ownerTag 繼承路徑收集所有相關記憶：
+    帳號 → 組織 → 專案 → ownerTag → 任務模板 → 任務
+  required:
+    - taskId
+    - chain
+  properties:
+    taskId:
+      $ref: "./common.yaml#/UUID"
+      description: "任務 ID"
+    chain:
+      type: array
+      items:
+        $ref: "#/MemoryChainScope"
+      description: "各作用域層級的記憶列表，按繼承順序排列"
+
+MemoryChainScope:
+  type: object
+  description: "記憶繼承鏈中的單一作用域層級"
+  required:
+    - scopeType
+    - scopeId
+    - scopeName
+    - memories
+  properties:
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    scopeName:
+      type: string
+      description: "作用域實體的顯示名稱"
+    memories:
+      type: array
+      items:
+        $ref: "#/MemorySummary"
+      description: "該作用域下的記憶列表"
+
+# =============================================================================
+# LibraryDocument（記憶庫文件）
+# =============================================================================
+
+LibraryDocument:
+  type: object
+  description: "記憶庫文件完整物件"
+  required:
+    - id
+    - scopeType
+    - scopeId
+    - title
+    - content
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    title:
+      type: string
+      description: "文件標題"
+    content:
+      type: string
+      description: "文件內容"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+LibraryDocumentSummary:
+  type: object
+  description: "記憶庫文件摘要（用於列表顯示，不含完整內容）"
+  required:
+    - id
+    - title
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    title:
+      type: string
+      description: "文件標題"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+LibraryDocumentVersion:
+  type: object
+  description: "記憶庫文件版本歷史記錄"
+  required:
+    - version
+    - content
+    - editedBy
+    - editedAt
+  properties:
+    version:
+      type: integer
+      description: "版本號（降冪排列，最新版本號最大）"
+    title:
+      type: string
+      nullable: true
+      description: "該版本的文件標題（null 表示該版本未變更標題）"
+    content:
+      type: string
+      description: "該版本的文件內容"
+    editedBy:
+      $ref: "./common.yaml#/UUID"
+      description: "修改者帳號 ID"
+    editedAt:
+      type: string
+      format: date-time
+      description: "修改時間（UTC）"
+
+# =============================================================================
+# 請求結構
+# =============================================================================
+
+CreateMemoryRequest:
+  type: object
+  description: "建立記憶請求"
+  required:
+    - scopeType
+    - scopeId
+    - content
+  properties:
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+      description: "記憶歸屬的作用域類型"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+      description: "作用域實體的 ID"
+    content:
+      type: string
+      description: "記憶摘要內容"
+    libraryRef:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "關聯的記憶庫文件 ID"
+
+UpdateMemoryRequest:
+  type: object
+  description: "更新記憶請求"
+  required:
+    - content
+  properties:
+    content:
+      type: string
+      description: "更新後的記憶內容"
+    libraryRef:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "關聯的記憶庫文件 ID（設為 null 可移除關聯）"
+
+CreateLibraryDocumentRequest:
+  type: object
+  description: "建立記憶庫文件請求"
+  required:
+    - scopeType
+    - scopeId
+    - title
+    - content
+  properties:
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+      description: "文件歸屬的作用域類型"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+      description: "作用域實體的 ID"
+    title:
+      type: string
+      description: "文件標題"
+    content:
+      type: string
+      description: "文件內容"
+
+UpdateLibraryDocumentRequest:
+  type: object
+  description: "更新記憶庫文件請求"
+  properties:
+    title:
+      type: string
+      description: "文件標題"
+    content:
+      type: string
+      description: "文件內容"

@@ -1,0 +1,245 @@
+# Conf-Ops API - 帳號相關 Schema 定義
+# Account schemas — profile, todos, notifications, preferences
+
+# =============================================================================
+# Account（帳號回應）
+# =============================================================================
+
+AccountResponse:
+  type: object
+  description: "帳號完整回應（公開資訊，不含私人 profileData）"
+  required:
+    - id
+    - name
+    - email
+    - locale
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "使用者名稱"
+    email:
+      type: string
+      format: email
+      description: "Email，系統唯一識別"
+    avatarUrl:
+      type: string
+      nullable: true
+      description: "頭像 URL"
+    bio:
+      type: string
+      nullable: true
+      description: "公開的自我介紹文字"
+    locale:
+      type: string
+      description: "使用者偏好語系"
+      examples:
+        - "zh-TW"
+    createdAt:
+      type: string
+      format: date-time
+      description: "建立時間（UTC）"
+    updatedAt:
+      type: string
+      format: date-time
+      description: "最後更新時間（UTC）"
+
+UpdateAccountRequest:
+  type: object
+  description: "更新帳號公開資訊，僅傳入需要更新的欄位"
+  properties:
+    name:
+      type: string
+      description: "使用者名稱"
+    avatarUrl:
+      type: string
+      nullable: true
+      description: "頭像 URL，設為 null 可移除"
+    bio:
+      type: string
+      nullable: true
+      description: "公開的自我介紹文字，設為 null 可移除"
+    locale:
+      type: string
+      description: "使用者偏好語系"
+
+# =============================================================================
+# Profile（個人資料表）
+# =============================================================================
+
+ProfileResponse:
+  type: object
+  description: "個人資料表回應，包含私人結構化資料與欄位結構描述（僅帳號本人可存取）"
+  required:
+    - profileData
+    - profileSchema
+  properties:
+    profileData:
+      type: object
+      additionalProperties: true
+      description: "私人的結構化資料（電話、地址、飲食偏好等自由 key-value）"
+    profileSchema:
+      type: array
+      items:
+        $ref: "./entities.yaml#/ProfileSchemaField"
+      description: "個人欄位結構描述，可由使用者手動定義或系統自動維護"
+
+UpdateProfileRequest:
+  type: object
+  description: "更新個人資料表，以 merge 方式更新 — 僅覆蓋傳入的欄位，設為 null 可刪除該欄位"
+  required:
+    - profileData
+  properties:
+    profileData:
+      type: object
+      additionalProperties: true
+      description: "要更新的欄位 key-value，未傳入的欄位保持不變"
+    profileSchema:
+      type: array
+      items:
+        $ref: "./entities.yaml#/ProfileSchemaField"
+      description: "可選 — 新增或更新欄位的結構定義（key, label, type, description）"
+
+# =============================================================================
+# TodoList（個人待辦事項列表）
+# =============================================================================
+
+TodoListResponse:
+  type: object
+  description: "個人所有待辦事項列表回應（跨專案，cursor 分頁）"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        $ref: "#/AccountTodoItem"
+      description: "待辦事項列表"
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+AccountTodoItem:
+  type: object
+  description: "帳號待辦事項項目（包含所屬任務與專案資訊）"
+  required:
+    - id
+    - title
+    - status
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    title:
+      type: string
+      description: "待辦標題"
+    status:
+      $ref: "./common.yaml#/TodoStatus"
+    type:
+      $ref: "./common.yaml#/TodoType"
+    dueDate:
+      type: string
+      format: date-time
+      nullable: true
+      description: "截止日期"
+    taskId:
+      $ref: "./common.yaml#/UUID"
+      description: "所屬任務 ID"
+    taskName:
+      type: string
+      description: "所屬任務名稱"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+      description: "所屬專案 ID"
+    projectName:
+      type: string
+      description: "所屬專案名稱"
+
+# =============================================================================
+# Notification（通知列表）
+# =============================================================================
+
+NotificationListResponse:
+  type: object
+  description: "通知列表回應（cursor 分頁，依建立時間倒序）"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        $ref: "./entities.yaml#/NotificationSummary"
+      description: "通知列表"
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+# =============================================================================
+# NotificationPreferences（通知偏好設定）
+# =============================================================================
+
+NotificationPreferencesResponse:
+  type: object
+  description: "通知偏好設定回應"
+  required:
+    - channels
+  properties:
+    channels:
+      type: object
+      description: "各通知頻道設定"
+      properties:
+        email:
+          $ref: "#/ChannelPreference"
+        webPush:
+          $ref: "#/ChannelPreference"
+        inApp:
+          $ref: "#/ChannelPreference"
+
+ChannelPreference:
+  type: object
+  description: "單一通知頻道偏好設定"
+  required:
+    - enabled
+    - categories
+  properties:
+    enabled:
+      type: boolean
+      description: "頻道是否啟用"
+    categories:
+      type: object
+      description: "各類別通知的開關"
+      properties:
+        taskUpdates:
+          type: boolean
+          description: "任務更新通知"
+        todoAssignments:
+          type: boolean
+          description: "待辦指派通知"
+        aiSuggestions:
+          type: boolean
+          description: "AI 建議通知"
+        mentions:
+          type: boolean
+          description: "成員提及通知"
+        systemAnnouncements:
+          type: boolean
+          description: "系統公告通知"
+
+UpdateNotificationPreferencesRequest:
+  type: object
+  description: "更新通知偏好設定"
+  required:
+    - channels
+  properties:
+    channels:
+      type: object
+      description: "各通知頻道設定"
+      properties:
+        email:
+          $ref: "#/ChannelPreference"
+        webPush:
+          $ref: "#/ChannelPreference"
+        inApp:
+          $ref: "#/ChannelPreference"

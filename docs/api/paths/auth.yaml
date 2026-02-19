@@ -1,0 +1,439 @@
+# 認證相關路徑
+# Authentication paths — Passkey (WebAuthn), Magic Link, Token refresh, Logout
+
+/auth/passkey/register/begin:
+  post:
+    operationId: passkeyRegisterBegin
+    summary: 開始 Passkey 註冊
+    description: |
+      啟動 WebAuthn 註冊流程，回傳 `PublicKeyCredentialCreationOptions`，
+      前端據此呼叫 `navigator.credentials.create()` 產生憑證。
+      需要已登入的使用者才能新增 Passkey。
+    tags:
+      - Auth
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '200':
+        description: WebAuthn 註冊挑戰已產生
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/PasskeyRegisterBeginResponse'
+            example:
+              challenge: "dGVzdC1jaGFsbGVuZ2U..."
+              rp:
+                name: "Conf-Ops"
+                id: "conf-ops.example.com"
+              user:
+                id: "dXNlci1pZA..."
+                name: "user@example.com"
+                displayName: "Alice"
+              pubKeyCredParams:
+                - type: "public-key"
+                  alg: -7
+              timeout: 60000
+              attestation: "none"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/auth/passkey/register/complete:
+  post:
+    operationId: passkeyRegisterComplete
+    summary: 完成 Passkey 註冊
+    description: |
+      接收前端呼叫 `navigator.credentials.create()` 的回傳結果，
+      驗證並儲存新的 Passkey 憑證。
+    tags:
+      - Auth
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/PasskeyRegisterCompleteRequest'
+          example:
+            id: "credential-id-base64url"
+            rawId: "credential-raw-id-base64url"
+            response:
+              attestationObject: "attestation-object-base64url"
+              clientDataJSON: "client-data-json-base64url"
+            type: "public-key"
+    responses:
+      '200':
+        description: Passkey 註冊成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/PasskeyRegisterCompleteResponse'
+            example:
+              credentialId: "credential-id-base64url"
+              createdAt: "2025-01-15T10:30:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/auth/passkey/login/begin:
+  post:
+    operationId: passkeyLoginBegin
+    summary: 開始 Passkey 登入
+    description: |
+      啟動 WebAuthn 認證流程，回傳 `PublicKeyCredentialRequestOptions`，
+      前端據此呼叫 `navigator.credentials.get()` 進行驗證。
+      不需要預先登入。
+    tags:
+      - Auth
+    security: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/PasskeyLoginBeginRequest'
+          example:
+            email: "user@example.com"
+    responses:
+      '200':
+        description: WebAuthn 認證挑戰已產生
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/PasskeyLoginBeginResponse'
+            example:
+              challenge: "bG9naW4tY2hhbGxlbmdl..."
+              timeout: 60000
+              rpId: "conf-ops.example.com"
+              allowCredentials:
+                - type: "public-key"
+                  id: "credential-id-base64url"
+
+/auth/passkey/login/complete:
+  post:
+    operationId: passkeyLoginComplete
+    summary: 完成 Passkey 登入
+    description: |
+      接收前端呼叫 `navigator.credentials.get()` 的回傳結果，
+      驗證後發放 JWT Token Pair（access token + refresh token）。
+      Refresh token 同時以 HTTP-only cookie 設定。
+    tags:
+      - Auth
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/PasskeyLoginCompleteRequest'
+          example:
+            id: "credential-id-base64url"
+            rawId: "credential-raw-id-base64url"
+            response:
+              authenticatorData: "authenticator-data-base64url"
+              clientDataJSON: "client-data-json-base64url"
+              signature: "signature-base64url"
+            type: "public-key"
+    responses:
+      '200':
+        description: 登入成功，回傳 Token Pair
+        headers:
+          Set-Cookie:
+            description: HTTP-only cookie 包含 refresh token
+            schema:
+              type: string
+              example: "refresh_token=eyJ...; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/TokenPair'
+            example:
+              accessToken: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+              refreshToken: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+              expiresIn: 900
+              tokenType: "Bearer"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        description: 認證失敗
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/authentication-failed"
+              title: "Authentication Failed"
+              status: 401
+              detail: "Passkey 驗證失敗"
+
+/auth/magic-link/request:
+  post:
+    operationId: magicLinkRequest
+    summary: 請求 Magic Link 登入連結
+    description: |
+      輸入 Email 地址，系統寄送一次性登入連結到該信箱。
+      不論帳號是否存在，皆回傳相同成功訊息，防止帳號列舉攻擊。若帳號不存在，系統會自動建立新帳號並寄送 Magic Link。
+      為防止濫用，同一 Email 有頻率限制。
+    tags:
+      - Auth
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/MagicLinkRequestBody'
+          example:
+            email: "user@example.com"
+    responses:
+      '200':
+        description: Magic Link 已寄出（無論帳號是否存在，皆回傳成功以防止列舉攻擊）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/MagicLinkRequestResponse'
+            example:
+              message: "若該 Email 已註冊，將收到登入連結"
+      '429':
+        description: 請求過於頻繁
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/rate-limit-exceeded"
+              title: "Rate Limit Exceeded"
+              status: 429
+              detail: "請求過於頻繁，請稍後再試"
+
+/auth/magic-link/verify:
+  get:
+    operationId: magicLinkVerify
+    summary: 驗證 Magic Link Token
+    description: |
+      驗證 Magic Link 中的一次性 token，成功後發放 JWT Token Pair。
+      Token 僅能使用一次，使用後即失效。
+      Refresh token 同時以 HTTP-only cookie 設定。
+
+      注意：Email 中的 Magic Link 應指向前端應用 URL（如 `https://app.conf-ops.io/auth/magic-link?token=xxx`），由前端應用擷取 token 後呼叫此 API 端點取得 Token Pair，而非直接將使用者導向此 API URL。
+    tags:
+      - Auth
+    security: []
+    parameters:
+      - name: token
+        in: query
+        required: true
+        description: Magic Link 中的一次性驗證 token
+        schema:
+          type: string
+    responses:
+      '200':
+        description: 驗證成功，回傳 Token Pair
+        headers:
+          Set-Cookie:
+            description: HTTP-only cookie 包含 refresh token
+            schema:
+              type: string
+              example: "refresh_token=eyJ...; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/TokenPair'
+            example:
+              accessToken: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+              refreshToken: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+              expiresIn: 900
+              tokenType: "Bearer"
+      '400':
+        description: Token 無效或已過期
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/invalid-token"
+              title: "Invalid Token"
+              status: 400
+              detail: "登入連結無效或已過期"
+
+/auth/refresh:
+  post:
+    operationId: authRefresh
+    summary: 重新整理 Access Token
+    description: |
+      使用 HTTP-only cookie 中的 refresh token 取得新的 access token。
+      實作 refresh token rotation — 每次使用後舊的 refresh token 失效，
+      同時發放新的 refresh token。
+    tags:
+      - Auth
+    security: []
+    parameters:
+      - name: Cookie
+        in: cookie
+        description: 包含 refresh_token 的 HTTP-only cookie
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Token 重新整理成功
+        headers:
+          Set-Cookie:
+            description: 新的 HTTP-only cookie 包含 refresh token
+            schema:
+              type: string
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/TokenPair'
+            example:
+              accessToken: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+              refreshToken: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+              expiresIn: 900
+              tokenType: "Bearer"
+      '401':
+        description: Refresh token 無效或已過期
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/invalid-refresh-token"
+              title: "Invalid Refresh Token"
+              status: 401
+              detail: "Refresh token 無效或已過期"
+
+/auth/logout:
+  post:
+    operationId: authLogout
+    summary: 登出
+    description: |
+      撤銷當前的 refresh token，使其無法再用於取得新的 access token。
+      同時清除 HTTP-only cookie 中的 refresh token。
+    tags:
+      - Auth
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '204':
+        description: 登出成功，refresh token 已撤銷
+        headers:
+          Set-Cookie:
+            description: 清除 refresh token cookie
+            schema:
+              type: string
+              example: "refresh_token=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=0"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+# ===========================================================
+# /auth/passkeys
+# ===========================================================
+
+/auth/passkeys:
+  get:
+    operationId: listPasskeys
+    summary: "列出已註冊的 Passkeys"
+    description: |
+      取得目前帳號已註冊的所有 Passkey 裝置列表。
+      用於帳號設定頁面中的 Passkey 管理。
+    tags:
+      - Auth
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '200':
+        description: "已註冊的 Passkey 列表"
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - passkeys
+              properties:
+                passkeys:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - createdAt
+                      - lastUsedAt
+                    properties:
+                      id:
+                        $ref: '../schemas/common.yaml#/UUID'
+                        description: "Passkey 識別碼"
+                      name:
+                        type: string
+                        description: "裝置名稱（由 authenticator 提供或使用者自訂）"
+                        example: "MacBook Pro Touch ID"
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: "註冊時間"
+                      lastUsedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                        description: "最後使用時間"
+            example:
+              passkeys:
+                - id: "018e4a2c-0001-7000-8000-000000000001"
+                  name: "MacBook Pro Touch ID"
+                  createdAt: "2026-01-15T10:00:00Z"
+                  lastUsedAt: "2026-02-18T14:30:00Z"
+                - id: "018e4a2c-0001-7000-8000-000000000002"
+                  name: "YubiKey 5"
+                  createdAt: "2026-01-20T09:00:00Z"
+                  lastUsedAt: "2026-02-10T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+# ===========================================================
+# /auth/passkeys/{passkeyId}
+# ===========================================================
+
+/auth/passkeys/{passkeyId}:
+  parameters:
+    - name: passkeyId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "Passkey 識別碼"
+
+  delete:
+    operationId: deletePasskey
+    summary: "刪除 Passkey"
+    description: |
+      刪除指定的 Passkey 裝置。
+      帳號至少需保留一種認證方式（至少一個 Passkey 或 Magic Link），
+      若此為最後一個 Passkey 且帳號無其他認證方式，回傳 409 Conflict。
+    tags:
+      - Auth
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '204':
+        description: "Passkey 已刪除"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: "無法刪除最後一個認證方式"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'

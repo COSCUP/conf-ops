@@ -1,0 +1,728 @@
+# Conf-Ops API - 任務模板相關路徑
+# Task Templates, Todo Templates, Data Schemas, Data Sheet
+
+# ===========================================================
+# /projects/{projectId}/task-templates
+# ===========================================================
+
+/projects/{projectId}/task-templates:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+
+  post:
+    operationId: createTaskTemplate
+    summary: "建立任務模板"
+    description: |
+      在指定專案中建立新的任務模板。
+
+      - 任何專案角色皆可建立任務模板
+      - 專案擁有者可將任務模板設定屬於任意成員標籤
+      - 其他角色建立的任務模板僅能設定屬於自己所擁有的成員標籤
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/CreateTaskTemplateRequest"
+          examples:
+            basic:
+              summary: "建立贊助商聯絡模板"
+              value:
+                name: "與贊助商保持聯絡"
+                description: "負責聯絡贊助商的完整流程，從初次聯絡到確認贊助"
+                tagIds:
+                  - "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+    responses:
+      "201":
+        description: "任務模板建立成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskTemplateResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限建立任務模板或設定指定的成員標籤"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  get:
+    operationId: listTaskTemplates
+    summary: "列出任務模板"
+    description: |
+      列出專案中的任務模板，依據使用者的成員標籤進行過濾。
+
+      - 成員僅可看到其所屬成員標籤擁有的任務模板
+      - 專案擁有者可看到所有任務模板
+      - 支援游標分頁
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: tagId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依成員標籤篩選"
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: "每頁數量"
+    responses:
+      "200":
+        description: "任務模板列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskTemplateListResponse"
+
+# ===========================================================
+# /projects/{projectId}/task-templates/{templateId}
+# ===========================================================
+
+/projects/{projectId}/task-templates/{templateId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+
+  get:
+    operationId: getTaskTemplate
+    summary: "取得任務模板詳情"
+    description: |
+      取得指定任務模板的完整資訊，包含待辦事項模板（todoTemplates）與資料表定義（dataSchemas）。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      "200":
+        description: "任務模板詳情"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskTemplateDetailResponse"
+            examples:
+              full:
+                summary: "含待辦模板與資料表定義"
+                value:
+                  id: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  name: "與贊助商保持聯絡"
+                  description: "負責聯絡贊助商的完整流程"
+                  tagIds:
+                    - "018e4a2c-0001-7000-8000-000000000001"
+                  todoTemplates:
+                    - id: "018e4a2c-0002-7000-8000-000000000001"
+                      name: "初次聯絡"
+                      description: "寄送初次聯絡信"
+                      sortOrder: 1
+                      subTodoTemplates: []
+                    - id: "018e4a2c-0002-7000-8000-000000000002"
+                      name: "寄送贊助方案"
+                      description: "寄送贊助方案文件"
+                      sortOrder: 2
+                      subTodoTemplates: []
+                  dataSchemas:
+                    - id: "018e4a2c-0003-7000-8000-000000000001"
+                      name: "贊助商資訊"
+                      fields:
+                        - key: "companyName"
+                          label: "公司名稱"
+                          type: "single_line_text"
+                          required: true
+                        - key: "contactEmail"
+                          label: "聯絡人 Email"
+                          type: "email"
+                          required: true
+                  createdAt: "2026-01-15T08:00:00Z"
+                  updatedAt: "2026-01-15T08:00:00Z"
+      "404":
+        description: "任務模板不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  put:
+    operationId: updateTaskTemplate
+    summary: "更新任務模板"
+    description: |
+      更新任務模板的名稱、描述、所屬成員標籤等基本資訊。
+
+      - 專案擁有者可更新任意任務模板
+      - 標籤管理者可更新所管理標籤的任務模板
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpdateTaskTemplateRequest"
+    responses:
+      "200":
+        description: "更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskTemplateResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限更新此任務模板"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務模板不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  delete:
+    operationId: deleteTaskTemplate
+    summary: "刪除任務模板（軟刪除）"
+    description: |
+      軟刪除任務模板，設定 `deletedAt` 時間戳。已建立的任務不受影響。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    responses:
+      "204":
+        description: "刪除成功"
+      "403":
+        description: "無權限刪除此任務模板"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務模板不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/task-templates/{templateId}/todo-templates
+# ===========================================================
+
+/projects/{projectId}/task-templates/{templateId}/todo-templates:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+
+  post:
+    operationId: addTodoTemplate
+    summary: "新增待辦事項模板"
+    description: |
+      在任務模板中新增一個待辦事項模板。可設定子待辦事項模板（最多一層）。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/CreateTodoTemplateRequest"
+          examples:
+            withSubTodos:
+              summary: "含子待辦事項模板"
+              value:
+                name: "發佈贊助商貼文"
+                description: "在社群媒體發佈贊助商宣傳貼文"
+                sortOrder: 5
+                subTodoTemplates:
+                  - name: "蒐集素材"
+                    description: "向贊助商蒐集公司 Logo、簡介等素材"
+                    sortOrder: 1
+                  - name: "請公關組發文"
+                    description: "將素材交給公關組處理貼文發佈"
+                    sortOrder: 2
+                  - name: "通知贊助商已發文"
+                    description: "發文後通知贊助商"
+                    sortOrder: 3
+    responses:
+      "201":
+        description: "待辦事項模板新增成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoTemplateResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限操作此任務模板"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/task-templates/{templateId}/todo-templates/{todoTemplateId}
+# ===========================================================
+
+/projects/{projectId}/task-templates/{templateId}/todo-templates/{todoTemplateId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+    - name: todoTemplateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "待辦事項模板 ID"
+
+  put:
+    operationId: updateTodoTemplate
+    summary: "更新待辦事項模板"
+    description: |
+      更新待辦事項模板的名稱、描述、排序、子待辦事項模板等。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpdateTodoTemplateRequest"
+    responses:
+      "200":
+        description: "更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoTemplateResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "待辦事項模板不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  delete:
+    operationId: deleteTodoTemplate
+    summary: "刪除待辦事項模板"
+    description: |
+      刪除待辦事項模板。已從此模板實例化的待辦事項不受影響。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    responses:
+      "204":
+        description: "刪除成功"
+      "403":
+        description: "無權限刪除"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "待辦事項模板不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/task-templates/{templateId}/data-schemas
+# ===========================================================
+
+/projects/{projectId}/task-templates/{templateId}/data-schemas:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+
+  post:
+    operationId: addDataSchema
+    summary: "新增資料表定義"
+    description: |
+      在任務模板中新增一個資料表定義（DataSchema），定義任務需蒐集的結構化資料欄位。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/CreateDataSchemaRequest"
+          examples:
+            sponsorInfo:
+              summary: "贊助商資訊資料表"
+              value:
+                name: "贊助商資訊"
+                fields:
+                  - key: "companyName"
+                    label: "公司名稱"
+                    description: "贊助商的正式公司名稱"
+                    type: "single_line_text"
+                    required: true
+                    constraints:
+                      maxLength: 100
+                  - key: "contactEmail"
+                    label: "聯絡人 Email"
+                    description: "贊助商主要聯絡人的 Email"
+                    type: "email"
+                    required: true
+                  - key: "amount"
+                    label: "贊助金額"
+                    description: "贊助金額（新台幣）"
+                    type: "number"
+                    required: false
+                    constraints:
+                      min: 0
+                      decimal: false
+                  - key: "companyLogo"
+                    label: "公司 Logo"
+                    description: "贊助商的公司 Logo 圖檔"
+                    type: "image"
+                    required: false
+                    constraints:
+                      maxFileSize: 5242880
+                      accept: "jpg,png,svg"
+    responses:
+      "201":
+        description: "資料表定義新增成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/DataSchemaResponse"
+      "400":
+        description: "請求參數驗證失敗（如欄位 key 重複、type 無效等）"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限操作此任務模板"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/task-templates/{templateId}/data-schemas/{schemaId}
+# ===========================================================
+
+/projects/{projectId}/task-templates/{templateId}/data-schemas/{schemaId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+    - name: schemaId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "資料表定義 ID"
+
+  put:
+    operationId: updateDataSchema
+    summary: "更新資料表定義"
+    description: |
+      更新資料表定義的名稱或欄位結構。
+
+      注意：修改欄位結構可能影響已存在的資料列，建議謹慎操作。
+      移除欄位不會刪除已填寫的資料，但該欄位將不再顯示於資料表中。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpdateDataSchemaRequest"
+    responses:
+      "200":
+        description: "更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/DataSchemaResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "資料表定義不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  delete:
+    operationId: deleteDataSchema
+    summary: "刪除資料表定義"
+    description: |
+      刪除資料表定義。已填寫的資料列不會被刪除，但將不再顯示於資料表中。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    responses:
+      "204":
+        description: "刪除成功"
+      "403":
+        description: "無權限刪除"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "資料表定義不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/task-templates/{templateId}/data-sheet
+# ===========================================================
+
+/projects/{projectId}/task-templates/{templateId}/data-sheet:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+
+  get:
+    operationId: getTaskTemplateDataSheet
+    summary: "查看聚合資料表"
+    description: |
+      查看任務模板下所有任務的聚合資料列。
+
+      以任務模板為單位，彙整所有任務的資料列，方便總覽與統計
+      （如所有贊助商的聯絡狀態一覽）。
+
+      支援依資料表定義（schemaId）篩選，以及游標分頁。
+    tags:
+      - TaskTemplates
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: schemaId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依資料表定義篩選"
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: "每頁數量"
+    responses:
+      "200":
+        description: "聚合資料表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/DataSheetResponse"
+            examples:
+              sponsorSheet:
+                summary: "贊助商資訊聚合表"
+                value:
+                  templateId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  schemas:
+                    - id: "018e4a2c-0003-7000-8000-000000000001"
+                      name: "贊助商資訊"
+                      fields:
+                        - key: "companyName"
+                          label: "公司名稱"
+                          type: "single_line_text"
+                        - key: "contactEmail"
+                          label: "聯絡人 Email"
+                          type: "email"
+                        - key: "amount"
+                          label: "贊助金額"
+                          type: "number"
+                  entries:
+                    - taskId: "018e4a2c-0004-7000-8000-000000000001"
+                      taskName: "與 X 公司聯絡"
+                      schemaId: "018e4a2c-0003-7000-8000-000000000001"
+                      values:
+                        companyName: "X 科技股份有限公司"
+                        contactEmail: "sponsor@xtech.com"
+                        amount: 100000
+                    - taskId: "018e4a2c-0004-7000-8000-000000000002"
+                      taskName: "與 Y 公司聯絡"
+                      schemaId: "018e4a2c-0003-7000-8000-000000000001"
+                      values:
+                        companyName: "Y 軟體有限公司"
+                        contactEmail: "contact@ysoft.tw"
+                        amount: 50000
+                  pagination:
+                    hasMore: false
+                    nextCursor: null
+                    totalCount: 2
+      "403":
+        description: "無權限查看此資料表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務模板不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"

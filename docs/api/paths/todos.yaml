@@ -1,0 +1,620 @@
+# Conf-Ops API - 待辦事項相關路徑
+# Todos CRUD, Status, Assignees, Linked Tasks
+
+# ===========================================================
+# /accounts/me/todos — 跨專案的使用者待辦清單
+# ===========================================================
+
+/accounts/me/todos:
+  get:
+    operationId: listMyTodos
+    summary: "列出我的待辦事項"
+    description: |
+      列出當前使用者被指派的所有待辦事項，跨所有專案。
+      支援游標分頁，依截止日期升冪排序（無截止日的排在最後）。
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: status
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/TodoStatus"
+        description: "依狀態篩選"
+      - name: projectId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依專案篩選"
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: "每頁數量"
+    responses:
+      "200":
+        description: "使用者的待辦事項列表"
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+                - meta
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: "../schemas/responses.yaml#/TodoResponse"
+                meta:
+                  $ref: "../schemas/common.yaml#/CursorPaginationMeta"
+            example:
+              items:
+                - id: "018e4a2c-0006-7000-8000-000000000001"
+                  title: "確認合約內容"
+                  status: "open"
+                  type: "ad_hoc"
+                  dueDate: "2026-03-01"
+                  taskId: "018e4a2c-0004-7000-8000-000000000001"
+                  projectId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  projectName: "COSCUP 2026"
+              meta:
+                hasMore: false
+                nextCursor: null
+      "401":
+        $ref: "../schemas/common.yaml#/responses/Unauthorized"
+
+# ===========================================================
+# /tasks/{taskId}/todos
+# ===========================================================
+
+/tasks/{taskId}/todos:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  post:
+    operationId: createTodo
+    summary: "建立待辦事項"
+    description: |
+      在任務中建立新的臨時待辦事項（ad_hoc 類型）。
+
+      任務的所有參與人（participants）皆可建立待辦事項。
+      建立結果自動記錄到任務對話中。
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/CreateTodoRequest"
+          examples:
+            basic:
+              summary: "建立簡單待辦"
+              value:
+                title: "確認合約內容"
+                description: "與法務確認贊助合約的條款是否需要修改"
+                dueDate: "2026-03-01"
+            withParent:
+              summary: "建立子待辦事項"
+              value:
+                title: "蒐集公司 Logo"
+                description: "向贊助商索取高解析度的公司 Logo 圖檔"
+                parentTodoId: "018e4a2c-0006-7000-8000-000000000001"
+                dueDate: "2026-02-20"
+    responses:
+      "201":
+        description: "待辦事項建立成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoResponse"
+      "400":
+        description: "請求參數驗證失敗（如超過子待辦層數限制）"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限在此任務中建立待辦"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  get:
+    operationId: listTodos
+    summary: "列出待辦事項"
+    description: |
+      列出任務的所有待辦事項，包含子待辦事項與指派成員資訊。
+      回傳結果依 sortOrder 排序。
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: status
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/TodoStatus"
+        description: "依狀態篩選"
+      - name: assigneeId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依指派成員篩選"
+    responses:
+      "200":
+        description: "待辦事項列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoListResponse"
+            examples:
+              full:
+                summary: "含子待辦與指派成員"
+                value:
+                  taskId: "018e4a2c-0004-7000-8000-000000000001"
+                  todos:
+                    - id: "018e4a2c-0006-7000-8000-000000000001"
+                      title: "初次聯絡"
+                      description: "寄送初次聯絡信給贊助商"
+                      status: "completed"
+                      type: "template"
+                      sortOrder: 1
+                      dueDate: "2026-01-20"
+                      assignees:
+                        - id: "018e4a2c-0007-7000-8000-000000000001"
+                          name: "小明"
+                      subTodos: []
+                      linkedTask: null
+                      completedAt: "2026-01-18T10:30:00Z"
+                    - id: "018e4a2c-0006-7000-8000-000000000002"
+                      title: "寄送贊助方案"
+                      description: "將贊助方案文件寄給贊助商"
+                      status: "open"
+                      type: "template"
+                      sortOrder: 2
+                      dueDate: "2026-02-01"
+                      assignees:
+                        - id: "018e4a2c-0007-7000-8000-000000000001"
+                          name: "小明"
+                      subTodos: []
+                      linkedTask: null
+                      completedAt: null
+
+# ===========================================================
+# /tasks/{taskId}/todos/{todoId}
+# ===========================================================
+
+/tasks/{taskId}/todos/{todoId}:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+    - name: todoId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "待辦事項 ID"
+
+  get:
+    operationId: getTodo
+    summary: "取得待辦事項詳情"
+    description: |
+      取得指定待辦事項的完整資訊，包含子待辦、指派成員、關聯任務等。
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      "200":
+        description: "待辦事項詳情"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoDetailResponse"
+      "404":
+        description: "待辦事項不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  put:
+    operationId: updateTodo
+    summary: "更新待辦事項"
+    description: |
+      更新待辦事項的標題、描述、截止日期、排序等屬性。
+      狀態更新請使用專用的狀態端點。
+
+      變化自動記錄到任務對話中。
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpdateTodoRequest"
+          examples:
+            basic:
+              summary: "更新標題與截止日期"
+              value:
+                title: "寄送客製化贊助方案"
+                description: "X 公司希望客製化方案，需調整後寄出"
+                dueDate: "2026-02-15"
+                sortOrder: 2
+    responses:
+      "200":
+        description: "更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "待辦事項不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /tasks/{taskId}/todos/{todoId}/status
+# ===========================================================
+
+/tasks/{taskId}/todos/{todoId}/status:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+    - name: todoId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "待辦事項 ID"
+
+  put:
+    operationId: updateTodoStatus
+    summary: "更新待辦事項狀態"
+    description: |
+      標記待辦事項為完成或重新開啟。
+
+      驗證規則：
+      - 若待辦事項有 `linkedTask` 關聯任務，僅當該關聯任務狀態為 `completed` 時才可標記為完成
+      - 子待辦事項全部完成時，不會自動完成父待辦事項，需手動確認
+      - 標記完成後觸發 `todo_completed` 事件，啟動 AI 建議流程
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpdateTodoStatusRequest"
+          examples:
+            complete:
+              summary: "標記完成"
+              value:
+                status: "completed"
+                lastSeenMessageId: "018e4a2c-0010-7000-8000-000000000005"
+            reopen:
+              summary: "重新開啟"
+              value:
+                status: "open"
+                lastSeenMessageId: "018e4a2c-0010-7000-8000-000000000010"
+    responses:
+      "200":
+        description: "狀態更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoResponse"
+      "403":
+        description: "無權限更新此待辦狀態"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "409":
+        description: "衝突 — 關聯任務尚未完成，或已讀保護驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+            examples:
+              linkedTaskIncomplete:
+                summary: "關聯任務尚未完成"
+                value:
+                  type: "https://api.conf-ops.dev/errors/linked-task-incomplete"
+                  title: "Linked Task Not Completed"
+                  status: 409
+                  detail: "關聯任務「發佈 X 公司贊助商貼文」尚未完成，無法標記此待辦為已完成"
+
+# ===========================================================
+# /tasks/{taskId}/todos/{todoId}/assignees
+# ===========================================================
+
+/tasks/{taskId}/todos/{todoId}/assignees:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+    - name: todoId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "待辦事項 ID"
+
+  post:
+    operationId: assignTodoMembers
+    summary: "指派成員"
+    description: |
+      將一或多位成員指派到待辦事項。
+
+      指派後：
+      - 被指派者自動成為任務參與人
+      - 系統發送 `todo_assigned` 通知給被指派者
+      - 變化記錄到任務對話中
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/AssignTodoMembersRequest"
+          examples:
+            single:
+              summary: "指派單一成員"
+              value:
+                memberIds:
+                  - "018e4a2c-0007-7000-8000-000000000001"
+            multiple:
+              summary: "指派多位成員"
+              value:
+                memberIds:
+                  - "018e4a2c-0007-7000-8000-000000000001"
+                  - "018e4a2c-0007-7000-8000-000000000002"
+    responses:
+      "200":
+        description: "指派成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoResponse"
+      "400":
+        description: "請求參數驗證失敗（如成員不存在於專案中）"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限指派成員"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /tasks/{taskId}/todos/{todoId}/assignees/{memberId}
+# ===========================================================
+
+/tasks/{taskId}/todos/{todoId}/assignees/{memberId}:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+    - name: todoId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "待辦事項 ID"
+    - name: memberId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "成員 ID"
+
+  delete:
+    operationId: unassignTodoMember
+    summary: "取消指派成員"
+    description: |
+      從待辦事項中移除指派的成員。
+
+      注意：取消指派不會自動移除該成員的任務參與人身份
+      （參與人身份由多種來源決定）。
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      "204":
+        description: "取消指派成功"
+      "403":
+        description: "無權限取消指派"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "指派關係不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /tasks/{taskId}/todos/{todoId}/link
+# ===========================================================
+
+/tasks/{taskId}/todos/{todoId}/link:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+    - name: todoId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "待辦事項 ID"
+
+  post:
+    operationId: linkTodoToTask
+    summary: "關聯待辦事項到另一個任務"
+    description: |
+      將待辦事項關聯到另一個任務，用於跨組協作。
+
+      關聯後：
+      - 待辦事項的 `linkedTask` 指向目標任務
+      - 來源任務的 `linkedTasks` 同步更新
+      - 僅當關聯任務完成（`completed`）時，此待辦才可被標記為完成
+      - 關聯任務狀態變更時，來源任務對話會收到系統通知
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/LinkTodoToTaskRequest"
+          examples:
+            basic:
+              summary: "關聯到公關組的貼文任務"
+              value:
+                linkedTaskId: "018e4a2c-0004-7000-8000-000000000003"
+    responses:
+      "200":
+        description: "關聯成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TodoResponse"
+      "400":
+        description: "請求參數驗證失敗（如目標任務不存在或已有關聯）"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限建立關聯"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  delete:
+    operationId: unlinkTodoFromTask
+    summary: "解除待辦事項的任務關聯"
+    description: |
+      解除待辦事項與關聯任務的連結。
+
+      解除後，此待辦事項不再受關聯任務的完成狀態限制。
+    tags:
+      - Todos
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      "204":
+        description: "解除關聯成功"
+      "403":
+        description: "無權限解除關聯"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "待辦事項無關聯任務"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"

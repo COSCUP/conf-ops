@@ -1,0 +1,454 @@
+# 成員標籤相關路徑
+# Member tag paths — CRUD, assign/unassign, external task creation settings
+
+/projects/{projectId}/member-tags:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: createMemberTag
+    summary: 建立成員標籤
+    description: |
+      在指定專案中建立新的成員標籤（如組別、角色）。
+      任何專案角色皆可建立成員標籤。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/member-tags.yaml#/CreateMemberTagRequest'
+          example:
+            name: "贊助組"
+            description: "負責贊助商聯絡與贊助方案管理"
+    responses:
+      '201':
+        description: 成員標籤建立成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/member-tags.yaml#/MemberTagResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000601"
+              projectId: "019409a2-c5f2-7000-8000-000000000400"
+              name: "贊助組"
+              description: "負責贊助商聯絡與贊助方案管理"
+              externalTaskCreation: []
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-15T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+
+  get:
+    operationId: listMemberTags
+    summary: 列出成員標籤
+    description: |
+      列出指定專案的所有成員標籤。
+      使用者必須是該專案的成員。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    responses:
+      '200':
+        description: 成員標籤列表
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/member-tags.yaml#/MemberTagListResponse'
+            example:
+              items:
+                - id: "019409a2-c5f2-7000-8000-000000000600"
+                  projectId: "019409a2-c5f2-7000-8000-000000000400"
+                  name: "總召"
+                  description: "專案總召集人"
+                  memberCount: 2
+                  contactCount: 0
+                  createdAt: "2025-06-15T10:00:00Z"
+                - id: "019409a2-c5f2-7000-8000-000000000601"
+                  projectId: "019409a2-c5f2-7000-8000-000000000400"
+                  name: "贊助組"
+                  description: "負責贊助商聯絡與贊助方案管理"
+                  memberCount: 5
+                  contactCount: 12
+                  createdAt: "2025-06-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/member-tags/{tagId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+    - name: tagId
+      in: path
+      required: true
+      description: 成員標籤 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: getMemberTag
+    summary: 取得成員標籤詳細資訊
+    description: |
+      取得指定成員標籤的詳細資訊，包含指派的成員與聯絡人列表、
+      外部建立任務設定等。使用者必須是該專案的成員。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    responses:
+      '200':
+        description: 成員標籤詳細資訊
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/member-tags.yaml#/MemberTagDetailResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000601"
+              projectId: "019409a2-c5f2-7000-8000-000000000400"
+              name: "贊助組"
+              description: "負責贊助商聯絡與贊助方案管理"
+              externalTaskCreation:
+                - taskTemplateId: "019409a2-c5f2-7000-8000-000000000700"
+                  taskTemplateName: "技術支援請求"
+                  allowedFromTags: ["資訊組"]
+              members:
+                - id: "019409a2-c5f2-7000-8000-000000000501"
+                  assignmentId: "019409a2-c5f2-7000-8000-000000000800"
+                  name: "Bob Wang"
+                  email: "bob@example.com"
+              contacts:
+                - id: "019409a2-c5f2-7000-8000-000000000300"
+                  assignmentId: "019409a2-c5f2-7000-8000-000000000801"
+                  name: "Sponsor Corp"
+                  email: "contact@sponsor.com"
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateMemberTag
+    summary: 更新成員標籤
+    description: |
+      更新成員標籤的名稱與描述。
+      僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/member-tags.yaml#/UpdateMemberTagRequest'
+          example:
+            name: "贊助組"
+            description: "負責贊助商聯絡、贊助方案管理與款項追蹤"
+    responses:
+      '200':
+        description: 成員標籤更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/member-tags.yaml#/MemberTagResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000601"
+              projectId: "019409a2-c5f2-7000-8000-000000000400"
+              name: "贊助組"
+              description: "負責贊助商聯絡、贊助方案管理與款項追蹤"
+              externalTaskCreation: []
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-17T09:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteMemberTag
+    summary: 刪除成員標籤（軟刪除）
+    description: |
+      軟刪除成員標籤。刪除後該標籤的所有指派記錄仍保留，
+      但不再出現於查詢結果中。
+      僅專案擁有者（`owner`）可操作。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    responses:
+      '204':
+        description: 成員標籤已刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/member-tags/{tagId}/assign:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+    - name: tagId
+      in: path
+      required: true
+      description: 成員標籤 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: assignMemberTag
+    summary: 指派成員或聯絡人到標籤
+    description: |
+      將一位成員（Member）或聯絡人（Contact）指派到指定的成員標籤。
+      必須提供 `memberId` 或 `contactId` 其中之一。
+      不可重複指派同一成員或聯絡人到同一標籤。
+
+      僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/member-tags.yaml#/AssignTagRequest'
+          examples:
+            assignMember:
+              summary: 指派成員
+              value:
+                memberId: "019409a2-c5f2-7000-8000-000000000502"
+            assignContact:
+              summary: 指派聯絡人
+              value:
+                contactId: "019409a2-c5f2-7000-8000-000000000300"
+    responses:
+      '201':
+        description: 指派成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/member-tags.yaml#/TagAssignmentResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000802"
+              tagId: "019409a2-c5f2-7000-8000-000000000601"
+              memberId: "019409a2-c5f2-7000-8000-000000000502"
+              contactId: null
+              projectId: "019409a2-c5f2-7000-8000-000000000400"
+              createdAt: "2025-06-17T09:00:00Z"
+      '400':
+        description: 請求無效（如同時提供 memberId 與 contactId）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/bad-request"
+              title: "Bad Request"
+              status: 400
+              detail: "必須提供 memberId 或 contactId 其中之一"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 該成員或聯絡人已被指派到此標籤
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "該成員已被指派到此標籤"
+
+/projects/{projectId}/member-tags/{tagId}/assignments/{assignmentId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+    - name: tagId
+      in: path
+      required: true
+      description: 成員標籤 ID
+      schema:
+        type: string
+        format: uuid
+    - name: assignmentId
+      in: path
+      required: true
+      description: 指派記錄 ID
+      schema:
+        type: string
+        format: uuid
+
+  delete:
+    operationId: removeTagAssignment
+    summary: 取消標籤指派
+    description: |
+      取消成員或聯絡人的標籤指派（直接刪除 `member_tag_assignments` 記錄）。
+      僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    responses:
+      '204':
+        description: 標籤指派已取消
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/member-tags/{tagId}/external-task-creation:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+    - name: tagId
+      in: path
+      required: true
+      description: 成員標籤 ID
+      schema:
+        type: string
+        format: uuid
+
+  put:
+    operationId: updateExternalTaskCreation
+    summary: 更新外部建立任務設定
+    description: |
+      更新成員標籤的外部建立任務設定（`externalTaskCreation`）。
+      定義哪些自身擁有的任務模板，允許由哪些其他成員標籤的成員建立任務。
+      以完整取代方式更新。
+
+      僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
+    tags:
+      - MemberTags
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/member-tags.yaml#/UpdateExternalTaskCreationRequest'
+          example:
+            externalTaskCreation:
+              - taskTemplateId: "019409a2-c5f2-7000-8000-000000000700"
+                allowedFromTags: "*"
+              - taskTemplateId: "019409a2-c5f2-7000-8000-000000000701"
+                allowedFromTags:
+                  - "贊助組"
+                  - "行銷組"
+    responses:
+      '200':
+        description: 外部建立任務設定更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/member-tags.yaml#/MemberTagResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000601"
+              projectId: "019409a2-c5f2-7000-8000-000000000400"
+              name: "資訊組"
+              description: "負責網站、系統與技術支援"
+              externalTaskCreation:
+                - taskTemplateId: "019409a2-c5f2-7000-8000-000000000700"
+                  allowedFromTags: "*"
+                - taskTemplateId: "019409a2-c5f2-7000-8000-000000000701"
+                  allowedFromTags:
+                    - "贊助組"
+                    - "行銷組"
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-17T10:00:00Z"
+      '400':
+        description: 請求無效（如 taskTemplateId 不屬於此標籤）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/bad-request"
+              title: "Bad Request"
+              status: 400
+              detail: "taskTemplateId 必須屬於此成員標籤"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

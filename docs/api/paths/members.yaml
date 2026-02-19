@@ -1,0 +1,313 @@
+# 專案成員相關路徑
+# Project member paths — list, invite, get, update role, remove
+
+/projects/{projectId}/members:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: listProjectMembers
+    summary: 列出專案成員
+    description: |
+      列出指定專案的所有成員，包含各成員的角色與成員標籤。
+      使用者必須是該專案的成員。
+    tags:
+      - Members
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    parameters:
+      - name: role
+        in: query
+        description: 依專案角色篩選
+        schema:
+          type: string
+          enum:
+            - owner
+            - tag_admin
+            - member
+      - name: tagId
+        in: query
+        description: 依成員標籤 ID 篩選
+        schema:
+          type: string
+          format: uuid
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: 分頁游標
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 每頁數量
+    responses:
+      '200':
+        description: 專案成員列表
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/members.yaml#/MemberListResponse'
+            example:
+              items:
+                - id: "019409a2-c5f2-7000-8000-000000000500"
+                  accountId: "019409a2-c5f2-7000-8000-000000000001"
+                  name: "Alice Chen"
+                  email: "alice@example.com"
+                  avatarUrl: "https://cdn.example.com/avatars/alice.jpg"
+                  bio: "開源社群愛好者"
+                  role: "owner"
+                  tags:
+                    - id: "019409a2-c5f2-7000-8000-000000000600"
+                      name: "總召"
+                  createdAt: "2025-06-15T10:00:00Z"
+                - id: "019409a2-c5f2-7000-8000-000000000501"
+                  accountId: "019409a2-c5f2-7000-8000-000000000002"
+                  name: "Bob Wang"
+                  email: "bob@example.com"
+                  avatarUrl: null
+                  bio: null
+                  role: "tag_admin"
+                  tags:
+                    - id: "019409a2-c5f2-7000-8000-000000000601"
+                      name: "贊助組"
+                  createdAt: "2025-06-16T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/members/invite:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: inviteProjectMember
+    summary: 邀請成員加入專案
+    description: |
+      邀請組織成員加入專案。被邀請者必須已是該組織的成員。
+      僅專案擁有者（`owner`）與標籤管理者（`tag_admin`）可操作。
+      可同時指定初始角色與成員標籤。
+    tags:
+      - Members
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/members.yaml#/InviteProjectMemberRequest'
+          example:
+            accountId: "019409a2-c5f2-7000-8000-000000000003"
+            role: "member"
+            tagIds:
+              - "019409a2-c5f2-7000-8000-000000000601"
+    responses:
+      '201':
+        description: 成員已加入專案
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/members.yaml#/MemberResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000502"
+              accountId: "019409a2-c5f2-7000-8000-000000000003"
+              name: "Carol Liu"
+              email: "carol@example.com"
+              role: "member"
+              tags:
+                - id: "019409a2-c5f2-7000-8000-000000000601"
+                  name: "贊助組"
+              createdAt: "2025-06-17T09:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 該帳號已是專案成員
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "該帳號已是專案成員"
+
+/projects/{projectId}/members/{memberId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+    - name: memberId
+      in: path
+      required: true
+      description: 專案成員 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: getProjectMember
+    summary: 取得專案成員詳細資訊
+    description: |
+      取得指定專案成員的詳細資訊，包含角色、成員標籤、公開資料等。
+      使用者必須是該專案的成員。
+    tags:
+      - Members
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    responses:
+      '200':
+        description: 專案成員詳細資訊
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/members.yaml#/MemberDetailResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000501"
+              accountId: "019409a2-c5f2-7000-8000-000000000002"
+              name: "Bob Wang"
+              email: "bob@example.com"
+              avatarUrl: null
+              bio: "贊助組組長"
+              role: "tag_admin"
+              tags:
+                - id: "019409a2-c5f2-7000-8000-000000000601"
+                  name: "贊助組"
+                  description: "負責贊助商聯絡與贊助方案管理"
+              todoStats:
+                open: 5
+                completed: 12
+              createdAt: "2025-06-16T08:00:00Z"
+              updatedAt: "2025-06-16T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateProjectMember
+    summary: 更新專案成員角色
+    description: |
+      更新專案成員的角色。僅專案擁有者（`owner`）可操作。
+      不可將最後一位專案擁有者降級。
+    tags:
+      - Members
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/members.yaml#/UpdateMemberRequest'
+          example:
+            role: "tag_admin"
+    responses:
+      '200':
+        description: 成員角色更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/members.yaml#/MemberResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000502"
+              accountId: "019409a2-c5f2-7000-8000-000000000003"
+              name: "Carol Liu"
+              email: "carol@example.com"
+              role: "tag_admin"
+              tags:
+                - id: "019409a2-c5f2-7000-8000-000000000601"
+                  name: "贊助組"
+              createdAt: "2025-06-17T09:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 無法降級最後一位專案擁有者
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "專案必須至少有一位擁有者"
+
+  delete:
+    operationId: removeProjectMember
+    summary: 移除專案成員（軟刪除）
+    description: |
+      從專案中移除成員（軟刪除）。移除後帳號可重新加入專案。
+      僅專案擁有者（`owner`）可操作。不可移除最後一位擁有者。
+    tags:
+      - Members
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    responses:
+      '204':
+        description: 成員已從專案中移除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 無法移除最後一位專案擁有者
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "專案必須至少有一位擁有者"

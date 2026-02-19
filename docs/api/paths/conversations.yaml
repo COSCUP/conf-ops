@@ -1,0 +1,538 @@
+# Conf-Ops API - 任務對話相關路徑
+# Conversation messages, CRDT sync, WebSocket, attachments
+
+# ===========================================================
+# /tasks/{taskId}/conversation
+# ===========================================================
+
+/tasks/{taskId}/conversation:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  get:
+    operationId: getConversation
+    summary: "取得對話訊息"
+    description: |
+      取得任務對話的訊息列表，使用游標分頁，預設由新到舊排列。
+
+      對話是任務的完整時間線記錄，包含：
+      - 成員發言（Web 介面留言與 Email 來信）
+      - AI 建議（結構化建議卡片）
+      - 工具執行結果（待辦事項變化、資料表變化等）
+      - 系統事件（狀態變更、跨任務通知等）
+    tags:
+      - Conversations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標，用於取得更早的訊息"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+        description: "每頁訊息數量"
+      - name: sourceType
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/MessageSourceType"
+        description: "依訊息來源類型篩選"
+    responses:
+      "200":
+        description: "對話訊息列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/ConversationResponse"
+            examples:
+              messages:
+                summary: "含多種訊息類型"
+                value:
+                  taskId: "018e4a2c-0004-7000-8000-000000000001"
+                  messages:
+                    - messageId: "018e4a2c-0010-7000-8000-000000000003"
+                      timestamp: "2026-02-10T14:35:00Z"
+                      sourceType: "ai_suggestion"
+                      sourceId: null
+                      content: null
+                      suggestion:
+                        id: "018e4a2c-0011-7000-8000-000000000001"
+                        suggestions:
+                          - summary: "建議寄送贊助方案"
+                            tool: "smtp/sendEmail"
+                            reasoning: "贊助商已回覆表示有興趣，依據記憶中的流程應寄送贊助方案"
+                        decision: "accept"
+                        decidedBy: "018e4a2c-0007-7000-8000-000000000001"
+                    - messageId: "018e4a2c-0010-7000-8000-000000000002"
+                      timestamp: "2026-02-10T14:30:00Z"
+                      sourceType: "member"
+                      sourceId: "018e4a2c-0007-7000-8000-000000000001"
+                      content: "X 公司回覆了，表示對 A 方案有興趣"
+                      attachments: []
+                    - messageId: "018e4a2c-0010-7000-8000-000000000001"
+                      timestamp: "2026-02-10T14:00:00Z"
+                      sourceType: "tool_execution"
+                      sourceId: null
+                      content: null
+                      toolExecution:
+                        tool: "upsertDataEntry"
+                        status: "success"
+                        summary: "已更新贊助商資訊：公司名稱、聯絡人 Email"
+                  pagination:
+                    hasMore: true
+                    nextCursor: "eyJtZXNzYWdlSWQiOiIwMThlNGEyYy0wMDEwIn0="
+      "403":
+        description: "無權限查看此對話"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /tasks/{taskId}/conversation/messages
+# ===========================================================
+
+/tasks/{taskId}/conversation/messages:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  post:
+    operationId: sendMessage
+    summary: "發送訊息"
+    description: |
+      在任務對話中發送訊息。
+
+      須附帶 `lastSeenMessageId` 進行已讀保護驗證：
+      - 若 `lastSeenMessageId` 不等於對話中實際的最後一則訊息 ID，拒絕操作並回傳 409，
+        要求使用者先閱讀最新訊息後再操作
+      - 通過驗證後，訊息正常記錄到對話中
+
+      發送成功後觸發 `message_sent` 事件，啟動 AI 建議流程。
+
+      支援 `@member` 和 `@tag` 標記，系統自動發送通知給被標記的成員。
+    tags:
+      - Conversations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/SendMessageRequest"
+          examples:
+            text:
+              summary: "純文字訊息"
+              value:
+                content: "X 公司回覆了，表示對 A 方案有興趣，@贊助組 大家覺得可以怎麼調整？"
+                lastSeenMessageId: "018e4a2c-0010-7000-8000-000000000002"
+            withAttachment:
+              summary: "含附件的訊息"
+              value:
+                content: "附上 X 公司提供的 Logo 圖檔"
+                lastSeenMessageId: "018e4a2c-0010-7000-8000-000000000005"
+                attachments:
+                  - "019409a2-c5f2-7000-8000-000000000901"
+        multipart/form-data:
+          schema:
+            $ref: "../schemas/requests.yaml#/SendMessageMultipartRequest"
+    responses:
+      "201":
+        description: "訊息發送成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/MessageResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限在此對話中發送訊息"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "409":
+        description: "已讀保護驗證失敗 — 有新的未讀訊息"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/StaleConversationErrorResponse"
+            examples:
+              stale:
+                summary: "有未讀的新訊息"
+                value:
+                  type: "https://api.conf-ops.dev/errors/stale-conversation"
+                  title: "Stale Conversation"
+                  status: 409
+                  detail: "對話中有新訊息尚未讀取，請先閱讀後再操作"
+                  lastMessageId: "018e4a2c-0010-7000-8000-000000000010"
+                  unseenCount: 3
+
+# ===========================================================
+# /tasks/{taskId}/conversation/sync
+# ===========================================================
+
+/tasks/{taskId}/conversation/sync:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  post:
+    operationId: syncConversation
+    summary: "CRDT 同步端點"
+    description: |
+      CRDT 狀態同步端點。客戶端傳送自身的 state vector，
+      伺服器回傳自該 vector 之後的所有更新。
+
+      用於：
+      - 初次載入時取得完整狀態
+      - 離線重新連線後同步差異
+      - 作為 WebSocket 不可用時的降級方案
+    tags:
+      - Conversations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+            description: "yrs state vector 的二進位編碼"
+    responses:
+      "200":
+        description: "CRDT 更新資料"
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: "yrs 差異更新的二進位編碼"
+      "403":
+        description: "無權限同步此對話"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /tasks/{taskId}/conversation/ws-token
+# ===========================================================
+
+/tasks/{taskId}/conversation/ws-token:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      description: 任務 ID
+      schema:
+        type: string
+        format: uuid
+  post:
+    operationId: createConversationWsToken
+    summary: 取得 WebSocket 連線用一次性 token
+    description: |
+      產生一次性 token 用於 WebSocket 連線認證。
+      Token 有效期 30 秒，使用後即失效。
+      前端取得 token 後，以 query parameter 方式連線：
+      `ws://host/api/v1/tasks/{taskId}/conversation/ws?token={token}`
+    tags:
+      - Conversations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    responses:
+      '200':
+        description: 一次性 WebSocket token
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - expiresIn
+              properties:
+                token:
+                  type: string
+                  description: 一次性 WebSocket 認證 token
+                expiresIn:
+                  type: integer
+                  description: Token 有效秒數
+                  example: 30
+            example:
+              token: "ws_tok_abc123..."
+              expiresIn: 30
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# WebSocket: /tasks/{taskId}/conversation/ws
+# ===========================================================
+
+/tasks/{taskId}/conversation/ws:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  # NOTE: OpenAPI 3.1 沒有原生的 WebSocket 表示方式。
+  # 此處使用標準 GET 操作搭配 x-websocket 自訂擴展來記錄 WebSocket 協定細節。
+  get:
+    operationId: conversationWebSocket
+    summary: "即時對話 WebSocket"
+    description: |
+      WebSocket 連線，提供任務對話的即時雙向同步。
+
+      連線建立後支援 CRDT 即時同步與 Awareness 協定（presence / cursor tracking）。
+
+      **認證方式**：不使用 Authorization Header（瀏覽器原生 WebSocket API 不支援自定義 Header）。
+      認證完全依賴 query parameter `token`（一次性 token，透過 REST API `POST /tasks/{taskId}/conversation/ws-token` 取得）。
+    tags:
+      - Conversations
+    security: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "一次性 WebSocket 認證 token（從 REST API 取得）"
+    responses:
+      "101":
+        description: "WebSocket 升級成功"
+    # NOTE: x-websocket is a custom OpenAPI extension for documentation purposes.
+    # OpenAPI 3.1 does not natively support WebSocket endpoint definitions.
+    # Code generators should ignore this section; it serves as human-readable
+    # protocol documentation only.
+    x-websocket:
+      protocol: "conf-ops-conversation-v1"
+      x-websocket-frame-types:
+        description: |
+          WebSocket 訊息使用兩種 frame type，客戶端需檢查 frame type 以決定解析方式：
+
+          **Text frame (JSON)**：業務事件訊息，格式為 `{"event": "<type>", "data": {...}}`
+          - `message_created`：新訊息建立通知
+          - `suggestion_created`：AI 建議建立通知
+          - `notification`：即時通知（待辦指派、@mention 等）
+
+          **Binary frame**：CRDT 同步資料（yrs binary encoding），直接傳送 `yrs` 原生協定訊息。
+          Binary frame 的第一個 byte 為 message type tag：
+          - `0`：SyncStep1 — 客戶端發送 state vector，請求差異更新
+          - `1`：SyncStep2 — 伺服器/客戶端回傳 state vector 之後的差異更新
+          - `2`：Update — 增量更新
+          - `3`：AwarenessUpdate — presence 狀態（線上使用者、cursor 位置）
+
+          詳細協定定義請參考 `docs/system/03-crdt-implementation.md`
+      description: |
+        WebSocket 連線協定，基於 CRDT 同步機制。
+
+        連線建立流程：
+        1. 客戶端透過 REST API 取得一次性 token
+        2. 以 token 作為 query parameter 建立 WebSocket 連線
+        3. 連線成功後進行初始 CRDT 同步
+        4. 進入即時雙向同步模式
+      serverEvents:
+        message_created:
+          description: "新訊息建立通知"
+          payload:
+            type: object
+            properties:
+              event:
+                type: string
+                const: "message_created"
+              data:
+                $ref: "../schemas/responses.yaml#/MessageResponse"
+        suggestion_created:
+          description: "AI 建議建立通知"
+          payload:
+            type: object
+            properties:
+              event:
+                type: string
+                const: "suggestion_created"
+              data:
+                $ref: "../schemas/entities.yaml#/SuggestionGroupResponse"
+        notification:
+          description: "即時通知（待辦指派、@mention 等）"
+          payload:
+            type: object
+            properties:
+              event:
+                type: string
+                const: "notification"
+              data:
+                $ref: "../schemas/entities.yaml#/NotificationResponse"
+      clientEvents:
+        send_message:
+          description: "透過 WebSocket 發送訊息"
+          payload:
+            type: object
+            properties:
+              event:
+                type: string
+                const: "send_message"
+              data:
+                $ref: "../schemas/requests.yaml#/SendMessageRequest"
+        subscribe:
+          description: "訂閱特定事件類型"
+          payload:
+            type: object
+            properties:
+              event:
+                type: string
+                const: "subscribe"
+              data:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - message_created
+                        - suggestion_created
+                        - notification
+      awareness:
+        description: |
+          Awareness 協定用於追蹤線上使用者的 presence 與 cursor 位置。
+
+          基於 y-protocols awareness 實作：
+          - 連線時自動廣播自身的 awareness 狀態
+          - 定期心跳（30 秒）維持 presence
+          - 斷線後 30 秒自動移除 awareness 狀態
+        state:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: "成員 ID"
+                name:
+                  type: string
+                  description: "成員名稱"
+                avatar:
+                  type: string
+                  description: "成員頭像 URL"
+                color:
+                  type: string
+                  description: "指定的顯示顏色"
+            cursor:
+              type: object
+              nullable: true
+              properties:
+                position:
+                  type: integer
+                  description: "游標位置（輸入框中的字元偏移）"
+
+# ===========================================================
+# /tasks/{taskId}/conversation/attachments/{attachmentId}
+# ===========================================================
+
+/tasks/{taskId}/conversation/attachments/{attachmentId}:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+    - name: attachmentId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "附件 ID"
+
+  get:
+    operationId: getAttachment
+    summary: "取得附件"
+    description: |
+      取得對話訊息的附件。伺服器回傳 302 重導向至預簽署的下載 URL。
+
+      預簽署 URL 有效期為 15 分鐘。
+    tags:
+      - Conversations
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      "302":
+        description: "重導向至預簽署下載 URL"
+        headers:
+          Location:
+            schema:
+              type: string
+              format: uri
+            description: "預簽署的附件下載 URL（有效期 15 分鐘）"
+      "403":
+        description: "無權限下載此附件"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "附件不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"

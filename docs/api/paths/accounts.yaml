@@ -1,0 +1,304 @@
+# 帳號相關路徑
+# Account paths — profile, todos, notifications, preferences
+
+/accounts/me:
+  get:
+    operationId: getCurrentAccount
+    summary: 取得當前帳號資訊
+    description: |
+      回傳當前登入帳號的公開資訊，包含名稱、Email、頭像、自我介紹、語系等。
+      不包含私人資料（`profileData`）。
+    tags:
+      - Accounts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '200':
+        description: 帳號資訊
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/accounts.yaml#/AccountResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000001"
+              name: "Alice Chen"
+              email: "alice@example.com"
+              avatarUrl: "https://cdn.example.com/avatars/alice.jpg"
+              bio: "開源社群愛好者，專注於活動籌備"
+              locale: "zh-TW"
+              createdAt: "2025-01-01T00:00:00Z"
+              updatedAt: "2025-06-15T10:30:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+  patch:
+    operationId: updateCurrentAccount
+    summary: 更新當前帳號資訊
+    description: |
+      部分更新當前登入帳號的公開資訊。僅傳入需要更新的欄位。
+      可更新：名稱 `name`、自我介紹 `bio`、頭像 `avatarUrl`、語系 `locale`。
+    tags:
+      - Accounts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/accounts.yaml#/UpdateAccountRequest'
+          example:
+            name: "Alice Chen"
+            bio: "開源社群愛好者，專注於活動籌備與社群經營"
+            locale: "zh-TW"
+    responses:
+      '200':
+        description: 帳號資訊更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/accounts.yaml#/AccountResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000001"
+              name: "Alice Chen"
+              email: "alice@example.com"
+              avatarUrl: "https://cdn.example.com/avatars/alice.jpg"
+              bio: "開源社群愛好者，專注於活動籌備與社群經營"
+              locale: "zh-TW"
+              createdAt: "2025-01-01T00:00:00Z"
+              updatedAt: "2025-06-16T08:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/accounts/me/profile:
+  get:
+    operationId: getCurrentAccountProfile
+    summary: 取得個人資料表
+    description: |
+      回傳當前帳號的私人結構化資料（`profileData`）與欄位結構（`profileSchema`）。
+      僅帳號本人可存取，不對外公開，也不傳送給 AI。
+    tags:
+      - Accounts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '200':
+        description: 個人資料表
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/accounts.yaml#/ProfileResponse'
+            example:
+              profileData:
+                phone: "+886-912-345-678"
+                address: "台北市信義區..."
+                dietary_preference: "素食"
+              profileSchema:
+                - key: "phone"
+                  label: "聯絡電話"
+                  description: "個人手機號碼"
+                  type: "string"
+                - key: "address"
+                  label: "通訊地址"
+                  description: "收件地址"
+                  type: "string"
+                - key: "dietary_preference"
+                  label: "飲食偏好"
+                  description: "素食、葷食或其他飲食需求"
+                  type: "string"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+  put:
+    operationId: updateCurrentAccountProfile
+    summary: 更新個人資料表
+    description: |
+      更新當前帳號的私人結構化資料。以 merge 方式更新 — 僅覆蓋傳入的欄位，
+      未傳入的欄位保持不變。設定欄位值為 `null` 可刪除該欄位。
+      可選傳入 `profileSchema` 手動定義欄位結構；若未傳入，系統自動維護。
+    tags:
+      - Accounts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/accounts.yaml#/UpdateProfileRequest'
+          example:
+            profileData:
+              phone: "+886-912-345-678"
+              dietary_preference: "素食"
+            profileSchema:
+              - key: "phone"
+                label: "聯絡電話"
+                description: "個人手機號碼"
+                type: "string"
+              - key: "dietary_preference"
+                label: "飲食偏好"
+                description: "素食、葷食或其他飲食需求"
+                type: "string"
+    responses:
+      '200':
+        description: 個人資料表更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/accounts.yaml#/ProfileResponse'
+            example:
+              profileData:
+                phone: "+886-912-345-678"
+                address: "台北市信義區..."
+                dietary_preference: "素食"
+              profileSchema:
+                - key: "phone"
+                  label: "聯絡電話"
+                  description: "個人手機號碼"
+                  type: "string"
+                - key: "address"
+                  label: "通訊地址"
+                  description: "收件地址"
+                  type: "string"
+                - key: "dietary_preference"
+                  label: "飲食偏好"
+                  description: "素食、葷食或其他飲食需求"
+                  type: "string"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/accounts/me/todos:
+  get:
+    operationId: getCurrentAccountTodos
+    summary: 取得個人所有待辦事項
+    description: |
+      取得當前帳號在所有專案中被指派的待辦事項，支援 cursor 分頁。
+      可依專案、狀態、截止日期篩選。
+    tags:
+      - Accounts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: cursor
+        in: query
+        description: 分頁游標，用於取得下一頁資料
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁筆數，預設 20，最大 100
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+      - name: projectId
+        in: query
+        description: 依專案 ID 篩選
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        description: 依待辦狀態篩選
+        schema:
+          type: string
+          enum:
+            - open
+            - completed
+    responses:
+      '200':
+        description: 待辦事項列表（cursor 分頁）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/accounts.yaml#/TodoListResponse'
+            example:
+              items:
+                - id: "019409a2-c5f2-7000-8000-000000000010"
+                  title: "確認贊助方案內容"
+                  status: "open"
+                  dueDate: "2025-07-01T00:00:00Z"
+                  taskId: "019409a2-c5f2-7000-8000-000000000020"
+                  taskName: "與 A 贊助商保持聯絡"
+                  projectId: "019409a2-c5f2-7000-8000-000000000030"
+                  projectName: "COSCUP 2025"
+              nextCursor: "eyJpZCI6IjAxOTQwOWEyLWM1ZjItNzAwMC04MDAwLTAwMDAwMDAwMDAxMCJ9"
+              hasMore: true
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/accounts/me/notifications:
+  get:
+    operationId: getCurrentAccountNotifications
+    summary: 取得通知列表
+    description: |
+      取得當前帳號的通知列表，依建立時間倒序排列。
+      支援 cursor 分頁，可依已讀狀態與專案篩選。
+    tags:
+      - Accounts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁筆數，預設 20，最大 100
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+      - name: isRead
+        in: query
+        description: 依已讀狀態篩選
+        schema:
+          type: boolean
+      - name: projectId
+        in: query
+        description: 依專案 ID 篩選
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: 通知列表（cursor 分頁）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/accounts.yaml#/NotificationListResponse'
+            example:
+              items:
+                - id: "019409a2-c5f2-7000-8000-000000000040"
+                  type: "todo_assigned"
+                  title: "你有一項新的待辦事項"
+                  body: "「確認贊助方案內容」已指派給你"
+                  referenceType: "todo"
+                  referenceId: "019409a2-c5f2-7000-8000-000000000010"
+                  projectId: "019409a2-c5f2-7000-8000-000000000030"
+                  isRead: false
+                  createdAt: "2025-06-15T10:30:00Z"
+              nextCursor: "eyJpZCI6IjAxOTQwOWEyLWM1ZjItNzAwMC04MDAwLTAwMDAwMDAwMDA0MCJ9"
+              hasMore: false
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'

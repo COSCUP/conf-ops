@@ -1,0 +1,258 @@
+# Conf-Ops API - 專案相關 Schema 定義
+# Project schemas — responses, requests, permission settings
+
+# =============================================================================
+# Project Response（專案回應）
+# =============================================================================
+
+ProjectResponse:
+  type: object
+  description: "專案回應"
+  required:
+    - id
+    - organizationId
+    - name
+    - status
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    organizationId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "專案名稱"
+    description:
+      type: string
+      nullable: true
+      description: "專案描述"
+    status:
+      $ref: "./common.yaml#/ProjectStatus"
+    sourceProjectId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "來源專案 ID（若為複製建立）"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+ProjectDetailResponse:
+  type: object
+  description: "專案詳細回應，包含統計資訊"
+  required:
+    - id
+    - organizationId
+    - name
+    - status
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    organizationId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "專案名稱"
+    description:
+      type: string
+      nullable: true
+      description: "專案描述"
+    status:
+      $ref: "./common.yaml#/ProjectStatus"
+    sourceProjectId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "來源專案 ID（若為複製建立）"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+    memberCount:
+      type: integer
+      description: "專案成員數量"
+    taskCount:
+      type: integer
+      description: "專案任務數量"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+ProjectListResponse:
+  type: object
+  description: "專案列表回應，含游標分頁"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - organizationId
+          - name
+          - status
+        properties:
+          id:
+            $ref: "./common.yaml#/UUID"
+          organizationId:
+            $ref: "./common.yaml#/UUID"
+          name:
+            type: string
+          description:
+            type: string
+            nullable: true
+          status:
+            $ref: "./common.yaml#/ProjectStatus"
+          memberCount:
+            type: integer
+            description: "專案成員數量"
+          createdAt:
+            type: string
+            format: date-time
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+# =============================================================================
+# Project Request（專案請求）
+# =============================================================================
+
+CreateProjectRequest:
+  type: object
+  description: "建立專案請求"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "專案名稱"
+    description:
+      type: string
+      description: "專案描述"
+
+UpdateProjectRequest:
+  type: object
+  description: "更新專案資料請求"
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+
+UpdateProjectStatusRequest:
+  type: object
+  description: "更新專案狀態請求"
+  required:
+    - status
+  properties:
+    status:
+      $ref: "./common.yaml#/ProjectStatus"
+
+CopyProjectRequest:
+  type: object
+  description: "複製專案請求"
+  required:
+    - sourceProjectId
+    - name
+  properties:
+    sourceProjectId:
+      $ref: "./common.yaml#/UUID"
+      description: "來源專案 ID"
+    name:
+      type: string
+      description: "新專案名稱"
+    description:
+      type: string
+      description: "新專案描述"
+
+# =============================================================================
+# Permission Settings（權限設定）
+# =============================================================================
+
+PermissionSettingsResponse:
+  type: object
+  description: "專案權限設定回應"
+  properties:
+    taskVisibility:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "任務可見性設定，控制各標籤可查看的任務範圍"
+    toolPermissions:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "工具權限設定，控制各標籤可使用的執行工具"
+    memoryVisibility:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "記憶可見性設定，控制各標籤可查看的記憶範圍"
+    dataAccess:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "資料存取設定，控制各標籤可存取的資料表範圍"
+
+UpdatePermissionSettingsRequest:
+  type: object
+  description: "更新專案權限設定請求（完整取代）"
+  properties:
+    taskVisibility:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "任務可見性設定"
+    toolPermissions:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "工具權限設定"
+    memoryVisibility:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "記憶可見性設定"
+    dataAccess:
+      type: array
+      items:
+        $ref: "#/PermissionRule"
+      description: "資料存取設定"
+
+# =============================================================================
+# Permission Rule（權限規則 — 內部共用）
+# =============================================================================
+
+PermissionRule:
+  type: object
+  description: "權限規則"
+  required:
+    - tag
+    - allow
+    - deny
+  properties:
+    tag:
+      type: string
+      description: "成員標籤名稱，'*' 表示所有標籤"
+    allow:
+      type: array
+      items:
+        type: string
+      description: "允許的權限項目"
+    deny:
+      type: array
+      items:
+        type: string
+      description: "拒絕的權限項目"

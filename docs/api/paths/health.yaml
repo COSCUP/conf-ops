@@ -1,0 +1,85 @@
+# 運維端點
+
+/healthz:
+  get:
+    operationId: healthCheck
+    summary: 存活探測
+    description: Kubernetes liveness probe。回傳服務是否存活。
+    tags:
+      - Operations
+    security: []
+    responses:
+      '200':
+        description: 服務存活
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ok]
+              required: [status]
+            example:
+              status: "ok"
+
+/readyz:
+  get:
+    operationId: readinessCheck
+    summary: 就緒探測
+    description: |
+      Kubernetes readiness probe。檢查服務是否準備好接受請求。
+      檢查項目：資料庫連線、必要外部服務。
+    tags:
+      - Operations
+    security: []
+    responses:
+      '200':
+        description: 服務就緒
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ok]
+                checks:
+                  type: object
+                  properties:
+                    database:
+                      type: string
+                      enum: [ok, error]
+              required: [status, checks]
+            example:
+              status: "ok"
+              checks:
+                database: "ok"
+      '503':
+        description: 服務未就緒
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [error]
+                checks:
+                  type: object
+
+/metrics:
+  get:
+    operationId: getMetrics
+    summary: Prometheus 指標
+    description: 回傳 Prometheus 格式的應用指標。
+    tags:
+      - Operations
+    security: []
+    responses:
+      '200':
+        description: Prometheus metrics
+        content:
+          text/plain:
+            schema:
+              type: string

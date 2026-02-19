@@ -1,0 +1,289 @@
+# Conf-Ops API - 審計日誌路徑
+# Audit log query endpoints for organizations and projects
+
+# ===========================================================
+# /organizations/{orgId}/audit-logs
+# ===========================================================
+
+/organizations/{orgId}/audit-logs:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "組織 ID"
+
+  get:
+    operationId: listOrganizationAuditLogs
+    summary: 查詢組織審計日誌
+    description: |
+      查詢組織層級的審計日誌，包含組織本身及其下所有專案的操作記錄。
+      支援按操作者、動作類型、時間範圍過濾。
+      僅 org_owner 或 org_admin 可存取。
+    tags:
+      - AuditLogs
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+      - org_admin
+    parameters:
+      - name: actorId
+        in: query
+        description: 依操作者帳號 ID 過濾
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+      - name: actorType
+        in: query
+        description: 依操作者類型過濾
+        schema:
+          type: string
+          enum: ["account", "system", "ai", "api_key"]
+      - name: action
+        in: query
+        description: 依動作類型過濾（如 create, update, delete）
+        schema:
+          type: string
+      - name: resourceType
+        in: query
+        description: 依資源類型過濾（如 organization, project, task）
+        schema:
+          type: string
+      - name: startTime
+        in: query
+        description: 起始時間（UTC）
+        schema:
+          type: string
+          format: date-time
+      - name: endTime
+        in: query
+        description: 結束時間（UTC）
+        schema:
+          type: string
+          format: date-time
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+    responses:
+      '200':
+        description: 審計日誌列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - auditLogs
+                - pagination
+              properties:
+                auditLogs:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - actorType
+                      - action
+                      - resourceType
+                      - resourceId
+                      - createdAt
+                    properties:
+                      id:
+                        $ref: "../schemas/common.yaml#/UUID"
+                      actorType:
+                        type: string
+                        enum: ["account", "system", "ai", "api_key"]
+                      actorId:
+                        $ref: "../schemas/common.yaml#/UUID"
+                        nullable: true
+                      action:
+                        type: string
+                        description: "動作名稱"
+                      resourceType:
+                        type: string
+                        description: "資源類型"
+                      resourceId:
+                        $ref: "../schemas/common.yaml#/UUID"
+                      contextType:
+                        type: string
+                        nullable: true
+                        description: "上下文類型（organization/project/task）"
+                      contextId:
+                        $ref: "../schemas/common.yaml#/UUID"
+                        nullable: true
+                      details:
+                        type: object
+                        description: "變更詳情（含前後值）"
+                      ipAddress:
+                        type: string
+                        nullable: true
+                      createdAt:
+                        type: string
+                        format: date-time
+                pagination:
+                  $ref: "../schemas/common.yaml#/CursorPaginationMeta"
+            example:
+              auditLogs:
+                - id: "018e4a2c-al01-7d8e-9a1b-2c3d4e5f6a7b"
+                  actorType: "account"
+                  actorId: "018e4a2c-0001-7000-8000-000000000001"
+                  action: "member.added"
+                  resourceType: "project"
+                  resourceId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  contextType: "project"
+                  contextId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  details:
+                    memberId: "018e4a2c-m001-7d8e-9a1b-2c3d4e5f6a7b"
+                    role: "member"
+                  ipAddress: "203.0.113.50"
+                  createdAt: "2026-02-15T09:00:00Z"
+              pagination:
+                hasMore: true
+                nextCursor: "eyJpZCI6IjAxOGU0YTJjLWFsMDEifQ"
+      '401':
+        $ref: "../schemas/common.yaml#/responses/Unauthorized"
+      '403':
+        $ref: "../schemas/common.yaml#/responses/Forbidden"
+
+# ===========================================================
+# /projects/{projectId}/audit-logs
+# ===========================================================
+
+/projects/{projectId}/audit-logs:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+
+  get:
+    operationId: listProjectAuditLogs
+    summary: 查詢專案審計日誌
+    description: |
+      查詢專案層級的審計日誌，包含專案內所有操作記錄。
+      支援按操作者、動作類型、時間範圍過濾。
+      僅 project owner 或 org_owner/org_admin 可存取。
+    tags:
+      - AuditLogs
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - org_owner
+      - org_admin
+    parameters:
+      - name: actorId
+        in: query
+        description: 依操作者帳號 ID 過濾
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+      - name: actorType
+        in: query
+        description: 依操作者類型過濾
+        schema:
+          type: string
+          enum: ["account", "system", "ai", "api_key"]
+      - name: action
+        in: query
+        description: 依動作類型過濾
+        schema:
+          type: string
+      - name: resourceType
+        in: query
+        description: 依資源類型過濾
+        schema:
+          type: string
+      - name: startTime
+        in: query
+        description: 起始時間（UTC）
+        schema:
+          type: string
+          format: date-time
+      - name: endTime
+        in: query
+        description: 結束時間（UTC）
+        schema:
+          type: string
+          format: date-time
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+    responses:
+      '200':
+        description: 審計日誌列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - auditLogs
+                - pagination
+              properties:
+                auditLogs:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - actorType
+                      - action
+                      - resourceType
+                      - resourceId
+                      - createdAt
+                    properties:
+                      id:
+                        $ref: "../schemas/common.yaml#/UUID"
+                      actorType:
+                        type: string
+                        enum: ["account", "system", "ai", "api_key"]
+                      actorId:
+                        $ref: "../schemas/common.yaml#/UUID"
+                        nullable: true
+                      action:
+                        type: string
+                      resourceType:
+                        type: string
+                      resourceId:
+                        $ref: "../schemas/common.yaml#/UUID"
+                      contextType:
+                        type: string
+                        nullable: true
+                      contextId:
+                        $ref: "../schemas/common.yaml#/UUID"
+                        nullable: true
+                      details:
+                        type: object
+                      ipAddress:
+                        type: string
+                        nullable: true
+                      createdAt:
+                        type: string
+                        format: date-time
+                pagination:
+                  $ref: "../schemas/common.yaml#/CursorPaginationMeta"
+      '401':
+        $ref: "../schemas/common.yaml#/responses/Unauthorized"
+      '403':
+        $ref: "../schemas/common.yaml#/responses/Forbidden"

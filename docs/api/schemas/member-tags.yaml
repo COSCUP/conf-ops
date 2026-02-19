@@ -1,0 +1,307 @@
+# Conf-Ops API - MemberTag Schema 定義
+# 成員標籤相關的請求與回應結構
+
+# =============================================================================
+# 回應 Schema
+# =============================================================================
+
+MemberTagResponse:
+  type: object
+  description: "成員標籤完整回應"
+  required:
+    - id
+    - projectId
+    - name
+    - externalTaskCreation
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "標籤名稱（如「贊助組」、「資訊組」）"
+    description:
+      type: string
+      nullable: true
+      description: "標籤描述"
+    externalTaskCreation:
+      type: array
+      items:
+        $ref: "#/ExternalTaskCreationRule"
+      description: "外部建立任務設定"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+MemberTagDetailResponse:
+  type: object
+  description: "成員標籤詳細回應，包含指派的成員與聯絡人列表"
+  required:
+    - id
+    - projectId
+    - name
+    - externalTaskCreation
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "標籤名稱（如「贊助組」、「資訊組」）"
+    description:
+      type: string
+      nullable: true
+      description: "標籤描述"
+    externalTaskCreation:
+      type: array
+      items:
+        $ref: "#/ExternalTaskCreationDetailRule"
+      description: "外部建立任務設定（含模板名稱）"
+    members:
+      type: array
+      items:
+        $ref: "#/TagAssignedMember"
+      description: "已指派的成員列表"
+    contacts:
+      type: array
+      items:
+        $ref: "#/TagAssignedContact"
+      description: "已指派的聯絡人列表"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+MemberTagListResponse:
+  type: object
+  description: "成員標籤列表回應，包含游標分頁中繼資訊"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        $ref: "#/MemberTagListItem"
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+MemberTagListItem:
+  type: object
+  description: "成員標籤列表項目（含統計數量）"
+  required:
+    - id
+    - projectId
+    - name
+    - createdAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "標籤名稱"
+    description:
+      type: string
+      nullable: true
+      description: "標籤描述"
+    memberCount:
+      type: integer
+      description: "已指派的成員數量"
+    contactCount:
+      type: integer
+      description: "已指派的聯絡人數量"
+    createdAt:
+      type: string
+      format: date-time
+
+# --- 輔助型別 ---
+
+ExternalTaskCreationRule:
+  type: object
+  description: "跨組任務建立規則"
+  required:
+    - taskTemplateId
+    - allowedFromTags
+  properties:
+    taskTemplateId:
+      $ref: "./common.yaml#/UUID"
+    allowedFromTags:
+      oneOf:
+        - type: string
+          const: "*"
+          description: "允許所有成員標籤"
+        - type: array
+          items:
+            type: string
+          description: "允許指定成員標籤名稱列表"
+
+ExternalTaskCreationDetailRule:
+  type: object
+  description: "跨組任務建立規則（含模板名稱）"
+  required:
+    - taskTemplateId
+    - allowedFromTags
+  properties:
+    taskTemplateId:
+      $ref: "./common.yaml#/UUID"
+    taskTemplateName:
+      type: string
+      description: "任務模板名稱"
+    allowedFromTags:
+      oneOf:
+        - type: string
+          const: "*"
+          description: "允許所有成員標籤"
+        - type: array
+          items:
+            type: string
+          description: "允許指定成員標籤名稱列表"
+
+TagAssignedMember:
+  type: object
+  description: "標籤中已指派的成員資訊"
+  required:
+    - id
+    - assignmentId
+    - name
+    - email
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+      description: "成員 ID（members.id）"
+    assignmentId:
+      $ref: "./common.yaml#/UUID"
+      description: "指派記錄 ID（member_tag_assignments.id）"
+    name:
+      type: string
+      description: "成員名稱"
+    email:
+      type: string
+      format: email
+      description: "成員 Email"
+
+TagAssignedContact:
+  type: object
+  description: "標籤中已指派的聯絡人資訊"
+  required:
+    - id
+    - assignmentId
+    - name
+    - email
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+      description: "聯絡人 ID（contacts.id）"
+    assignmentId:
+      $ref: "./common.yaml#/UUID"
+      description: "指派記錄 ID（member_tag_assignments.id）"
+    name:
+      type: string
+      description: "聯絡人名稱"
+    email:
+      type: string
+      format: email
+      description: "聯絡人 Email"
+
+TagAssignmentResponse:
+  type: object
+  description: "成員標籤指派回應"
+  required:
+    - id
+    - tagId
+    - projectId
+    - createdAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    tagId:
+      $ref: "./common.yaml#/UUID"
+    memberId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "被指派的成員 ID（與 contactId 二擇一）"
+    contactId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "被指派的聯絡人 ID（與 memberId 二擇一）"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+    createdAt:
+      type: string
+      format: date-time
+
+# =============================================================================
+# 請求 Schema
+# =============================================================================
+
+CreateMemberTagRequest:
+  type: object
+  description: "建立成員標籤"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "標籤名稱"
+    description:
+      type: string
+      description: "標籤描述"
+    externalTaskCreation:
+      type: array
+      items:
+        $ref: "#/ExternalTaskCreationRule"
+      description: "外部建立任務設定"
+
+UpdateMemberTagRequest:
+  type: object
+  description: "更新成員標籤"
+  properties:
+    name:
+      type: string
+      description: "標籤名稱"
+    description:
+      type: string
+      nullable: true
+      description: "標籤描述"
+
+AssignTagRequest:
+  type: object
+  description: "指派成員標籤給成員或聯絡人"
+  required: []
+  properties:
+    memberId:
+      $ref: "./common.yaml#/UUID"
+      description: "被指派的成員 ID（與 contactId 二擇一）"
+    contactId:
+      $ref: "./common.yaml#/UUID"
+      description: "被指派的聯絡人 ID（與 memberId 二擇一）"
+  oneOf:
+    - required:
+        - memberId
+    - required:
+        - contactId
+
+UpdateExternalTaskCreationRequest:
+  type: object
+  description: "更新外部建立任務設定（完整取代）"
+  required:
+    - externalTaskCreation
+  properties:
+    externalTaskCreation:
+      type: array
+      items:
+        $ref: "#/ExternalTaskCreationRule"
+      description: "外部建立任務設定"

@@ -1,0 +1,267 @@
+# Conf-Ops API - Webhook 相關 Schema 定義
+# Webhook schemas: CRUD, test, delivery logs
+
+# =============================================================================
+# Webhook（Webhook 設定完整回應）
+# =============================================================================
+
+Webhook:
+  type: object
+  description: "Webhook 設定完整回應。Secret 欄位以遮蔽形式回傳（如 'whsec_****'），不顯示明文"
+  required:
+    - id
+    - projectId
+    - name
+    - url
+    - events
+    - enabled
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+      description: "所屬專案 ID"
+    name:
+      type: string
+      description: "Webhook 名稱（便於識別用途）"
+    url:
+      type: string
+      format: uri
+      description: "目標推送 URL（生產環境必須為 HTTPS）"
+    hasSecret:
+      type: boolean
+      description: "是否已設定 HMAC 簽名密鑰（不回傳明文）"
+    events:
+      type: array
+      items:
+        type: string
+      description: |
+        訂閱的事件類型列表。支援的事件：
+        task.created, task.updated, task.completed, task.deleted,
+        todo.created, todo.completed, todo.updated,
+        data_entry.created, data_entry.updated, data_entry.deleted,
+        message.created, member.added, member.removed
+    enabled:
+      type: boolean
+      description: "是否啟用"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+      description: "建立者帳號 ID"
+    createdAt:
+      type: string
+      format: date-time
+      description: "建立時間（UTC）"
+    updatedAt:
+      type: string
+      format: date-time
+      description: "最後更新時間（UTC）"
+
+# =============================================================================
+# WebhookWithSecret（含完整 Secret 的 Webhook，僅建立時回傳一次）
+# =============================================================================
+
+WebhookWithSecret:
+  type: object
+  description: "含完整 Secret 的 Webhook 回應，僅在建立時回傳一次。Secret 明文之後無法再次取得"
+  required:
+    - id
+    - projectId
+    - name
+    - url
+    - events
+    - enabled
+    - secret
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+      description: "所屬專案 ID"
+    name:
+      type: string
+      description: "Webhook 名稱"
+    url:
+      type: string
+      format: uri
+      description: "目標推送 URL"
+    events:
+      type: array
+      items:
+        type: string
+      description: "訂閱的事件類型列表"
+    enabled:
+      type: boolean
+      description: "是否啟用"
+    secret:
+      type: string
+      description: "HMAC-SHA256 簽名密鑰明文（僅此一次顯示，請妥善保存）"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+      description: "建立者帳號 ID"
+    createdAt:
+      type: string
+      format: date-time
+      description: "建立時間（UTC）"
+    updatedAt:
+      type: string
+      format: date-time
+      description: "最後更新時間（UTC）"
+
+# =============================================================================
+# WebhookLog（Webhook 事件推送紀錄）
+# =============================================================================
+
+WebhookLog:
+  type: object
+  description: "Webhook 事件推送紀錄，記錄每次推送的結果與重試狀態"
+  required:
+    - id
+    - webhookId
+    - event
+    - status
+    - createdAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    webhookId:
+      $ref: "./common.yaml#/UUID"
+      description: "所屬 Webhook ID"
+    event:
+      type: string
+      description: "事件類型（如 'task.completed'、'test'）"
+    payload:
+      type: object
+      description: "推送的 JSON 資料"
+    status:
+      $ref: "./common.yaml#/WebhookEventStatus"
+      description: "推送狀態：pending（等待/重試中）、success（成功）、failed（失敗）"
+    statusCode:
+      type: integer
+      nullable: true
+      description: "目標端點的 HTTP 回應狀態碼"
+    responseBody:
+      type: string
+      nullable: true
+      description: "目標端點的 HTTP 回應內容（截斷至 10KB）"
+    responseTime:
+      type: integer
+      nullable: true
+      description: "回應時間（毫秒）"
+    attempts:
+      type: integer
+      description: "已嘗試推送次數"
+    maxAttempts:
+      type: integer
+      description: "最大嘗試次數"
+    nextRetryAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: "下次重試時間（UTC）"
+    isTest:
+      type: boolean
+      description: "是否為測試事件"
+    createdAt:
+      type: string
+      format: date-time
+      description: "建立時間（UTC）"
+    completedAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: "最終完成時間（成功或放棄重試）"
+
+# =============================================================================
+# WebhookTestResponse（測試推送結果）
+# =============================================================================
+
+WebhookTestResponse:
+  type: object
+  description: "Webhook 測試推送結果"
+  required:
+    - success
+    - statusCode
+    - responseTime
+    - logId
+  properties:
+    success:
+      type: boolean
+      description: "測試推送是否成功（目標端點回應 2xx）"
+    statusCode:
+      type: integer
+      description: "目標端點的 HTTP 回應狀態碼"
+    responseTime:
+      type: integer
+      description: "回應時間（毫秒）"
+    responseBody:
+      type: string
+      nullable: true
+      description: "目標端點的回應內容（截斷至 10KB）"
+    logId:
+      $ref: "./common.yaml#/UUID"
+      description: "此次測試推送的事件日誌 ID，可用於查詢詳細紀錄"
+    error:
+      type: string
+      nullable: true
+      description: "錯誤訊息（連線失敗、逾時等）"
+
+# =============================================================================
+# CreateWebhookRequest（建立 Webhook 請求）
+# =============================================================================
+
+CreateWebhookRequest:
+  type: object
+  description: "建立 Webhook 設定的請求主體"
+  required:
+    - name
+    - url
+    - events
+  properties:
+    name:
+      type: string
+      description: "Webhook 名稱（便於識別用途）"
+    url:
+      type: string
+      format: uri
+      description: "目標推送 URL（生產環境必須為 HTTPS）"
+    events:
+      type: array
+      items:
+        type: string
+      minItems: 1
+      description: "訂閱的事件類型列表（至少一個）"
+    enabled:
+      type: boolean
+      default: true
+      description: "是否啟用，預設為 true"
+
+# =============================================================================
+# UpdateWebhookRequest（更新 Webhook 請求）
+# =============================================================================
+
+UpdateWebhookRequest:
+  type: object
+  description: "更新 Webhook 設定的請求主體。無法透過此端點更新 secret，需刪除後重建"
+  properties:
+    name:
+      type: string
+      description: "Webhook 名稱"
+    url:
+      type: string
+      format: uri
+      description: "目標推送 URL"
+    events:
+      type: array
+      items:
+        type: string
+      minItems: 1
+      description: "訂閱的事件類型列表（完整替換）"
+    enabled:
+      type: boolean
+      description: "是否啟用"

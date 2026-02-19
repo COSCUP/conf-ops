@@ -1,0 +1,328 @@
+# Conf-Ops API - 共用 Schema 定義
+# 跨所有 API 端點共用的資料結構
+
+# --- 分頁 ---
+
+CursorPaginationParams:
+  type: object
+  description: "游標分頁參數"
+  properties:
+    cursor:
+      type: string
+      description: "不透明的游標 token，用於取得下一頁資料"
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 20
+      description: "每頁回傳的項目數量"
+
+CursorPaginationMeta:
+  type: object
+  description: "游標分頁中繼資訊"
+  required:
+    - hasMore
+  properties:
+    nextCursor:
+      type: string
+      nullable: true
+      description: "下一頁的游標 token，若無更多資料則為 null"
+    hasMore:
+      type: boolean
+      description: "是否有更多資料頁"
+    totalCount:
+      type: integer
+      description: "符合條件的項目總數（可選，部分端點為效能考量可能省略）"
+
+# --- 錯誤回應（RFC 7807 Problem Details）---
+
+ProblemDetails:
+  type: object
+  description: "錯誤回應，遵循 RFC 7807 Problem Details 規範"
+  required:
+    - type
+    - title
+    - status
+  properties:
+    type:
+      type: string
+      format: uri
+      description: "錯誤類型 URI，用於程式化識別錯誤類別"
+      examples:
+        - "https://api.conf-ops.dev/errors/validation"
+        - "https://api.conf-ops.dev/errors/not-found"
+    title:
+      type: string
+      description: "人類可讀的錯誤摘要"
+      examples:
+        - "Validation Error"
+        - "Resource Not Found"
+    status:
+      type: integer
+      description: "HTTP 狀態碼"
+      examples:
+        - 400
+        - 404
+        - 409
+    detail:
+      type: string
+      description: "錯誤的詳細說明"
+    instance:
+      type: string
+      format: uri
+      description: "此次錯誤發生的特定資源 URI"
+    errors:
+      type: array
+      items:
+        $ref: "#/ValidationError"
+      description: "欄位層級的驗證錯誤列表"
+
+ValidationError:
+  type: object
+  description: "單一欄位的驗證錯誤"
+  required:
+    - field
+    - message
+    - code
+  properties:
+    field:
+      type: string
+      description: "發生錯誤的欄位路徑（如 'name', 'config.apiKey'）"
+    message:
+      type: string
+      description: "人類可讀的錯誤訊息"
+    code:
+      type: string
+      description: "錯誤代碼，供程式化處理（如 'required', 'too_long', 'invalid_format'）"
+
+# --- 時間戳 ---
+
+Timestamps:
+  type: object
+  description: "標準時間戳欄位，所有時間皆為 UTC"
+  properties:
+    createdAt:
+      type: string
+      format: date-time
+      description: "建立時間（UTC）"
+    updatedAt:
+      type: string
+      format: date-time
+      description: "最後更新時間（UTC）"
+
+TimestampsWithSoftDelete:
+  type: object
+  description: "含軟刪除標記的時間戳欄位"
+  properties:
+    createdAt:
+      type: string
+      format: date-time
+      description: "建立時間（UTC）"
+    updatedAt:
+      type: string
+      format: date-time
+      description: "最後更新時間（UTC）"
+    deletedAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: "軟刪除時間（UTC），null 表示未刪除"
+
+# --- UUID ---
+
+UUID:
+  type: string
+  format: uuid
+  pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+  description: "UUID v7 識別碼，前 48 位元為毫秒級時間戳，自帶時間排序"
+  examples:
+    - "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+
+# --- 排序 ---
+
+SortOrder:
+  type: string
+  enum:
+    - asc
+    - desc
+  default: desc
+  description: "排序方向：asc（升冪）或 desc（降冪）"
+
+# --- Scope 類型 ---
+
+ScopeType:
+  type: string
+  enum:
+    - account
+    - organization
+    - project
+    - member_tag
+    - task_template
+    - task
+  description: "作用域類型，用於記憶與文件的多層級歸屬"
+
+ToolScopeType:
+  type: string
+  enum:
+    - organization
+    - project
+  description: "工具設定的作用域類型"
+
+# --- 角色 ---
+
+OrgRole:
+  type: string
+  enum:
+    - org_owner
+    - org_admin
+    - org_member
+  description: "組織角色：org_owner（擁有者）/ org_admin（管理者）/ org_member（成員）"
+
+MemberRole:
+  type: string
+  enum:
+    - owner
+    - tag_admin
+    - member
+  description: "專案成員角色：owner（擁有者）/ tag_admin（標籤管理者）/ member（成員）"
+
+# --- 狀態列舉 ---
+
+ProjectStatus:
+  type: string
+  enum:
+    - preparing
+    - active
+    - completed
+    - archived
+  description: "專案狀態：preparing（準備中）→ active（進行中）→ completed（已完成）→ archived（已封存）"
+
+TaskStatus:
+  type: string
+  enum:
+    - pending
+    - in_progress
+    - completed
+    - cancelled
+  description: "任務狀態：pending（待開始）→ in_progress（進行中）→ completed（已完成）/ cancelled（已取消）"
+
+TodoStatus:
+  type: string
+  enum:
+    - open
+    - completed
+  description: "待辦事項狀態：open（未完成）或 completed（已完成）"
+
+TodoType:
+  type: string
+  enum:
+    - template
+    - ad_hoc
+  description: "待辦事項類型：template（從模板產生）或 ad_hoc（臨時建立）"
+
+SuggestionDecisionType:
+  type: string
+  enum:
+    - pending
+    - accept
+    - modify_and_accept
+    - reject
+    - re_suggest
+  description: "AI 建議決策狀態"
+
+MessageSourceType:
+  type: string
+  enum:
+    - member
+    - ai_suggestion
+    - tool_execution
+    - system
+    - email_inbound
+  description: "訊息來源類型"
+
+MemorySource:
+  type: string
+  enum:
+    - manual
+    - auto_extracted
+  description: "記憶來源：manual（手動建立）或 auto_extracted（系統自動擷取）"
+
+NotificationType:
+  type: string
+  enum:
+    - todo_assigned
+    - member_mentioned
+    - tag_mentioned
+    - task_completed
+    - linked_task_completed
+    - source_data_changed
+    - reminder
+  description: "通知類型"
+
+WebhookEventStatus:
+  type: string
+  enum:
+    - pending
+    - success
+    - failed
+  description: "Webhook 推送狀態"
+
+# --- 簡化錯誤別名 ---
+
+Error:
+  $ref: '#/ProblemDetails'
+
+# --- 共用錯誤回應 ---
+
+responses:
+  BadRequest:
+    description: "400 Bad Request — 請求參數錯誤或驗證失敗"
+    content:
+      application/json:
+        schema:
+          $ref: '#/ProblemDetails'
+        example:
+          type: "https://api.conf-ops.dev/errors/validation"
+          title: "Validation Error"
+          status: 400
+          detail: "請求內容驗證失敗"
+          errors:
+            - field: "name"
+              message: "名稱為必填欄位"
+              code: "required"
+
+  Unauthorized:
+    description: "401 Unauthorized — 未認證或 token 已過期"
+    content:
+      application/json:
+        schema:
+          $ref: '#/ProblemDetails'
+        example:
+          type: "https://api.conf-ops.dev/errors/unauthorized"
+          title: "Unauthorized"
+          status: 401
+          detail: "存取 token 無效或已過期"
+
+  Forbidden:
+    description: "403 Forbidden — 無權限執行此操作"
+    content:
+      application/json:
+        schema:
+          $ref: '#/ProblemDetails'
+        example:
+          type: "https://api.conf-ops.dev/errors/forbidden"
+          title: "Forbidden"
+          status: 403
+          detail: "您無權限執行此操作"
+
+  NotFound:
+    description: "404 Not Found — 請求的資源不存在"
+    content:
+      application/json:
+        schema:
+          $ref: '#/ProblemDetails'
+        example:
+          type: "https://api.conf-ops.dev/errors/not-found"
+          title: "Not Found"
+          status: 404
+          detail: "請求的資源不存在"

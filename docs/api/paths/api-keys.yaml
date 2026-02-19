@@ -1,0 +1,249 @@
+# Conf-Ops API - API Key 管理路徑
+# API key CRUD for external system integration
+
+# ===========================================================
+# /projects/{projectId}/api-keys
+# ===========================================================
+
+/projects/{projectId}/api-keys:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+
+  get:
+    operationId: listApiKeys
+    summary: 列出 API Keys
+    description: |
+      列出專案的所有 API Keys。
+      僅 project owner 或 org_owner 可操作。
+      回傳的 key 欄位為遮蔽格式（如 `sk_****abcd`），不顯示完整金鑰。
+    tags:
+      - ApiKeys
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - org_owner
+    responses:
+      '200':
+        description: API Key 列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKeys
+              properties:
+                apiKeys:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - keyPrefix
+                      - permissions
+                      - createdBy
+                      - createdAt
+                    properties:
+                      id:
+                        $ref: "../schemas/common.yaml#/UUID"
+                      name:
+                        type: string
+                        description: "API Key 名稱"
+                      keyPrefix:
+                        type: string
+                        description: "金鑰前綴（遮蔽格式，如 sk_****abcd）"
+                      permissions:
+                        type: object
+                        description: "權限設定"
+                        properties:
+                          scopes:
+                            type: array
+                            items:
+                              type: string
+                              enum: ["read", "write"]
+                          dataAccess:
+                            type: object
+                            properties:
+                              templateIds:
+                                type: array
+                                items:
+                                  $ref: "../schemas/common.yaml#/UUID"
+                              schemaIds:
+                                type: array
+                                items:
+                                  $ref: "../schemas/common.yaml#/UUID"
+                      createdBy:
+                        $ref: "../schemas/common.yaml#/UUID"
+                      lastUsedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      createdAt:
+                        type: string
+                        format: date-time
+            example:
+              apiKeys:
+                - id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+                  name: "外部系統整合"
+                  keyPrefix: "sk_****a1b2"
+                  permissions:
+                    scopes: ["read", "write"]
+                    dataAccess:
+                      templateIds: []
+                      schemaIds: []
+                  createdBy: "018e4a2c-0001-7000-8000-000000000001"
+                  lastUsedAt: "2026-02-17T10:30:00Z"
+                  createdAt: "2026-01-10T08:00:00Z"
+      '401':
+        $ref: "../schemas/common.yaml#/responses/Unauthorized"
+      '403':
+        $ref: "../schemas/common.yaml#/responses/Forbidden"
+
+  post:
+    operationId: createApiKey
+    summary: 產生 API Key
+    description: |
+      產生新的 API Key。
+      完整金鑰僅在建立時回傳一次，之後無法再次取得。
+      僅 project owner 或 org_owner 可操作。
+    tags:
+      - ApiKeys
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - org_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - permissions
+            properties:
+              name:
+                type: string
+                description: "API Key 名稱（便於識別用途）"
+              permissions:
+                type: object
+                required:
+                  - scopes
+                properties:
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                      enum: ["read", "write"]
+                    description: "權限範圍"
+                  dataAccess:
+                    type: object
+                    description: "資料表存取範圍限制（空陣列表示不限制）"
+                    properties:
+                      templateIds:
+                        type: array
+                        items:
+                          $ref: "../schemas/common.yaml#/UUID"
+                      schemaIds:
+                        type: array
+                        items:
+                          $ref: "../schemas/common.yaml#/UUID"
+          example:
+            name: "外部系統整合"
+            permissions:
+              scopes: ["read", "write"]
+              dataAccess:
+                templateIds: []
+                schemaIds: []
+    responses:
+      '201':
+        description: API Key 建立成功（完整金鑰僅此一次回傳）
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - name
+                - key
+                - permissions
+                - createdAt
+              properties:
+                id:
+                  $ref: "../schemas/common.yaml#/UUID"
+                name:
+                  type: string
+                key:
+                  type: string
+                  description: "完整 API Key（僅此一次回傳，請妥善保存）"
+                permissions:
+                  type: object
+                createdAt:
+                  type: string
+                  format: date-time
+            example:
+              id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+              name: "外部系統整合"
+              key: "sk_live_a1b2c3d4e5f6g7h8i9j0..."
+              permissions:
+                scopes: ["read", "write"]
+                dataAccess:
+                  templateIds: []
+                  schemaIds: []
+              createdAt: "2026-02-18T08:00:00Z"
+      '400':
+        $ref: "../schemas/common.yaml#/responses/BadRequest"
+      '401':
+        $ref: "../schemas/common.yaml#/responses/Unauthorized"
+      '403':
+        $ref: "../schemas/common.yaml#/responses/Forbidden"
+
+# ===========================================================
+# /projects/{projectId}/api-keys/{keyId}
+# ===========================================================
+
+/projects/{projectId}/api-keys/{keyId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: keyId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "API Key ID"
+
+  delete:
+    operationId: revokeApiKey
+    summary: 撤銷 API Key
+    description: |
+      撤銷（軟刪除）指定的 API Key。
+      撤銷後該 Key 立即失效，無法再用於 API 認證。
+      僅 project owner 或 org_owner 可操作。
+    tags:
+      - ApiKeys
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - org_owner
+    responses:
+      '204':
+        description: API Key 已撤銷
+      '401':
+        $ref: "../schemas/common.yaml#/responses/Unauthorized"
+      '403':
+        $ref: "../schemas/common.yaml#/responses/Forbidden"
+      '404':
+        $ref: "../schemas/common.yaml#/responses/NotFound"

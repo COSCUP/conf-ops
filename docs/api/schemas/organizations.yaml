@@ -1,0 +1,248 @@
+# Conf-Ops API - 組織相關 Schema 定義
+# Organization schemas — responses, requests, members
+
+# =============================================================================
+# Organization Response（組織回應）
+# =============================================================================
+
+OrganizationResponse:
+  type: object
+  description: "組織回應"
+  required:
+    - id
+    - name
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "組織名稱"
+    description:
+      type: string
+      nullable: true
+      description: "組織描述"
+    logoUrl:
+      type: string
+      nullable: true
+      description: "組織 Logo URL"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+OrganizationDetailResponse:
+  type: object
+  description: "組織詳細回應，包含統計資訊"
+  required:
+    - id
+    - name
+    - createdBy
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "組織名稱"
+    description:
+      type: string
+      nullable: true
+      description: "組織描述"
+    logoUrl:
+      type: string
+      nullable: true
+      description: "組織 Logo URL"
+    createdBy:
+      $ref: "./common.yaml#/UUID"
+    memberCount:
+      type: integer
+      description: "組織成員數量"
+    projectCount:
+      type: integer
+      description: "組織專案數量"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+OrganizationListResponse:
+  type: object
+  description: "組織列表回應，含游標分頁"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            $ref: "./common.yaml#/UUID"
+          name:
+            type: string
+          description:
+            type: string
+            nullable: true
+          logoUrl:
+            type: string
+            nullable: true
+          role:
+            $ref: "./common.yaml#/OrgRole"
+            description: "當前使用者在該組織中的角色"
+          createdAt:
+            type: string
+            format: date-time
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+# =============================================================================
+# Organization Request（組織請求）
+# =============================================================================
+
+CreateOrganizationRequest:
+  type: object
+  description: "建立組織請求"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "組織名稱"
+    description:
+      type: string
+      description: "組織描述"
+    logoUrl:
+      type: string
+      description: "組織 Logo URL"
+
+UpdateOrganizationRequest:
+  type: object
+  description: "更新組織資料請求"
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    logoUrl:
+      type: string
+      nullable: true
+
+# =============================================================================
+# Organization Member（組織成員）
+# =============================================================================
+
+OrgMemberResponse:
+  type: object
+  description: "組織成員回應"
+  required:
+    - id
+    - accountId
+    - role
+    - createdAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    accountId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "成員名稱（來自帳號）"
+    email:
+      type: string
+      format: email
+      description: "成員 Email（來自帳號）"
+    avatarUrl:
+      type: string
+      nullable: true
+      description: "成員頭像 URL"
+    role:
+      $ref: "./common.yaml#/OrgRole"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+OrgMemberListResponse:
+  type: object
+  description: "組織成員列表回應，含游標分頁"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        $ref: "#/OrgMemberResponse"
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+# =============================================================================
+# Organization Member Invite（組織成員邀請）
+# =============================================================================
+
+InviteMemberRequest:
+  type: object
+  description: "邀請成員加入組織請求"
+  required:
+    - email
+    - role
+  properties:
+    email:
+      type: string
+      format: email
+      description: "被邀請者的 Email"
+    role:
+      $ref: "./common.yaml#/OrgRole"
+      description: "指定的組織角色"
+
+InviteMemberResponse:
+  type: object
+  description: "邀請成員回應"
+  required:
+    - status
+    - email
+  properties:
+    status:
+      type: string
+      enum:
+        - invited
+        - joined
+      description: "邀請狀態：invited（已寄送邀請信）或 joined（已直接加入）"
+    email:
+      type: string
+      format: email
+      description: "被邀請者 Email"
+    message:
+      type: string
+      description: "操作結果訊息"
+
+# =============================================================================
+# Update Organization Member（更新組織成員）
+# =============================================================================
+
+UpdateOrgMemberRequest:
+  type: object
+  description: "更新組織成員角色請求"
+  required:
+    - role
+  properties:
+    role:
+      $ref: "./common.yaml#/OrgRole"
+      description: "新的組織角色"

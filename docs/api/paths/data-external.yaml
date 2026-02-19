@@ -1,0 +1,464 @@
+# Conf-Ops API - 外部 REST API 路徑
+# External API for third-party systems (API key auth)
+#
+# NOTE: 外部 API 回應結構與內部 API 一致，使用 items/meta 命名。
+# 參照 responses.yaml 中的 ExternalTaskTemplateListResponse、ExternalTaskListResponse 定義。
+
+# ===========================================================
+# /projects/{projectId}/task-templates
+# ===========================================================
+
+/projects/{projectId}/task-templates:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+
+  get:
+    operationId: externalListTaskTemplates
+    summary: "（外部）列出任務模板"
+    description: |
+      供外部系統查詢專案中的任務模板列表。
+
+      使用專案層級的 API Key 進行認證，僅提供唯讀存取。
+      回傳任務模板的基本資訊與資料表定義結構。
+    tags:
+      - ExternalData
+    security:
+      - apiKeyAuth: []
+    x-permissions:
+      - type: "api_key"
+        scope: "project"
+        access: "read_only"
+        description: "專案層級 API Key，唯讀存取"
+    parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: "每頁數量"
+    responses:
+      "200":
+        description: "任務模板列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/ExternalTaskTemplateListResponse"
+            examples:
+              list:
+                summary: "任務模板列表"
+                value:
+                  items:
+                    - id: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                      name: "與贊助商保持聯絡"
+                      description: "負責聯絡贊助商的完整流程"
+                      dataSchemas:
+                        - id: "018e4a2c-0003-7000-8000-000000000001"
+                          name: "贊助商資訊"
+                          fields:
+                            - key: "companyName"
+                              label: "公司名稱"
+                              type: "single_line_text"
+                            - key: "amount"
+                              label: "贊助金額"
+                              type: "number"
+                    - id: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7c"
+                      name: "社群貼文發佈"
+                      description: "處理社群媒體貼文的發佈流程"
+                      dataSchemas: []
+                  meta:
+                    hasMore: false
+                    nextCursor: null
+                    totalCount: 2
+      "401":
+        description: "API Key 無效或缺失"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+            examples:
+              unauthorized:
+                summary: "API Key 無效"
+                value:
+                  type: "https://api.conf-ops.dev/errors/unauthorized"
+                  title: "Unauthorized"
+                  status: 401
+                  detail: "API Key 無效或已過期"
+      "403":
+        description: "API Key 無權限存取此專案"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/task-templates/{templateId}/data
+# ===========================================================
+
+/projects/{projectId}/task-templates/{templateId}/data:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: templateId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務模板 ID"
+
+  get:
+    operationId: externalGetTemplateData
+    summary: "（外部）查詢任務模板聚合資料"
+    description: |
+      供外部系統查詢任務模板下所有任務的聚合資料列。
+
+      以任務模板為單位，回傳所有任務的資料列，供外部系統串接使用。
+      可依 schemaId 篩選特定資料表定義的資料。
+    tags:
+      - ExternalData
+    security:
+      - apiKeyAuth: []
+    x-permissions:
+      - type: "api_key"
+        scope: "project"
+        access: "read_only"
+        description: "專案層級 API Key，唯讀存取"
+    parameters:
+      - name: schemaId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依資料表定義 ID 篩選"
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+        description: "每頁數量"
+    responses:
+      "200":
+        description: "聚合資料列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/ExternalDataResponse"
+            examples:
+              aggregated:
+                summary: "所有贊助商資料"
+                value:
+                  templateId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  templateName: "與贊助商保持聯絡"
+                  data:
+                    - taskId: "018e4a2c-0004-7000-8000-000000000001"
+                      taskName: "與 X 公司聯絡"
+                      taskStatus: "in_progress"
+                      schemas:
+                        - schemaId: "018e4a2c-0003-7000-8000-000000000001"
+                          schemaName: "贊助商資訊"
+                          values:
+                            companyName: "X 科技股份有限公司"
+                            contactEmail: "sponsor@xtech.com"
+                            amount: 100000
+                          updatedAt: "2026-02-10T14:30:00Z"
+                    - taskId: "018e4a2c-0004-7000-8000-000000000002"
+                      taskName: "與 Y 公司聯絡"
+                      taskStatus: "in_progress"
+                      schemas:
+                        - schemaId: "018e4a2c-0003-7000-8000-000000000001"
+                          schemaName: "贊助商資訊"
+                          values:
+                            companyName: "Y 軟體有限公司"
+                            contactEmail: "contact@ysoft.tw"
+                            amount: 50000
+                          updatedAt: "2026-02-08T11:00:00Z"
+                  meta:
+                    hasMore: false
+                    nextCursor: null
+                    totalCount: 2
+      "401":
+        description: "API Key 無效或缺失"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務模板不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/tasks
+# ===========================================================
+
+/projects/{projectId}/tasks:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+
+  get:
+    operationId: externalListTasks
+    summary: "（外部）列出任務與狀態"
+    description: |
+      供外部系統查詢專案中的任務列表，包含任務狀態與基本資訊。
+    tags:
+      - ExternalData
+    security:
+      - apiKeyAuth: []
+    x-permissions:
+      - type: "api_key"
+        scope: "project"
+        access: "read_only"
+        description: "專案層級 API Key，唯讀存取"
+    parameters:
+      - name: templateId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依任務模板篩選"
+      - name: status
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/TaskStatus"
+        description: "依狀態篩選"
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+        description: "每頁數量"
+    responses:
+      "200":
+        description: "任務列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/ExternalTaskListResponse"
+            examples:
+              list:
+                summary: "任務列表含狀態"
+                value:
+                  items:
+                    - id: "018e4a2c-0004-7000-8000-000000000001"
+                      name: "與 X 公司聯絡"
+                      status: "in_progress"
+                      templateId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                      templateName: "與贊助商保持聯絡"
+                      ownerTagName: "贊助組"
+                      todoSummary:
+                        total: 5
+                        completed: 2
+                        open: 3
+                      createdAt: "2026-01-15T08:00:00Z"
+                      updatedAt: "2026-02-10T14:30:00Z"
+                    - id: "018e4a2c-0004-7000-8000-000000000002"
+                      name: "與 Y 公司聯絡"
+                      status: "in_progress"
+                      templateId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                      templateName: "與贊助商保持聯絡"
+                      ownerTagName: "贊助組"
+                      todoSummary:
+                        total: 5
+                        completed: 1
+                        open: 4
+                      createdAt: "2026-01-16T09:00:00Z"
+                      updatedAt: "2026-02-08T11:00:00Z"
+                  meta:
+                    hasMore: false
+                    nextCursor: null
+                    totalCount: 2
+      "401":
+        description: "API Key 無效或缺失"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/tasks/{taskId}/data
+# ===========================================================
+
+/projects/{projectId}/tasks/{taskId}/data:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  get:
+    operationId: externalGetTaskData
+    summary: "（外部）查詢任務資料列"
+    description: |
+      供外部系統查詢特定任務的資料列，包含所有 DataSchema 的資料。
+    tags:
+      - ExternalData
+    security:
+      - apiKeyAuth: []
+    x-permissions:
+      - type: "api_key"
+        scope: "project"
+        access: "read_only"
+        description: "專案層級 API Key，唯讀存取"
+    responses:
+      "200":
+        description: "任務資料列"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/ExternalTaskDataResponse"
+            examples:
+              taskData:
+                summary: "單一任務的所有資料"
+                value:
+                  taskId: "018e4a2c-0004-7000-8000-000000000001"
+                  taskName: "與 X 公司聯絡"
+                  taskStatus: "in_progress"
+                  templateId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  templateName: "與贊助商保持聯絡"
+                  data:
+                    - schemaId: "018e4a2c-0003-7000-8000-000000000001"
+                      schemaName: "贊助商資訊"
+                      values:
+                        companyName: "X 科技股份有限公司"
+                        contactEmail: "sponsor@xtech.com"
+                        amount: 100000
+                        companyLogo: "https://storage.conf-ops.dev/attachments/x-logo.png"
+                      updatedAt: "2026-02-10T14:30:00Z"
+      "401":
+        description: "API Key 無效或缺失"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  put:
+    operationId: externalUpdateTaskData
+    summary: "（外部）更新任務資料列"
+    description: |
+      供外部系統更新特定任務的資料列。
+
+      更新成功後會觸發 `SourceDataChanged` DomainEvent，進而觸發 AI 建議。
+      需要具備 `write` scope 的 API Key。
+      傳入的 values 會根據對應的 DataSchema 進行欄位類型與約束驗證。
+    tags:
+      - ExternalData
+    security:
+      - apiKeyAuth: []
+    x-permissions:
+      - type: "api_key"
+        scope: "project"
+        access: "read_write"
+        description: "專案層級 API Key，讀寫存取"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - schemaId
+              - values
+            properties:
+              schemaId:
+                $ref: "../schemas/common.yaml#/UUID"
+                description: "資料表定義 ID"
+              values:
+                type: object
+                additionalProperties: true
+                description: "資料欄位值，key 對應 DataSchema 中的欄位 key"
+          example:
+            schemaId: "018e4a2c-0003-7000-8000-000000000001"
+            values:
+              companyName: "X 科技股份有限公司"
+              amount: 120000
+    responses:
+      "200":
+        description: "資料更新成功"
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - taskId
+                - schemaId
+                - values
+                - updatedAt
+              properties:
+                taskId:
+                  $ref: "../schemas/common.yaml#/UUID"
+                schemaId:
+                  $ref: "../schemas/common.yaml#/UUID"
+                values:
+                  type: object
+                  additionalProperties: true
+                updatedAt:
+                  type: string
+                  format: date-time
+      "400":
+        $ref: "../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        description: "API Key 無效或缺失"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "API Key 無 write 權限"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"

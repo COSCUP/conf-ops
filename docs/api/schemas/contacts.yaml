@@ -1,0 +1,198 @@
+# Conf-Ops API - Contact Schema 定義
+# 外部聯絡人相關的請求與回應結構
+
+# =============================================================================
+# 回應 Schema
+# =============================================================================
+
+ContactResponse:
+  type: object
+  description: "外部聯絡人完整回應"
+  required:
+    - id
+    - organizationId
+    - name
+    - email
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    organizationId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "聯絡人名稱"
+    email:
+      type: string
+      format: email
+      description: "聯絡人 Email"
+    mergedIntoId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "合併目標 Contact ID，null 表示未被合併"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+ContactDetailResponse:
+  type: object
+  description: "外部聯絡人詳細回應，包含在各專案中被指派的成員標籤"
+  required:
+    - id
+    - organizationId
+    - name
+    - email
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    organizationId:
+      $ref: "./common.yaml#/UUID"
+    name:
+      type: string
+      description: "聯絡人名稱"
+    email:
+      type: string
+      format: email
+      description: "聯絡人 Email"
+    mergedIntoId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "合併目標 Contact ID，null 表示未被合併"
+    tagAssignments:
+      type: array
+      items:
+        $ref: "#/ContactTagAssignment"
+      description: "在各專案中被指派的成員標籤"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+ContactTagAssignment:
+  type: object
+  description: "聯絡人在某專案中的標籤指派資訊"
+  required:
+    - projectId
+    - projectName
+    - tags
+  properties:
+    projectId:
+      $ref: "./common.yaml#/UUID"
+    projectName:
+      type: string
+      description: "專案名稱"
+    tags:
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            $ref: "./common.yaml#/UUID"
+          name:
+            type: string
+            description: "標籤名稱"
+
+ContactListResponse:
+  type: object
+  description: "聯絡人列表回應，包含游標分頁中繼資訊"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        $ref: "#/ContactResponse"
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+# =============================================================================
+# 請求 Schema
+# =============================================================================
+
+CreateContactRequest:
+  type: object
+  description: "建立外部聯絡人"
+  required:
+    - name
+    - email
+  properties:
+    name:
+      type: string
+      description: "聯絡人名稱"
+    email:
+      type: string
+      format: email
+      description: "聯絡人 Email"
+
+UpdateContactRequest:
+  type: object
+  description: "更新外部聯絡人"
+  properties:
+    name:
+      type: string
+      description: "聯絡人名稱"
+    email:
+      type: string
+      format: email
+      description: "聯絡人 Email"
+
+MergeContactsRequest:
+  type: object
+  description: "合併聯絡人 - 將多個 Contact 合併為一個主要 Contact"
+  required:
+    - sourceIds
+    - targetId
+  properties:
+    sourceIds:
+      type: array
+      items:
+        $ref: "./common.yaml#/UUID"
+      minItems: 1
+      description: "被合併的 Contact ID 列表"
+    targetId:
+      $ref: "./common.yaml#/UUID"
+      description: "保留的主要 Contact ID"
+
+MergeContactsResponse:
+  type: object
+  description: "聯絡人合併成功回應"
+  required:
+    - target
+    - mergedCount
+    - message
+  properties:
+    target:
+      type: object
+      description: "主要聯絡人摘要"
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          $ref: "./common.yaml#/UUID"
+        name:
+          type: string
+          description: "聯絡人名稱"
+        email:
+          type: string
+          format: email
+          description: "聯絡人 Email"
+    mergedCount:
+      type: integer
+      description: "被合併的聯絡人數量"
+    message:
+      type: string
+      description: "操作結果訊息"

@@ -1,0 +1,389 @@
+# 外部聯絡人相關路徑
+# Contact paths — CRUD, merge
+
+/organizations/{orgId}/contacts:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: listContacts
+    summary: 列出組織聯絡人
+    description: |
+      列出指定組織下的所有聯絡人，支援分頁與搜尋。
+      使用者必須是該組織的成員。
+    tags:
+      - Contacts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_member
+      - org_admin
+      - org_owner
+    parameters:
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁筆數（預設 20，最大 100）
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+      - name: search
+        in: query
+        description: 搜尋關鍵字（搜尋 name 與 email）
+        schema:
+          type: string
+    responses:
+      '200':
+        description: 聯絡人列表
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/contacts.yaml#/ContactResponse'
+                nextCursor:
+                  type: string
+                  nullable: true
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+
+  post:
+    operationId: createContact
+    summary: 建立外部聯絡人
+    description: |
+      在指定組織下建立新的外部聯絡人。
+      Contact 屬於組織層級，同一組織內的所有專案共用。
+      使用者必須是該組織的成員。
+    tags:
+      - Contacts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_member
+      - org_admin
+      - org_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/contacts.yaml#/CreateContactRequest'
+          example:
+            name: "Sponsor Corp"
+            email: "contact@sponsor.com"
+    responses:
+      '201':
+        description: 聯絡人建立成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/contacts.yaml#/ContactResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000300"
+              organizationId: "019409a2-c5f2-7000-8000-000000000100"
+              name: "Sponsor Corp"
+              email: "contact@sponsor.com"
+              mergedIntoId: null
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-15T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+
+/organizations/{orgId}/contacts/{contactId}:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+    - name: contactId
+      in: path
+      required: true
+      description: 聯絡人 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: getContact
+    summary: 取得聯絡人詳細資訊
+    description: |
+      取得指定聯絡人的詳細資訊，包含在各專案中被指派的成員標籤。
+      使用者必須是該組織的成員。
+    tags:
+      - Contacts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_member
+      - org_admin
+      - org_owner
+    responses:
+      '200':
+        description: 聯絡人詳細資訊
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/contacts.yaml#/ContactDetailResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000300"
+              organizationId: "019409a2-c5f2-7000-8000-000000000100"
+              name: "Sponsor Corp"
+              email: "contact@sponsor.com"
+              mergedIntoId: null
+              tagAssignments:
+                - projectId: "019409a2-c5f2-7000-8000-000000000400"
+                  projectName: "COSCUP 2025"
+                  tags:
+                    - id: "019409a2-c5f2-7000-8000-000000000610"
+                      name: "贊助商"
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateContact
+    summary: 更新聯絡人資訊
+    description: |
+      更新聯絡人的基本資訊（名稱、Email）。
+      使用者必須是該組織的成員。
+    tags:
+      - Contacts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_member
+      - org_admin
+      - org_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/contacts.yaml#/UpdateContactRequest'
+          example:
+            name: "Sponsor Corp (renamed)"
+            email: "new-contact@sponsor.com"
+    responses:
+      '200':
+        description: 聯絡人更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/contacts.yaml#/ContactResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000300"
+              organizationId: "019409a2-c5f2-7000-8000-000000000100"
+              name: "Sponsor Corp (renamed)"
+              email: "new-contact@sponsor.com"
+              mergedIntoId: null
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-16T08:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteContact
+    summary: 刪除聯絡人（軟刪除）
+    description: |
+      軟刪除聯絡人。已合併的聯絡人不使用此操作（透過 `mergedIntoId` 追蹤）。
+      僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
+    tags:
+      - Contacts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+      - org_admin
+    responses:
+      '204':
+        description: 聯絡人已刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/organizations/{orgId}/contacts/merge:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: mergeContacts
+    summary: 合併聯絡人
+    description: |
+      將多個聯絡人合併為一個主要聯絡人。合併操作：
+      1. 保留 `targetId` 作為主要聯絡人
+      2. 將 `sourceIds` 中各聯絡人的 `mergedIntoId` 設定為 `targetId`
+      3. 歸併所有對話記錄、成員標籤指派到主要聯絡人
+
+      合併在組織層級操作，影響該組織內所有專案。
+      被合併的聯絡人不會被軟刪除，透過 `mergedIntoId` 追蹤。
+
+      僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
+    tags:
+      - Contacts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+      - org_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/contacts.yaml#/MergeContactsRequest'
+          example:
+            sourceIds:
+              - "019409a2-c5f2-7000-8000-000000000301"
+              - "019409a2-c5f2-7000-8000-000000000302"
+            targetId: "019409a2-c5f2-7000-8000-000000000300"
+    responses:
+      '200':
+        description: 聯絡人合併成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/contacts.yaml#/MergeContactsResponse'
+            example:
+              target:
+                id: "019409a2-c5f2-7000-8000-000000000300"
+                name: "Sponsor Corp"
+                email: "contact@sponsor.com"
+              mergedCount: 2
+              message: "已成功合併 2 位聯絡人"
+      '400':
+        description: 合併請求無效（如 sourceIds 包含 targetId、聯絡人不屬於同一組織等）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/bad-request"
+              title: "Bad Request"
+              status: 400
+              detail: "sourceIds 不可包含 targetId"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# /projects/{projectId}/contacts
+# ===========================================================
+
+/projects/{projectId}/contacts:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: listProjectContacts
+    summary: 列出專案相關聯絡人
+    description: |
+      列出與指定專案相關的聯絡人（透過成員標籤指派關聯至該專案的 Contact）。
+      可選擇是否包含各 Contact 在該專案中的標籤指派資訊。
+      使用者必須是該專案的成員。
+    tags:
+      - Contacts
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    parameters:
+      - name: includeTags
+        in: query
+        description: 是否包含 Contact 在此專案中的成員標籤指派資訊
+        schema:
+          type: boolean
+          default: false
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁筆數（預設 20，最大 100）
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+      - name: search
+        in: query
+        description: 搜尋關鍵字（搜尋 name 與 email）
+        schema:
+          type: string
+    responses:
+      '200':
+        description: 專案聯絡人列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+                - meta
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/contacts.yaml#/ContactResponse'
+                meta:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

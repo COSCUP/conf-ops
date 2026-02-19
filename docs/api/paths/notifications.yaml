@@ -1,0 +1,343 @@
+# 通知相關路徑
+# Notifications — list, read status, preferences, Web Push subscription
+
+# --- 通知列表與狀態 ---
+
+/notifications:
+  get:
+    operationId: listNotifications
+    summary: 列出通知
+    description: |
+      列出當前使用者的通知，支援游標分頁。
+      可依已讀/未讀狀態與通知類型過濾。
+      通知按時間降冪排序（最新優先）。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: isRead
+        in: query
+        description: 已讀狀態過濾（`true` 僅已讀、`false` 僅未讀、不帶則全部）
+        schema:
+          type: boolean
+      - name: type
+        in: query
+        description: 通知類型過濾
+        schema:
+          $ref: '../schemas/common.yaml#/NotificationType'
+      - name: projectId
+        in: query
+        description: 依專案過濾
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    responses:
+      '200':
+        description: 通知列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - notifications
+                - pagination
+              properties:
+                notifications:
+                  type: array
+                  items:
+                    $ref: '../schemas/notifications.yaml#/Notification'
+                pagination:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+            example:
+              notifications:
+                - id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+                  type: "todo_assigned"
+                  isRead: false
+                  title: "你被指派了待辦事項"
+                  body: "Alice 指派你「確認贊助金額」待辦事項"
+                  projectId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  projectName: "COSCUP 2026"
+                  taskId: "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
+                  taskName: "與 A 公司聯絡"
+                  createdAt: "2025-02-15T09:00:00Z"
+              pagination:
+                hasMore: true
+                nextCursor: "eyJpZCI6IjAxOGU0YTJjLW4wMDEifQ"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/notifications/{notificationId}/read:
+  put:
+    operationId: markNotificationRead
+    summary: 標記通知為已讀
+    description: |
+      將指定通知標記為已讀。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: notificationId
+        in: path
+        required: true
+        description: 通知 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '204':
+        description: 已標記為已讀
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/notifications/read-all:
+  put:
+    operationId: markAllNotificationsRead
+    summary: 全部標記為已讀
+    description: |
+      將當前使用者的所有未讀通知標記為已讀。
+      可選擇性地只標記特定專案的通知。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              projectId:
+                $ref: '../schemas/common.yaml#/UUID'
+                description: "僅標記此專案的通知為已讀（可選）"
+          example:
+            projectId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+    responses:
+      '204':
+        description: 已全部標記為已讀
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+/notifications/unread-count:
+  get:
+    operationId: getUnreadNotificationCount
+    summary: 取得未讀通知數量
+    description: |
+      取得當前使用者的未讀通知數量，用於顯示通知徽章。
+      可依專案過濾。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: projectId
+        in: query
+        description: 依專案過濾
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 未讀通知數量
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - unreadCount
+              properties:
+                unreadCount:
+                  type: integer
+                  minimum: 0
+                  description: "未讀通知數量"
+            example:
+              unreadCount: 5
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+# --- 通知偏好設定 ---
+
+/accounts/me/notification-preferences:
+  get:
+    operationId: getNotificationPreferences
+    summary: 取得通知偏好設定
+    description: |
+      取得當前使用者的通知偏好設定，包含各通知類型的推送管道設定。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '200':
+        description: 通知偏好設定
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/notifications.yaml#/NotificationPreferences'
+            example:
+              channels:
+                email:
+                  enabled: true
+                  categories:
+                    taskUpdates: true
+                    todoAssignments: true
+                    aiSuggestions: true
+                    mentions: true
+                    systemAnnouncements: true
+                webPush:
+                  enabled: true
+                  categories:
+                    taskUpdates: false
+                    todoAssignments: true
+                    aiSuggestions: false
+                    mentions: true
+                    systemAnnouncements: false
+                inApp:
+                  enabled: true
+                  categories:
+                    taskUpdates: true
+                    todoAssignments: true
+                    aiSuggestions: true
+                    mentions: true
+                    systemAnnouncements: true
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+  put:
+    operationId: updateNotificationPreferences
+    summary: 更新通知偏好設定
+    description: |
+      更新當前使用者的通知偏好設定。
+      僅需傳入要修改的部分，未傳入的設定維持不變。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/notifications.yaml#/UpdateNotificationPreferencesRequest'
+          example:
+            channels:
+              email:
+                categories:
+                  aiSuggestions: false
+              webPush:
+                enabled: false
+    responses:
+      '200':
+        description: 偏好設定更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/notifications.yaml#/NotificationPreferences'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+# --- Web Push 訂閱 ---
+
+/notifications/web-push/subscribe:
+  post:
+    operationId: webPushSubscribe
+    summary: 訂閱 Web Push 通知
+    description: |
+      註冊 Web Push 訂閱，將瀏覽器的 push subscription 物件送至伺服器。
+      一個帳號可擁有多個訂閱（對應不同裝置/瀏覽器）。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/notifications.yaml#/WebPushSubscribeRequest'
+          example:
+            subscription:
+              endpoint: "https://fcm.googleapis.com/fcm/send/abc123..."
+              keys:
+                p256dh: "BNcRd..."
+                auth: "tBHI..."
+            deviceName: "Chrome on MacBook"
+    responses:
+      '201':
+        description: Web Push 訂閱成功
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subscriptionId
+              properties:
+                subscriptionId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                  description: "訂閱 ID，用於管理此訂閱"
+            example:
+              subscriptionId: "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+
+/notifications/web-push/subscriptions/{endpoint}:
+  parameters:
+    - name: endpoint
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uri
+      description: "Web Push subscription endpoint URL"
+
+  delete:
+    operationId: webPushUnsubscribe
+    summary: 取消 Web Push 訂閱
+    description: |
+      移除指定的 Web Push 訂閱。取消後該裝置/瀏覽器將不再收到推播通知。
+    tags:
+      - Notifications
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    responses:
+      '204':
+        description: 訂閱已取消
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

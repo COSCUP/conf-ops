@@ -1,0 +1,784 @@
+# 專案相關路徑
+# Project paths — CRUD, copy, status, permission settings
+
+/organizations/{orgId}/projects:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: createProject
+    summary: 建立專案
+    description: |
+      在指定組織下建立新專案。建立者自動成為專案擁有者（`owner`）。
+      僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+      - org_admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/projects.yaml#/CreateProjectRequest'
+          example:
+            name: "COSCUP 2025"
+            description: "COSCUP 2025 年度開源人年會"
+    responses:
+      '201':
+        description: 專案建立成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/ProjectResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000400"
+              organizationId: "019409a2-c5f2-7000-8000-000000000100"
+              name: "COSCUP 2025"
+              description: "COSCUP 2025 年度開源人年會"
+              status: "preparing"
+              sourceProjectId: null
+              createdBy: "019409a2-c5f2-7000-8000-000000000001"
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-06-15T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+
+  get:
+    operationId: listOrganizationProjects
+    summary: 列出組織專案
+    description: |
+      列出指定組織下的所有專案。使用者必須是該組織的成員。
+      可依專案狀態篩選。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_member
+      - org_admin
+      - org_owner
+    parameters:
+      - name: status
+        in: query
+        description: 依專案狀態篩選
+        schema:
+          type: string
+          enum:
+            - preparing
+            - active
+            - completed
+            - archived
+    responses:
+      '200':
+        description: 專案列表
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/ProjectListResponse'
+            example:
+              items:
+                - id: "019409a2-c5f2-7000-8000-000000000400"
+                  name: "COSCUP 2025"
+                  description: "COSCUP 2025 年度開源人年會"
+                  status: "active"
+                  memberCount: 35
+                  createdAt: "2025-06-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/organizations/{orgId}/projects/copy:
+  parameters:
+    - name: orgId
+      in: path
+      required: true
+      description: 組織 ID
+      schema:
+        type: string
+        format: uuid
+
+  post:
+    operationId: copyProject
+    summary: 複製專案
+    description: |
+      從同組織內的現有專案複製建立新專案。僅該專案的現有成員可操作。
+      複製時操作者自動成為新專案的擁有者（`owner`）。
+
+      Phase 2 僅複製專案基本資料（name, description, status 重設為 preparing）。完整複製（member_tags, task_templates, memories, tool_configs, permission_settings）於 Phase 12 實作。
+      不複製項目：成員、任務實例、聯絡人標籤指派、資料表資料。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/projects.yaml#/CopyProjectRequest'
+          example:
+            sourceProjectId: "019409a2-c5f2-7000-8000-000000000400"
+            name: "COSCUP 2026"
+            description: "COSCUP 2026 年度開源人年會"
+    responses:
+      '201':
+        description: 專案複製成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/ProjectResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000401"
+              organizationId: "019409a2-c5f2-7000-8000-000000000100"
+              name: "COSCUP 2026"
+              description: "COSCUP 2026 年度開源人年會"
+              status: "preparing"
+              sourceProjectId: "019409a2-c5f2-7000-8000-000000000400"
+              createdBy: "019409a2-c5f2-7000-8000-000000000001"
+              createdAt: "2025-12-01T10:00:00Z"
+              updatedAt: "2025-12-01T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        description: 來源專案不存在
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/Error'
+
+/projects/{projectId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: getProject
+    summary: 取得專案詳細資訊
+    description: |
+      取得指定專案的詳細資訊。使用者必須是該專案的成員。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    responses:
+      '200':
+        description: 專案詳細資訊
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/ProjectDetailResponse'
+            example:
+              id: "019409a2-c5f2-7000-8000-000000000400"
+              organizationId: "019409a2-c5f2-7000-8000-000000000100"
+              name: "COSCUP 2025"
+              description: "COSCUP 2025 年度開源人年會"
+              status: "active"
+              sourceProjectId: null
+              createdBy: "019409a2-c5f2-7000-8000-000000000001"
+              memberCount: 35
+              taskCount: 120
+              createdAt: "2025-06-15T10:00:00Z"
+              updatedAt: "2025-07-01T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateProject
+    summary: 更新專案資訊
+    description: |
+      更新專案的基本資訊（名稱、描述）。
+      僅專案擁有者（`owner`）可操作。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/projects.yaml#/UpdateProjectRequest'
+          example:
+            name: "COSCUP 2025 — 二十週年"
+            description: "COSCUP 2025 年度開源人年會，慶祝二十週年"
+    responses:
+      '200':
+        description: 專案更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/ProjectResponse'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteProject
+    summary: 刪除專案（軟刪除）
+    description: |
+      軟刪除專案。僅專案擁有者（`owner`）可操作。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    responses:
+      '204':
+        description: 專案已刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/status:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+
+  put:
+    operationId: updateProjectStatus
+    summary: 更新專案狀態
+    description: |
+      更新專案狀態。狀態轉換規則：
+      - `preparing` → `active`
+      - `active` → `completed` 或 `archived`
+      - `completed` → `archived`
+      - `archived` 為終態，不可再變更
+
+      僅專案擁有者（`owner`）可操作。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/projects.yaml#/UpdateProjectStatusRequest'
+          example:
+            status: "active"
+    responses:
+      '200':
+        description: 專案狀態更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/ProjectResponse'
+      '400':
+        description: 不允許的狀態轉換
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://conf-ops.io/errors/invalid-status-transition"
+              title: "Invalid Status Transition"
+              status: 400
+              detail: "不允許從 preparing 直接轉換到 completed"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/permission-settings:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      description: 專案 ID
+      schema:
+        type: string
+        format: uuid
+
+  get:
+    operationId: getProjectPermissionSettings
+    summary: 取得專案權限設定
+    description: |
+      取得專案的權限設定，包含任務可見性、工具權限、記憶可見性、資料存取等設定。
+      僅專案擁有者（`owner`）可操作。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    responses:
+      '200':
+        description: 專案權限設定
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/PermissionSettingsResponse'
+            example:
+              taskVisibility:
+                - tag: "贊助組"
+                  allow:
+                    - "own_tag_tasks"
+                  deny: []
+                - tag: "資訊組"
+                  allow:
+                    - "own_tag_tasks"
+                    - "cross_tag_linked_tasks"
+                  deny: []
+              toolPermissions:
+                - tag: "贊助組"
+                  allow:
+                    - "smtp/sendEmail"
+                  deny: []
+              memoryVisibility:
+                - tag: "*"
+                  allow:
+                    - "project_memories"
+                    - "own_tag_memories"
+                  deny:
+                    - "other_tag_memories"
+              dataAccess:
+                - tag: "贊助組"
+                  allow:
+                    - "own_tag_data"
+                  deny:
+                    - "other_tag_data"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateProjectPermissionSettings
+    summary: 更新專案權限設定
+    description: |
+      更新專案的權限設定。以完整取代方式更新 — 傳入完整的權限設定物件。
+      僅專案擁有者（`owner`）可操作。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/projects.yaml#/UpdatePermissionSettingsRequest'
+          example:
+            taskVisibility:
+              - tag: "*"
+                allow:
+                  - "own_tag_tasks"
+                deny: []
+            toolPermissions:
+              - tag: "*"
+                allow:
+                  - "smtp/sendEmail"
+                deny: []
+            memoryVisibility:
+              - tag: "*"
+                allow:
+                  - "project_memories"
+                  - "own_tag_memories"
+                deny: []
+            dataAccess:
+              - tag: "*"
+                allow:
+                  - "own_tag_data"
+                deny: []
+    responses:
+      '200':
+        description: 權限設定更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/PermissionSettingsResponse'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# /projects/{projectId}/stats
+# ===========================================================
+
+/projects/{projectId}/stats:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "專案 ID"
+
+  get:
+    operationId: getProjectStats
+    summary: "取得專案統計資料"
+    description: |
+      取得專案的統計儀表板資料，包含任務數量、待辦事項完成率、
+      成員數量、最近活動等摘要資訊。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - project_member
+    responses:
+      '200':
+        description: "專案統計資料"
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectId
+                - taskCounts
+                - todoCounts
+                - memberCount
+              properties:
+                projectId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                taskCounts:
+                  type: object
+                  description: "任務數量統計"
+                  properties:
+                    total:
+                      type: integer
+                    byStatus:
+                      type: object
+                      additionalProperties:
+                        type: integer
+                todoCounts:
+                  type: object
+                  description: "待辦事項統計"
+                  properties:
+                    total:
+                      type: integer
+                    completed:
+                      type: integer
+                    overdue:
+                      type: integer
+                memberCount:
+                  type: integer
+                  description: "專案成員數量"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# /projects/{projectId}/reminders
+# ===========================================================
+
+/projects/{projectId}/reminders:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "專案 ID"
+
+  get:
+    operationId: listProjectReminders
+    summary: "列出專案排程提醒"
+    description: |
+      取得專案下所有已排程的提醒列表，包含待辦事項到期提醒、
+      逾期提醒等。支援依狀態篩選（已觸發/未觸發）。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - project_member
+    parameters:
+      - name: fired
+        in: query
+        schema:
+          type: boolean
+        description: "篩選已觸發或未觸發的提醒"
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+        description: "每頁數量"
+    responses:
+      '200':
+        description: "排程提醒列表"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ListResponse'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  post:
+    operationId: createProjectReminder
+    summary: "建立專案提醒"
+    description: |
+      在專案中建立新的排程提醒，可關聯到特定待辦事項。
+      支援到期提醒、逾期提醒等類型。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - project_member
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - type
+              - triggerAt
+            properties:
+              todoId:
+                $ref: '../schemas/common.yaml#/UUID'
+                description: "關聯的待辦事項 ID（可選）"
+              type:
+                type: string
+                enum:
+                  - due_date_approaching
+                  - due_date_overdue
+                  - todo_stale
+                description: "提醒類型（與 ReminderResponse 及 scheduled_reminders 表一致）"
+              triggerAt:
+                type: string
+                format: date-time
+                description: "觸發時間（UTC）"
+              config:
+                type: object
+                additionalProperties: true
+                description: "提醒設定（如重複規則、通知管道等）"
+          example:
+            todoId: "018e4a2c-0006-7000-8000-000000000001"
+            type: "due_date_approaching"
+            triggerAt: "2026-02-28T09:00:00Z"
+            config:
+              channels:
+                - "in_app"
+                - "email"
+    responses:
+      '201':
+        description: "提醒建立成功"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/entities.yaml#/Reminder'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# /projects/{projectId}/reminders/{reminderId}
+# ===========================================================
+
+/projects/{projectId}/reminders/{reminderId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "專案 ID"
+    - name: reminderId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "提醒 ID"
+
+  delete:
+    operationId: deleteProjectReminder
+    summary: "刪除專案提醒"
+    description: |
+      刪除指定的排程提醒。已觸發的提醒也可刪除（僅移除排程記錄）。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - project_member
+    responses:
+      '204':
+        description: "提醒已刪除"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# /projects/{projectId}/restore
+# ===========================================================
+
+/projects/{projectId}/restore:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "專案 ID"
+
+  post:
+    operationId: restoreProject
+    summary: "還原已刪除的專案"
+    description: |
+      還原軟刪除的專案，清除 `deletedAt` 時間戳。
+      僅專案擁有者（`owner`）或組織擁有者（`org_owner`）可操作。
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - org_owner
+    responses:
+      '200':
+        description: "專案還原成功"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/projects.yaml#/ProjectResponse'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: "專案未處於已刪除狀態"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+
+# ===========================================================
+# /projects/{projectId}/members/me
+# ===========================================================
+
+/projects/{projectId}/members/me:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "專案 ID"
+
+  delete:
+    operationId: leaveProject
+    summary: "自行退出專案"
+    description: |
+      目前登入的成員自行退出指定專案。
+
+      限制：
+      - 專案擁有者（owner）無法自行退出，需先轉移擁有權
+      - 退出後將無法存取該專案的任何資源
+    tags:
+      - Projects
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    responses:
+      '204':
+        description: "已成功退出專案"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        description: "專案擁有者無法自行退出"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

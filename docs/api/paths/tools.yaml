@@ -1,0 +1,479 @@
+# 執行工具相關路徑
+# Execution Tools — list, details, execute, tool configurations
+
+# --- 工具列表與執行 ---
+
+/projects/{projectId}/tools:
+  get:
+    operationId: listTools
+    summary: 列出可用工具
+    description: |
+      依據目前使用者的權限，列出該專案中所有可用的執行工具。
+      包含核心工具（全域可用）、已啟用的內建工具、以及第三方 MCP 工具。
+      回傳的工具列表已過濾不可存取的工具。
+    tags:
+      - Tools
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 可用工具列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tools
+              properties:
+                tools:
+                  type: array
+                  items:
+                    $ref: '../schemas/tools.yaml#/ToolSummary'
+            example:
+              tools:
+                - name: "createTask"
+                  displayName: "建立任務"
+                  category: "core"
+                  type: "write"
+                  description: "從任務模板建立新任務"
+                - name: "smtp/sendEmail"
+                  displayName: "寄送 Email"
+                  category: "builtin"
+                  type: "write"
+                  description: "透過 SMTP 發送 Email"
+                - name: "queryMemories"
+                  displayName: "查詢記憶"
+                  category: "core"
+                  type: "read"
+                  description: "搜尋各層級的記憶條目"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/tools/{toolName}:
+  get:
+    operationId: getToolDetails
+    summary: 取得工具詳細資訊
+    description: |
+      取得指定工具的詳細定義，包含 MCP tool definition 格式的
+      參數結構（inputSchema）、回傳結構、使用說明等。
+    tags:
+      - Tools
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: toolName
+        in: path
+        required: true
+        description: 工具名稱（如 `createTask`、`smtp/sendEmail`）
+        schema:
+          type: string
+        example: "createTask"
+    responses:
+      '200':
+        description: 工具詳細定義
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/tools.yaml#/ToolDefinition'
+            example:
+              name: "createTask"
+              displayName: "建立任務"
+              category: "core"
+              type: "write"
+              description: "從任務模板建立新任務"
+              inputSchema:
+                type: "object"
+                properties:
+                  taskTemplateId:
+                    type: "string"
+                    format: "uuid"
+                    description: "任務模板 ID"
+                  name:
+                    type: "string"
+                    description: "任務名稱"
+                  ownerTagId:
+                    type: "string"
+                    format: "uuid"
+                    description: "歸屬成員標籤 ID"
+                  parentTodoId:
+                    type: "string"
+                    format: "uuid"
+                    description: "關聯的待辦事項 ID（可選，跨組協作用）"
+                required:
+                  - taskTemplateId
+                  - name
+                  - ownerTagId
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/tools/{toolName}/execute:
+  post:
+    operationId: executeTool
+    summary: 執行工具
+    description: |
+      執行指定工具。寫入工具需經人類確認後才實際執行（透過 AI 建議流程時由建議決策觸發，
+      手動執行時直接送出）。查詢工具不需確認即可執行。
+
+      `lastSeenMessageId` 用於對話同步驗證：伺服器檢查使用者是否已看到最新對話訊息，
+      若有未讀訊息則拒絕操作，確保決策品質。
+    tags:
+      - Tools
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: toolName
+        in: path
+        required: true
+        description: 工具名稱
+        schema:
+          type: string
+        example: "upsertDataEntry"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/tools.yaml#/ToolExecuteRequest'
+          example:
+            taskId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+            parameters:
+              schemaId: "018e4a2c-aaaa-7d8e-9a1b-2c3d4e5f6a7b"
+              fields:
+                companyName: "ACME Corp"
+                contactEmail: "sponsor@acme.com"
+            lastSeenMessageId: "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
+    responses:
+      '200':
+        description: 工具執行成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/tools.yaml#/ToolExecuteResponse'
+            example:
+              success: true
+              result:
+                entryId: "018e4a2c-bbbb-7d8e-9a1b-2c3d4e5f6a7b"
+                updatedFields:
+                  - "companyName"
+                  - "contactEmail"
+              messageId: "018e4a2c-cccc-7d8e-9a1b-2c3d4e5f6a7b"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 對話已有新訊息，需先閱讀最新內容
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://api.conf-ops.dev/errors/stale-conversation"
+              title: "Conversation Has New Messages"
+              status: 409
+              detail: "對話中有未讀訊息，請先閱讀最新內容後再操作"
+
+# --- 工具設定管理 ---
+
+/projects/{projectId}/tool-configs:
+  get:
+    operationId: listProjectToolConfigs
+    summary: 列出專案工具設定
+    description: |
+      列出該專案的所有工具設定，包含內建工具的啟用狀態與設定，
+      以及第三方 MCP Server 的連線設定。僅專案擁有者可存取。
+    tags:
+      - ToolConfigs
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 工具設定列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - toolConfigs
+              properties:
+                toolConfigs:
+                  type: array
+                  items:
+                    $ref: '../schemas/tools.yaml#/ToolConfig'
+            example:
+              toolConfigs:
+                - id: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeType: "project"
+                  scopeId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  toolName: "smtp/sendEmail"
+                  enabled: true
+                  config:
+                    host: "smtp.example.com"
+                    port: 587
+                    senderAddress: "noreply@coscup.org"
+                  createdAt: "2025-01-15T10:00:00Z"
+                  updatedAt: "2025-01-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  post:
+    operationId: createProjectToolConfig
+    summary: 建立專案工具設定
+    description: |
+      在專案中建立新的工具設定。可為內建工具設定啟用與參數，
+      或新增第三方 MCP Server 連線。
+    tags:
+      - ToolConfigs
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/tools.yaml#/CreateToolConfigRequest'
+          example:
+            toolName: "smtp/sendEmail"
+            enabled: true
+            config:
+              host: "smtp.example.com"
+              port: 587
+              username: "api-user"
+              password: "api-key-here"
+              senderAddress: "noreply@coscup.org"
+    responses:
+      '201':
+        description: 工具設定建立成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/tools.yaml#/ToolConfig'
+            example:
+              id: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+              scopeType: "project"
+              scopeId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+              toolName: "smtp/sendEmail"
+              enabled: true
+              config:
+                host: "smtp.example.com"
+                port: 587
+                senderAddress: "noreply@coscup.org"
+              createdAt: "2025-01-15T10:00:00Z"
+              updatedAt: "2025-01-15T10:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '409':
+        description: 該工具設定已存在
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://api.conf-ops.dev/errors/duplicate"
+              title: "Tool Config Already Exists"
+              status: 409
+              detail: "專案中已存在此工具的設定"
+
+/projects/{projectId}/tool-configs/{configId}:
+  put:
+    operationId: updateProjectToolConfig
+    summary: 更新專案工具設定
+    description: |
+      更新指定的工具設定，包含啟用/停用狀態、連線參數等。
+    tags:
+      - ToolConfigs
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: configId
+        in: path
+        required: true
+        description: 工具設定 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/tools.yaml#/UpdateToolConfigRequest'
+          example:
+            enabled: false
+            config:
+              host: "smtp.new-provider.com"
+              port: 465
+    responses:
+      '200':
+        description: 工具設定更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/tools.yaml#/ToolConfig'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteProjectToolConfig
+    summary: 刪除專案工具設定
+    description: |
+      刪除指定的工具設定。刪除後該工具在專案中將不再可用
+      （除非組織層級有設定且專案繼承）。
+    tags:
+      - ToolConfigs
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: configId
+        in: path
+        required: true
+        description: 工具設定 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '204':
+        description: 工具設定已刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# --- 組織層級工具設定 ---
+
+/organizations/{orgId}/tool-configs:
+  get:
+    operationId: listOrgToolConfigs
+    summary: 列出組織工具設定
+    description: |
+      列出該組織的所有工具設定。組織層級的工具設定可被旗下專案繼承或覆寫。
+      僅組織擁有者可存取。
+    tags:
+      - ToolConfigs
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - org_owner
+    parameters:
+      - name: orgId
+        in: path
+        required: true
+        description: 組織 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 組織工具設定列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - toolConfigs
+              properties:
+                toolConfigs:
+                  type: array
+                  items:
+                    $ref: '../schemas/tools.yaml#/ToolConfig'
+            example:
+              toolConfigs:
+                - id: "018e4a2c-2222-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeType: "organization"
+                  scopeId: "018e4a2c-0000-7d8e-9a1b-2c3d4e5f6a7b"
+                  toolName: "hackmd/createDocument"
+                  enabled: true
+                  config:
+                    apiKey: "****"
+                  createdAt: "2025-01-10T08:00:00Z"
+                  updatedAt: "2025-01-10T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

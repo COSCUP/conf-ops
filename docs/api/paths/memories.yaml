@@ -1,0 +1,652 @@
+# 記憶與記憶庫文件相關路徑
+# Memories, Library Documents, and Memory Inheritance Chain
+
+# --- 記憶 CRUD ---
+
+/memories:
+  get:
+    operationId: listMemories
+    summary: 查詢記憶列表
+    description: |
+      查詢記憶條目，可依 `scopeType`、`scopeId` 過濾作用域，
+      或以 `search` 進行全文搜尋。回傳記憶摘要（`content`），
+      不含記憶庫文件完整內容。
+    tags:
+      - Memories
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: scopeType
+        in: query
+        description: 作用域類型過濾
+        schema:
+          $ref: '../schemas/common.yaml#/ScopeType'
+      - name: scopeId
+        in: query
+        description: 作用域 ID 過濾（需搭配 scopeType）
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: search
+        in: query
+        description: 全文搜尋關鍵字
+        schema:
+          type: string
+          maxLength: 200
+      - name: source
+        in: query
+        description: 記憶來源過濾
+        schema:
+          $ref: '../schemas/common.yaml#/MemorySource'
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    responses:
+      '200':
+        description: 記憶列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memories
+                - pagination
+              properties:
+                memories:
+                  type: array
+                  items:
+                    $ref: '../schemas/memories.yaml#/MemorySummary'
+                pagination:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+            example:
+              memories:
+                - id: "018e4a2c-aaa1-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeType: "project"
+                  scopeId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  content: "贊助商初次聯絡應在活動前 6 個月開始，先寄正式邀請信"
+                  source: "auto_extracted"
+                  libraryRef: "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b"
+                  createdAt: "2025-01-15T10:00:00Z"
+                  updatedAt: "2025-01-15T10:00:00Z"
+              pagination:
+                hasMore: false
+                nextCursor: null
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+  post:
+    operationId: createMemory
+    summary: 建立記憶
+    description: |
+      建立新的記憶條目。需指定作用域（`scopeType` + `scopeId`）與摘要內容。
+      可選擇性地關聯記憶庫文件（`libraryRef`）。
+      建立者需對該作用域具備寫入權限。
+    tags:
+      - Memories
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_write
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/memories.yaml#/CreateMemoryRequest'
+          example:
+            scopeType: "member_tag"
+            scopeId: "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b"
+            content: "贊助商聯絡時需同時 CC 組長與財務窗口"
+            libraryRef: null
+    responses:
+      '201':
+        description: 記憶建立成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/memories.yaml#/Memory'
+            example:
+              id: "018e4a2c-aaa2-7d8e-9a1b-2c3d4e5f6a7b"
+              scopeType: "member_tag"
+              scopeId: "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b"
+              content: "贊助商聯絡時需同時 CC 組長與財務窗口"
+              source: "manual"
+              libraryRef: null
+              createdAt: "2025-02-01T08:00:00Z"
+              updatedAt: "2025-02-01T08:00:00Z"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+
+/memories/{memoryId}:
+  get:
+    operationId: getMemory
+    summary: 取得記憶詳情
+    description: |
+      取得指定記憶的完整資訊，包含摘要內容、來源、
+      關聯的記憶庫文件參考等。
+    tags:
+      - Memories
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_read
+    parameters:
+      - name: memoryId
+        in: path
+        required: true
+        description: 記憶 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 記憶詳情
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/memories.yaml#/Memory'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateMemory
+    summary: 更新記憶
+    description: |
+      更新記憶的摘要內容或記憶庫文件參考。
+      更新會產生新的版本記錄。
+    tags:
+      - Memories
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_write
+    parameters:
+      - name: memoryId
+        in: path
+        required: true
+        description: 記憶 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/memories.yaml#/UpdateMemoryRequest'
+          example:
+            content: "贊助商聯絡時需同時 CC 組長、財務窗口與行政組"
+            libraryRef: "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b"
+    responses:
+      '200':
+        description: 記憶更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/memories.yaml#/Memory'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteMemory
+    summary: 刪除記憶（軟刪除）
+    description: |
+      軟刪除指定記憶。刪除後記憶不再出現在查詢結果中，
+      也不再納入 AI 建議的上下文，但資料仍保留供審計。
+    tags:
+      - Memories
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_write
+    parameters:
+      - name: memoryId
+        in: path
+        required: true
+        description: 記憶 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '204':
+        description: 記憶已軟刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/memories/{memoryId}/versions:
+  get:
+    operationId: listMemoryVersions
+    summary: 取得記憶版本歷史
+    description: |
+      取得指定記憶的所有版本歷史，可追蹤記憶內容的修改過程。
+    tags:
+      - Memories
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_read
+    parameters:
+      - name: memoryId
+        in: path
+        required: true
+        description: 記憶 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 版本歷史列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - versions
+              properties:
+                versions:
+                  type: array
+                  items:
+                    $ref: '../schemas/memories.yaml#/MemoryVersion'
+            example:
+              versions:
+                - version: 2
+                  content: "贊助商聯絡時需同時 CC 組長、財務窗口與行政組"
+                  editedBy: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+                  editedAt: "2025-02-10T14:00:00Z"
+                - version: 1
+                  content: "贊助商聯絡時需同時 CC 組長與財務窗口"
+                  editedBy: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+                  editedAt: "2025-02-01T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# --- 記憶庫文件 CRUD ---
+
+/library-documents:
+  get:
+    operationId: listLibraryDocuments
+    summary: 查詢記憶庫文件
+    description: |
+      查詢記憶庫文件列表，可依作用域過濾。
+      回傳文件摘要（不含完整內容），需取得完整內容請使用單筆查詢。
+    tags:
+      - LibraryDocuments
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - authenticated
+    parameters:
+      - name: scopeType
+        in: query
+        description: 作用域類型過濾
+        schema:
+          $ref: '../schemas/common.yaml#/ScopeType'
+      - name: scopeId
+        in: query
+        description: 作用域 ID 過濾（需搭配 scopeType）
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: search
+        in: query
+        description: 全文搜尋關鍵字
+        schema:
+          type: string
+          maxLength: 200
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    responses:
+      '200':
+        description: 記憶庫文件列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - documents
+                - pagination
+              properties:
+                documents:
+                  type: array
+                  items:
+                    $ref: '../schemas/memories.yaml#/LibraryDocumentSummary'
+                pagination:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+            example:
+              documents:
+                - id: "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeType: "member_tag"
+                  scopeId: "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b"
+                  title: "贊助商初次聯絡信範本"
+                  createdAt: "2025-01-10T08:00:00Z"
+                  updatedAt: "2025-01-15T10:00:00Z"
+              pagination:
+                hasMore: false
+                nextCursor: null
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+
+  post:
+    operationId: createLibraryDocument
+    summary: 建立記憶庫文件
+    description: |
+      建立新的記憶庫文件。文件歸屬於指定的作用域層級，
+      可被該作用域下的記憶條目透過 `libraryRef` 參考。
+    tags:
+      - LibraryDocuments
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_write
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/memories.yaml#/CreateLibraryDocumentRequest'
+          example:
+            scopeType: "member_tag"
+            scopeId: "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b"
+            title: "贊助商初次聯絡信範本"
+            content: |
+              主旨：COSCUP 2026 贊助合作邀請
+
+              {{data.contactName}} 您好，
+
+              我是 COSCUP 2026 贊助組的 {{profile.name}}，
+              感謝貴公司過往對開源社群的支持...
+    responses:
+      '201':
+        description: 文件建立成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/memories.yaml#/LibraryDocument'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+
+/library-documents/{docId}:
+  get:
+    operationId: getLibraryDocument
+    summary: 取得記憶庫文件（含完整內容）
+    description: |
+      取得指定記憶庫文件的完整內容，包含標題、完整文字內容等。
+    tags:
+      - LibraryDocuments
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_read
+    parameters:
+      - name: docId
+        in: path
+        required: true
+        description: 文件 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 文件完整內容
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/memories.yaml#/LibraryDocument'
+            example:
+              id: "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b"
+              scopeType: "member_tag"
+              scopeId: "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b"
+              title: "贊助商初次聯絡信範本"
+              content: "主旨：COSCUP 2026 贊助合作邀請\n\n{{data.contactName}} 您好..."
+              createdAt: "2025-01-10T08:00:00Z"
+              updatedAt: "2025-01-15T10:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  put:
+    operationId: updateLibraryDocument
+    summary: 更新記憶庫文件
+    description: |
+      更新記憶庫文件的標題或內容。更新會產生新的版本記錄。
+    tags:
+      - LibraryDocuments
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_write
+    parameters:
+      - name: docId
+        in: path
+        required: true
+        description: 文件 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/memories.yaml#/UpdateLibraryDocumentRequest'
+          example:
+            title: "贊助商初次聯絡信範本（2026 更新版）"
+            content: "主旨：COSCUP 2026 贊助合作邀請\n\n{{data.contactName}} 您好..."
+    responses:
+      '200':
+        description: 文件更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/memories.yaml#/LibraryDocument'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteLibraryDocument
+    summary: 刪除記憶庫文件（軟刪除）
+    description: |
+      軟刪除指定文件。刪除後參考此文件的記憶條目的 `libraryRef` 仍保留，
+      但查詢文件內容時會標示為已刪除。
+    tags:
+      - LibraryDocuments
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_write
+    parameters:
+      - name: docId
+        in: path
+        required: true
+        description: 文件 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '204':
+        description: 文件已軟刪除
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/library-documents/{docId}/versions:
+  get:
+    operationId: listLibraryDocumentVersions
+    summary: 取得文件版本歷史
+    description: |
+      取得指定記憶庫文件的所有版本歷史，可追蹤文件內容的修改過程。
+    tags:
+      - LibraryDocuments
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - scope_read
+    parameters:
+      - name: docId
+        in: path
+        required: true
+        description: 文件 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 文件版本歷史
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - versions
+              properties:
+                versions:
+                  type: array
+                  items:
+                    $ref: '../schemas/memories.yaml#/LibraryDocumentVersion'
+            example:
+              versions:
+                - version: 2
+                  title: "贊助商初次聯絡信範本（2026 更新版）"
+                  content: "主旨：COSCUP 2026 贊助合作邀請..."
+                  editedBy: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+                  editedAt: "2025-01-15T10:00:00Z"
+                - version: 1
+                  title: "贊助商初次聯絡信範本"
+                  content: "主旨：COSCUP 2025 贊助合作邀請..."
+                  editedBy: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+                  editedAt: "2025-01-10T08:00:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# --- 記憶繼承鏈 ---
+
+/tasks/{taskId}/memory-chain:
+  get:
+    operationId: getTaskMemoryChain
+    summary: 取得任務的記憶繼承鏈
+    description: |
+      取得指定任務的完整記憶繼承鏈，沿著任務的 `ownerTag` 繼承路徑收集所有相關記憶：
+
+      帳號記憶 (Account) → 組織記憶 (Organization) → 專案記憶 (Project)
+      → ownerTag 記憶 (MemberTag) → 任務模板記憶 (TaskTemplate) → 任務記憶 (Task)
+
+      帳號記憶為當前操作帳號的個人記憶，獨立於 ownerTag 繼承鏈。
+      各層級的記憶按 scope 分組回傳。
+    tags:
+      - Memories
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: 任務 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 記憶繼承鏈
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/memories.yaml#/MemoryChainResponse'
+            example:
+              taskId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+              chain:
+                - scopeType: "account"
+                  scopeId: "018e4a2c-0001-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeName: "Alice"
+                  memories:
+                    - id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+                      content: "請用臺灣正體中文與我溝通"
+                      source: "manual"
+                - scopeType: "organization"
+                  scopeId: "018e4a2c-0002-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeName: "COSCUP"
+                  memories:
+                    - id: "018e4a2c-a002-7d8e-9a1b-2c3d4e5f6a7b"
+                      content: "所有對外信件需使用正式稱謂"
+                      source: "manual"
+                - scopeType: "project"
+                  scopeId: "018e4a2c-0003-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeName: "COSCUP 2026"
+                  memories: []
+                - scopeType: "member_tag"
+                  scopeId: "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeName: "贊助組"
+                  memories:
+                    - id: "018e4a2c-a003-7d8e-9a1b-2c3d4e5f6a7b"
+                      content: "贊助商初次聯絡應在活動前 6 個月開始"
+                      source: "auto_extracted"
+                      libraryRef: "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b"
+                - scopeType: "task_template"
+                  scopeId: "018e4a2c-4444-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeName: "贊助商聯絡"
+                  memories: []
+                - scopeType: "task"
+                  scopeId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  scopeName: "與 A 公司聯絡"
+                  memories: []
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

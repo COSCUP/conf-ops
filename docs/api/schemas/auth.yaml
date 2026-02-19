@@ -1,0 +1,340 @@
+# Conf-Ops API - 認證相關 Schema 定義
+# Authentication schemas — Passkey (WebAuthn), Magic Link, Token
+
+# =============================================================================
+# Passkey 註冊（WebAuthn Registration）
+# =============================================================================
+
+PasskeyRegisterBeginResponse:
+  type: object
+  description: "Passkey 註冊選項回應，包含 WebAuthn PublicKeyCredentialCreationOptions"
+  required:
+    - challenge
+    - rp
+    - user
+    - pubKeyCredParams
+  properties:
+    challenge:
+      type: string
+      description: "Base64URL 編碼的隨機挑戰值"
+    rp:
+      type: object
+      description: "Relying Party 資訊"
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+          description: "Relying Party 名稱"
+          examples:
+            - "Conf-Ops"
+        id:
+          type: string
+          description: "Relying Party ID（域名）"
+          examples:
+            - "conf-ops.example.com"
+    user:
+      type: object
+      description: "使用者資訊"
+      required:
+        - id
+        - name
+        - displayName
+      properties:
+        id:
+          type: string
+          description: "Base64URL 編碼的使用者 ID"
+        name:
+          type: string
+          description: "使用者帳號名稱（通常為 email）"
+        displayName:
+          type: string
+          description: "使用者顯示名稱"
+    pubKeyCredParams:
+      type: array
+      items:
+        type: object
+        required:
+          - type
+          - alg
+        properties:
+          type:
+            type: string
+            const: "public-key"
+          alg:
+            type: integer
+            description: "COSE 演算法識別碼（如 -7 為 ES256、-257 為 RS256）"
+      description: "允許的公鑰憑證參數列表"
+    timeout:
+      type: integer
+      description: "逾時時間（毫秒）"
+      examples:
+        - 60000
+    attestation:
+      type: string
+      enum:
+        - none
+        - indirect
+        - direct
+        - enterprise
+      description: "Attestation 偏好"
+      examples:
+        - "none"
+    authenticatorSelection:
+      type: object
+      description: "Authenticator 選擇條件"
+      properties:
+        authenticatorAttachment:
+          type: string
+          enum:
+            - platform
+            - cross-platform
+        residentKey:
+          type: string
+          enum:
+            - discouraged
+            - preferred
+            - required
+        requireResidentKey:
+          type: boolean
+        userVerification:
+          type: string
+          enum:
+            - required
+            - preferred
+            - discouraged
+    excludeCredentials:
+      type: array
+      items:
+        type: object
+        required:
+          - type
+          - id
+        properties:
+          type:
+            type: string
+            const: "public-key"
+          id:
+            type: string
+            description: "Base64URL 編碼的已註冊憑證 ID"
+          transports:
+            type: array
+            items:
+              type: string
+              enum:
+                - usb
+                - ble
+                - nfc
+                - internal
+      description: "已註冊的憑證列表，避免重複註冊"
+
+PasskeyRegisterCompleteRequest:
+  type: object
+  description: "Passkey 註冊完成請求，包含瀏覽器 navigator.credentials.create() 的回傳結果"
+  required:
+    - id
+    - rawId
+    - response
+    - type
+  properties:
+    id:
+      type: string
+      description: "Base64URL 編碼的憑證 ID"
+    rawId:
+      type: string
+      description: "Base64URL 編碼的原始憑證 ID"
+    response:
+      type: object
+      description: "AuthenticatorAttestationResponse"
+      required:
+        - attestationObject
+        - clientDataJSON
+      properties:
+        attestationObject:
+          type: string
+          description: "Base64URL 編碼的 attestation object"
+        clientDataJSON:
+          type: string
+          description: "Base64URL 編碼的 client data JSON"
+    type:
+      type: string
+      const: "public-key"
+      description: "憑證類型，固定為 'public-key'"
+
+PasskeyRegisterCompleteResponse:
+  type: object
+  description: "Passkey 註冊成功回應"
+  required:
+    - credentialId
+    - createdAt
+  properties:
+    credentialId:
+      type: string
+      description: "Base64URL 編碼的已註冊憑證 ID"
+    createdAt:
+      type: string
+      format: date-time
+      description: "憑證建立時間（UTC）"
+
+# =============================================================================
+# Passkey 登入（WebAuthn Authentication）
+# =============================================================================
+
+PasskeyLoginBeginRequest:
+  type: object
+  description: "Passkey 登入開始請求，可選提供 email 以縮小憑證範圍"
+  properties:
+    email:
+      type: string
+      format: email
+      description: "使用者 Email（可選），提供時僅回傳該帳號的憑證"
+
+PasskeyLoginBeginResponse:
+  type: object
+  description: "Passkey 登入選項回應，包含 WebAuthn PublicKeyCredentialRequestOptions"
+  required:
+    - challenge
+    - rpId
+  properties:
+    challenge:
+      type: string
+      description: "Base64URL 編碼的隨機挑戰值"
+    timeout:
+      type: integer
+      description: "逾時時間（毫秒）"
+      examples:
+        - 60000
+    rpId:
+      type: string
+      description: "Relying Party ID（域名）"
+      examples:
+        - "conf-ops.example.com"
+    allowCredentials:
+      type: array
+      items:
+        type: object
+        required:
+          - type
+          - id
+        properties:
+          type:
+            type: string
+            const: "public-key"
+          id:
+            type: string
+            description: "Base64URL 編碼的憑證 ID"
+          transports:
+            type: array
+            items:
+              type: string
+              enum:
+                - usb
+                - ble
+                - nfc
+                - internal
+      description: "允許的憑證列表（提供 email 時會篩選）"
+    userVerification:
+      type: string
+      enum:
+        - required
+        - preferred
+        - discouraged
+      description: "使用者驗證偏好"
+
+PasskeyLoginCompleteRequest:
+  type: object
+  description: "Passkey 登入完成請求，包含瀏覽器 navigator.credentials.get() 的回傳結果"
+  required:
+    - id
+    - rawId
+    - response
+    - type
+  properties:
+    id:
+      type: string
+      description: "Base64URL 編碼的憑證 ID"
+    rawId:
+      type: string
+      description: "Base64URL 編碼的原始憑證 ID"
+    response:
+      type: object
+      description: "AuthenticatorAssertionResponse"
+      required:
+        - authenticatorData
+        - clientDataJSON
+        - signature
+      properties:
+        authenticatorData:
+          type: string
+          description: "Base64URL 編碼的 authenticator data"
+        clientDataJSON:
+          type: string
+          description: "Base64URL 編碼的 client data JSON"
+        signature:
+          type: string
+          description: "Base64URL 編碼的簽章"
+        userHandle:
+          type: string
+          description: "Base64URL 編碼的使用者 handle（可選）"
+    type:
+      type: string
+      const: "public-key"
+      description: "憑證類型，固定為 'public-key'"
+
+# =============================================================================
+# Magic Link（Email 登入連結）
+# =============================================================================
+
+MagicLinkRequestBody:
+  type: object
+  description: "Magic Link 登入請求，提供 Email 以發送一次性登入連結"
+  required:
+    - email
+  properties:
+    email:
+      type: string
+      format: email
+      description: "接收 Magic Link 的 Email 地址"
+
+MagicLinkRequestResponse:
+  type: object
+  description: "Magic Link 發送回應（無論帳號是否存在皆回傳成功，防止列舉攻擊）"
+  required:
+    - message
+  properties:
+    message:
+      type: string
+      description: "操作結果訊息"
+      examples:
+        - "若該 Email 已註冊，將收到登入連結"
+
+# =============================================================================
+# Token Pair（認證 Token）
+# =============================================================================
+
+TokenPair:
+  type: object
+  description: "認證 Token Pair 回應。Access token 於 JSON body 回傳，refresh token 同時以 HTTP-only cookie 設定。"
+  required:
+    - accessToken
+    - expiresIn
+    - tokenType
+  properties:
+    accessToken:
+      type: string
+      description: "JWT Access Token（EdDSA 簽署）"
+    expiresIn:
+      type: integer
+      description: "Access Token 有效時間（秒）"
+      examples:
+        - 900
+    tokenType:
+      type: string
+      default: "Bearer"
+      description: "Token 類型"
+      examples:
+        - "Bearer"
+    refreshToken:
+      type: string
+      description: "Refresh token（僅非瀏覽器客戶端使用，瀏覽器端透過 HTTP-only cookie 傳遞）"

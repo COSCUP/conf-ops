@@ -1,0 +1,630 @@
+# Conf-Ops API - 回應包裝 Schema 定義
+# 通用回應結構，包裝實體資料
+
+# =============================================================================
+# Aliases（路徑檔案參照名稱 → 實際 Schema）
+# =============================================================================
+
+TaskTemplateResponse:
+  $ref: './entities.yaml#/TaskTemplateResponse'
+
+TaskTemplateDetailResponse:
+  type: object
+  description: "任務模板詳細回應（含待辦模板與資料表定義）"
+  required:
+    - data
+  properties:
+    data:
+      $ref: './entities.yaml#/TaskTemplateResponse'
+
+TaskResponse:
+  $ref: './entities.yaml#/TaskResponse'
+
+TaskDetailResponse:
+  type: object
+  description: "任務詳細回應（含待辦事項、資料列等）"
+  required:
+    - data
+  properties:
+    data:
+      $ref: './entities.yaml#/TaskResponse'
+
+TodoTemplateResponse:
+  $ref: './entities.yaml#/TodoTemplateResponse'
+
+TodoResponse:
+  $ref: './entities.yaml#/TodoResponse'
+
+TodoDetailResponse:
+  type: object
+  description: "待辦事項詳細回應（含子待辦與指派資訊）"
+  required:
+    - data
+  properties:
+    data:
+      $ref: './entities.yaml#/TodoResponse'
+
+DataSchemaResponse:
+  $ref: './entities.yaml#/DataSchemaResponse'
+
+DataEntryResponse:
+  $ref: './entities.yaml#/DataEntryResponse'
+
+MessageResponse:
+  $ref: './entities.yaml#/MessageResponse'
+
+ConversationResponse:
+  type: object
+  description: "任務對話回應（訊息列表與對話中繼資訊）"
+  required:
+    - messages
+    - meta
+  properties:
+    messages:
+      type: array
+      items:
+        $ref: './entities.yaml#/MessageResponse'
+    meta:
+      $ref: './common.yaml#/CursorPaginationMeta'
+
+StaleConversationErrorResponse:
+  type: object
+  description: "對話已過時錯誤回應（RFC 7807 Problem Details，已讀保護機制觸發時回傳）"
+  required:
+    - type
+    - title
+    - status
+    - detail
+    - latestMessageId
+  properties:
+    type:
+      type: string
+      format: uri
+      description: "問題類型 URI"
+      examples:
+        - "https://conf-ops.dev/problems/stale-conversation"
+    title:
+      type: string
+      description: "問題的簡短摘要"
+      examples:
+        - "Stale Conversation"
+    status:
+      type: integer
+      description: "HTTP 狀態碼"
+      examples:
+        - 409
+    detail:
+      type: string
+      description: "問題的詳細說明"
+      examples:
+        - "對話已有新訊息，請重新整理後再操作"
+    latestMessageId:
+      $ref: './common.yaml#/UUID'
+      description: "伺服器端最新的訊息 ID（RFC 7807 擴充欄位）"
+
+AggregatedDataSheetResponse:
+  type: object
+  description: "跨任務聚合資料表回應"
+  required:
+    - schema
+    - entries
+    - meta
+  properties:
+    schema:
+      $ref: './entities.yaml#/DataSchemaResponse'
+    entries:
+      type: array
+      items:
+        type: object
+    meta:
+      $ref: './common.yaml#/CursorPaginationMeta'
+
+ExternalTaskTemplateListResponse:
+  type: object
+  description: "外部可建立的任務模板列表回應"
+  required:
+    - items
+  properties:
+    items:
+      type: array
+      items:
+        $ref: './entities.yaml#/TaskTemplateSummary'
+
+ExternalTaskListResponse:
+  type: object
+  description: "外部任務列表回應"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      items:
+        $ref: './entities.yaml#/TaskSummary'
+    meta:
+      $ref: './common.yaml#/CursorPaginationMeta'
+
+ExternalDataResponse:
+  type: object
+  description: "外部資料回應"
+  required:
+    - data
+  properties:
+    data:
+      type: object
+      additionalProperties: true
+      description: "外部資料內容"
+
+ExternalTaskDataResponse:
+  type: object
+  description: "外部任務資料回應（含任務與資料列）"
+  required:
+    - task
+    - dataEntries
+  properties:
+    task:
+      $ref: './entities.yaml#/TaskSummary'
+    dataEntries:
+      type: array
+      items:
+        $ref: './entities.yaml#/DataEntryResponse'
+
+ShareDataResponse:
+  type: object
+  description: "資料分享結果回應"
+  required:
+    - sourceTaskId
+    - targetTaskId
+    - sharedFields
+  properties:
+    sourceTaskId:
+      $ref: './common.yaml#/UUID'
+    targetTaskId:
+      $ref: './common.yaml#/UUID'
+    sharedFields:
+      type: array
+      items:
+        type: string
+      description: "已分享的欄位 key 列表"
+
+# =============================================================================
+# 列表回應（含游標分頁）
+# =============================================================================
+
+ListResponse:
+  type: object
+  description: "列表回應，包含游標分頁中繼資訊與項目陣列"
+  required:
+    - items
+    - meta
+  properties:
+    items:
+      type: array
+      description: "項目列表"
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"
+
+# --- 各實體的列表回應 ---
+
+AccountListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/AccountSummary"
+
+OrganizationListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/OrganizationSummary"
+
+OrganizationMemberListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/OrganizationMemberResponse"
+
+ProjectListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/ProjectSummary"
+
+MemberListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/MemberSummary"
+
+ContactListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/ContactSummary"
+
+MemberTagListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/MemberTagSummary"
+
+MemberTagAssignmentListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/MemberTagAssignmentResponse"
+
+TaskTemplateListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/TaskTemplateSummary"
+
+TaskListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/TaskSummary"
+
+MessageListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/MessageResponse"
+
+TodoListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/TodoSummary"
+
+DataEntryListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/DataEntryResponse"
+
+ToolConfigListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/ToolConfigSummary"
+
+MemoryListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/MemorySummary"
+
+LibraryDocumentListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/LibraryDocumentSummary"
+
+AuditLogListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/AuditLogSummary"
+
+NotificationListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/NotificationSummary"
+
+EmailThreadListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/EmailThreadSummary"
+
+WebhookListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/WebhookSummary"
+
+WebhookEventLogListResponse:
+  allOf:
+    - $ref: "#/ListResponse"
+    - type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "./entities.yaml#/WebhookEventLogSummary"
+
+# =============================================================================
+# 單一實體回應
+# =============================================================================
+
+DetailResponse:
+  type: object
+  description: "單一實體詳細回應"
+  required:
+    - data
+  properties:
+    data:
+      type: object
+      description: "實體資料"
+
+# =============================================================================
+# 建立成功回應
+# =============================================================================
+
+CreatedResponse:
+  type: object
+  description: "建立成功回應（HTTP 201）"
+  required:
+    - id
+    - data
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+      description: "新建立資源的 ID"
+    data:
+      type: object
+      description: "建立的實體完整資料"
+
+# =============================================================================
+# 刪除成功回應
+# =============================================================================
+
+DeletedResponse:
+  type: object
+  description: "刪除成功回應（HTTP 200）"
+  required:
+    - id
+    - deletedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+      description: "已刪除資源的 ID"
+    deletedAt:
+      type: string
+      format: date-time
+      description: "軟刪除時間（UTC）"
+
+# =============================================================================
+# 認證回應
+# =============================================================================
+
+TokenPairResponse:
+  type: object
+  description: "認證 Token 回應（與 auth.yaml#/TokenPair 一致，遵循 OAuth 2.0 慣例）"
+  required:
+    - accessToken
+    - expiresIn
+    - tokenType
+  properties:
+    accessToken:
+      type: string
+      description: "JWT Access Token"
+    refreshToken:
+      type: string
+      description: "Refresh Token（用於換發新 Access Token）"
+    expiresIn:
+      type: integer
+      description: "Access Token 有效時間（秒），遵循 OAuth 2.0 expires_in 慣例"
+      examples:
+        - 900
+    tokenType:
+      type: string
+      default: "Bearer"
+      description: "Token 類型"
+
+MagicLinkResponse:
+  type: object
+  description: "Magic Link 發送回應"
+  required:
+    - message
+  properties:
+    message:
+      type: string
+      description: "操作結果訊息"
+      examples:
+        - "Magic link 已發送至您的 Email"
+
+PasskeyRegistrationOptionsResponse:
+  type: object
+  description: "Passkey 註冊選項回應（WebAuthn）"
+  required:
+    - options
+  properties:
+    options:
+      type: object
+      description: "WebAuthn PublicKeyCredentialCreationOptions"
+
+PasskeyAuthenticationOptionsResponse:
+  type: object
+  description: "Passkey 驗證選項回應（WebAuthn）"
+  required:
+    - options
+  properties:
+    options:
+      type: object
+      description: "WebAuthn PublicKeyCredentialRequestOptions"
+
+# =============================================================================
+# 健康檢查回應
+# =============================================================================
+
+HealthResponse:
+  type: object
+  description: "系統健康檢查回應"
+  required:
+    - status
+    - checks
+  properties:
+    status:
+      type: string
+      enum:
+        - healthy
+        - degraded
+        - unhealthy
+      description: "整體健康狀態"
+    version:
+      type: string
+      description: "API 版本"
+    uptime:
+      type: integer
+      description: "服務運行時間（秒）"
+    checks:
+      type: object
+      description: "各子系統的健康狀態"
+      properties:
+        database:
+          $ref: "#/HealthCheck"
+        crdtSync:
+          $ref: "#/HealthCheck"
+        emailService:
+          $ref: "#/HealthCheck"
+        webhookWorker:
+          $ref: "#/HealthCheck"
+
+HealthCheck:
+  type: object
+  description: "子系統健康檢查"
+  required:
+    - status
+  properties:
+    status:
+      type: string
+      enum:
+        - healthy
+        - degraded
+        - unhealthy
+      description: "子系統狀態"
+    latencyMs:
+      type: integer
+      description: "回應延遲（毫秒）"
+    message:
+      type: string
+      description: "附加訊息（異常時提供錯誤描述）"
+
+# =============================================================================
+# 批次操作回應
+# =============================================================================
+
+BatchMarkReadResponse:
+  type: object
+  description: "批次標記已讀回應"
+  required:
+    - updatedCount
+  properties:
+    updatedCount:
+      type: integer
+      description: "已標記為已讀的通知數量"
+
+# =============================================================================
+# 資料表聚合回應（DataSheet 虛擬視圖）
+# =============================================================================
+
+DataSheetResponse:
+  type: object
+  description: "資料表聚合視圖回應（DataSheet），將同一 DataSchema 下所有任務的資料列彙整"
+  required:
+    - schema
+    - entries
+    - meta
+  properties:
+    schema:
+      $ref: "./entities.yaml#/DataSchemaResponse"
+      description: "資料表定義"
+    entries:
+      type: array
+      items:
+        type: object
+        required:
+          - dataEntry
+          - task
+        properties:
+          dataEntry:
+            $ref: "./entities.yaml#/DataEntryResponse"
+          task:
+            $ref: "./entities.yaml#/TaskSummary"
+      description: "資料列與對應任務的組合"
+    meta:
+      $ref: "./common.yaml#/CursorPaginationMeta"

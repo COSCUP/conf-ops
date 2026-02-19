@@ -1,0 +1,425 @@
+# AI 建議相關路徑
+# AI Suggestions — suggestion groups, decisions, manual request
+
+# --- 建議群組列表與詳情 ---
+
+/tasks/{taskId}/suggestions:
+  get:
+    operationId: listSuggestionGroups
+    summary: 列出任務的建議群組
+    description: |
+      列出指定任務的所有 AI 建議群組，支援游標分頁。
+      每個建議群組包含 1~5 個建議（Suggestion），
+      按觸發時間降冪排序（最新優先）。
+    tags:
+      - AISuggestions
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: 任務 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+    responses:
+      '200':
+        description: 建議群組列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - suggestionGroups
+                - pagination
+              properties:
+                suggestionGroups:
+                  type: array
+                  items:
+                    $ref: '../schemas/ai-suggestions.yaml#/SuggestionGroupSummary'
+                pagination:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+            example:
+              suggestionGroups:
+                - id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+                  trigger: "message_sent"
+                  triggerMessageId: "018e4a2c-b010-7d8e-9a1b-2c3d4e5f6a7b"
+                  suggestionsCount: 2
+                  decidedCount: 1
+                  createdAt: "2025-02-15T14:30:00Z"
+                - id: "018e4a2c-a002-7d8e-9a1b-2c3d4e5f6a7b"
+                  trigger: "task_created"
+                  triggerMessageId: null
+                  suggestionsCount: 3
+                  decidedCount: 3
+                  createdAt: "2025-02-15T10:00:00Z"
+              pagination:
+                hasMore: false
+                nextCursor: null
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/tasks/{taskId}/suggestions/{groupId}:
+  get:
+    operationId: getSuggestionGroup
+    summary: 取得建議群組詳情
+    description: |
+      取得指定建議群組的完整資訊，包含每個建議的工具名稱、參數、
+      AI 推理說明、使用的記憶上下文，以及目前的決策狀態。
+    tags:
+      - AISuggestions
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: 任務 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: groupId
+        in: path
+        required: true
+        description: 建議群組 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    responses:
+      '200':
+        description: 建議群組詳情
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/ai-suggestions.yaml#/SuggestionGroup'
+            example:
+              id: "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b"
+              taskId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+              trigger: "message_sent"
+              triggerMessageId: "018e4a2c-b010-7d8e-9a1b-2c3d4e5f6a7b"
+              suggestions:
+                - id: "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b"
+                  summary: "回覆贊助商確認信"
+                  tool: "smtp/sendEmail"
+                  parameters:
+                    threadId: "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
+                    to: ["{{data.contactEmail}}"]
+                    subject: "Re: COSCUP 2026 贊助合作"
+                    body: "{{data.contactName}} 您好，感謝確認贊助意願..."
+                  reasoning: "贊助商回信確認贊助意願，應儘速回覆感謝並提供後續流程資訊"
+                  contextUsed:
+                    - scopeType: "member_tag"
+                      memoryId: "018e4a2c-a003-7d8e-9a1b-2c3d4e5f6a7b"
+                      content: "收到贊助商確認後，24 小時內回覆感謝信"
+                  decision: "pending"
+                - id: "018e4a2c-c002-7d8e-9a1b-2c3d4e5f6a7b"
+                  summary: "更新贊助狀態為已確認"
+                  tool: "upsertDataEntry"
+                  parameters:
+                    schemaId: "018e4a2c-aaaa-7d8e-9a1b-2c3d4e5f6a7b"
+                    fields:
+                      sponsorStatus: "confirmed"
+                  reasoning: "贊助商已確認，應更新資料表中的狀態欄位"
+                  contextUsed: []
+                  decision: "accept"
+                  decidedBy: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+                  decidedAt: "2025-02-15T14:35:00Z"
+              createdAt: "2025-02-15T14:30:00Z"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# --- 建議決策 ---
+
+/tasks/{taskId}/suggestions/{groupId}/suggestions/{suggestionId}/decide:
+  post:
+    operationId: decideSuggestion
+    summary: 對建議做出決策
+    description: |
+      對指定的 AI 建議做出決策。每個建議可個別決策：
+
+      - **`accept`**：直接執行建議的工具呼叫
+      - **`modify_and_accept`**：修改參數後執行，需提供 `modifiedParameters`
+      - **`reject`**：拒絕建議，可附帶原因
+      - **`re_suggest`**：要求 AI 重新生成建議，可附帶額外指示
+
+      `lastSeenMessageId` 為必要欄位，確保決策者已閱讀最新對話內容。
+      採納（accept / modify_and_accept）後會立即執行工具並回傳執行結果。
+    tags:
+      - AISuggestions
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: 任務 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: groupId
+        in: path
+        required: true
+        description: 建議群組 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: suggestionId
+        in: path
+        required: true
+        description: 建議 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/ai-suggestions.yaml#/SuggestionDecisionRequest'
+          examples:
+            accept:
+              summary: 採納建議
+              value:
+                decision: "accept"
+                lastSeenMessageId: "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
+            modify_and_accept:
+              summary: 修改後採納
+              value:
+                decision: "modify_and_accept"
+                modifiedParameters:
+                  body: "{{data.contactName}} 您好，非常感謝確認贊助，我們將於下週提供正式合約..."
+                lastSeenMessageId: "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
+            reject:
+              summary: 拒絕建議
+              value:
+                decision: "reject"
+                reason: "這封信的語氣太正式，需要更親切一些"
+                lastSeenMessageId: "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
+            re_suggest:
+              summary: 要求重新建議
+              value:
+                decision: "re_suggest"
+                reason: "語氣需要調整"
+                additionalInstructions: "請用更輕鬆友善的語氣重寫這封信，並加上下一步行動項目"
+                lastSeenMessageId: "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
+    responses:
+      '200':
+        description: 決策已記錄（採納時包含工具執行結果）
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/ai-suggestions.yaml#/SuggestionDecisionResponse'
+            example:
+              suggestion:
+                id: "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b"
+                summary: "回覆贊助商確認信"
+                tool: "smtp/sendEmail"
+                decision: "accept"
+                decidedBy: "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b"
+                decidedAt: "2025-02-15T14:40:00Z"
+              executionResult:
+                success: true
+                result:
+                  emailId: "018e4a2c-e001-7d8e-9a1b-2c3d4e5f6a7b"
+                  threadId: "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
+                messageId: "018e4a2c-m011-7d8e-9a1b-2c3d4e5f6a7b"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 對話已有新訊息，需先閱讀最新內容；或建議已被決策
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            examples:
+              stale_conversation:
+                summary: 未讀新訊息
+                value:
+                  type: "https://api.conf-ops.dev/errors/stale-conversation"
+                  title: "Conversation Has New Messages"
+                  status: 409
+                  detail: "對話中有未讀訊息，請先閱讀最新內容後再操作"
+              already_decided:
+                summary: 建議已被決策
+                value:
+                  type: "https://api.conf-ops.dev/errors/already-decided"
+                  title: "Suggestion Already Decided"
+                  status: 409
+                  detail: "此建議已被其他參與人決策"
+
+# --- 手動請求建議 ---
+
+/tasks/{taskId}/suggestions/request:
+  post:
+    operationId: requestAISuggestions
+    summary: 手動請求 AI 建議
+    description: |
+      手動觸發 AI 為指定任務生成建議。可附帶額外指示讓 AI 參考。
+      通常用於自動觸發未涵蓋的情境，或需要 AI 協助但無自然觸發事件時。
+    tags:
+      - AISuggestions
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: 任務 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/ai-suggestions.yaml#/RequestSuggestionsBody'
+          example:
+            instructions: "請幫我草擬一封跟進信，詢問贊助商是否收到合約並確認簽約時程"
+            lastSeenMessageId: "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
+    responses:
+      '202':
+        description: 建議請求已接受，AI 正在生成建議
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - groupId
+                - status
+              properties:
+                groupId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                  description: "建議群組 ID，可用於輪詢建議狀態"
+                status:
+                  type: string
+                  enum:
+                    - generating
+                  description: "建議生成狀態"
+            example:
+              groupId: "018e4a2c-a003-7d8e-9a1b-2c3d4e5f6a7b"
+              status: "generating"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+      '409':
+        description: 對話已有新訊息
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+
+# --- 佔位符解析 ---
+
+/tasks/{taskId}/ai/resolve-placeholders:
+  post:
+    operationId: resolvePlaceholders
+    summary: 解析佔位符為實際資料值
+    description: |
+      將含有佔位符的文字解析為實際資料值。前端可用此端點預覽 AI 建議中的佔位符
+      （如 `{{data.companyName}}`、`{{profile.phone}}`）替換後的真實內容，
+      供人類在採納建議前審核。
+
+      此端點不修改任何資料，僅執行佔位符解析並回傳結果。
+    tags:
+      - AISuggestions
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - task_participant
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: 任務 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - templateText
+            properties:
+              templateText:
+                type: string
+                description: "含佔位符的文字（如 `親愛的 {{data.contactName}} 您好`）"
+          example:
+            templateText: "親愛的 {{data.contactName}} 您好，感謝 {{data.companyName}} 確認贊助。"
+    responses:
+      '200':
+        description: 佔位符解析結果
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resolvedText
+                - placeholders
+              properties:
+                resolvedText:
+                  type: string
+                  description: "解析後的文字（佔位符已替換為實際值）"
+                placeholders:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - placeholder
+                      - resolvedValue
+                    properties:
+                      placeholder:
+                        type: string
+                        description: "原始佔位符（如 `{{data.contactName}}`）"
+                      resolvedValue:
+                        type: string
+                        nullable: true
+                        description: "解析後的實際值（無對應值時為 null）"
+                  description: "所有佔位符的解析結果列表"
+            example:
+              resolvedText: "親愛的 王大明 您好，感謝 X 科技公司 確認贊助。"
+              placeholders:
+                - placeholder: "{{data.contactName}}"
+                  resolvedValue: "王大明"
+                - placeholder: "{{data.companyName}}"
+                  resolvedValue: "X 科技公司"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

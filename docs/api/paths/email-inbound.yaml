@@ -1,0 +1,496 @@
+# Email 收信相關路徑
+# Inbound Email — receive, unassigned inbox, assign to task
+
+# --- 收信端點 ---
+
+/email/inbound:
+  post:
+    operationId: receiveInboundEmail
+    summary: 接收外部來信
+    description: |
+      接收外部 Email 的 webhook 端點，供收信轉發函式（AWS SES Lambda / Cloudflare Email Worker）
+      將收到的原始 MIME 郵件轉送至系統。
+
+      請求格式：
+      - Content-Type: `message/rfc822`（原始 RFC 5322 MIME 格式）
+      - Body: 原始郵件的二進位串流
+
+      處理流程：
+      1. 使用 `mail-parser` 解析原始 MIME：提取寄件者、主旨、內容、附件、標頭
+      2. 判斷來源身份：Member 來信、Contact 來信、或未知寄件者（自動建立 Contact）
+      3. 嘗試匹配任務：優先 Email Header 匹配（In-Reply-To / References）、次要啟發式匹配
+      4. 匹配成功：在任務對話中新增訊息，觸發 AI 建議
+      5. 匹配失敗：歸入專案的未分類收件匣
+
+      此端點使用 Bearer Token 驗證請求來源（`EMAIL_INBOUND_API_KEY`），不使用一般使用者 JWT。
+    tags:
+      - EmailInbound
+    security: []
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        description: "收信轉發函式的認證 token（格式：`Bearer {EMAIL_INBOUND_API_KEY}`）"
+        schema:
+          type: string
+          example: "Bearer inbound-secret-key"
+      - name: X-SES-Message-Id
+        in: header
+        description: "AWS SES Message ID（路線 A 提供，用於除錯與冪等處理）"
+        schema:
+          type: string
+      - name: X-SES-Spam-Verdict
+        in: header
+        description: "AWS SES 垃圾郵件檢查結果：PASS / FAIL（路線 A 提供）"
+        schema:
+          type: string
+          enum: [PASS, FAIL]
+      - name: X-SES-Virus-Verdict
+        in: header
+        description: "AWS SES 病毒檢查結果：PASS / FAIL（路線 A 提供）"
+        schema:
+          type: string
+          enum: [PASS, FAIL]
+      - name: X-CF-Mail-From
+        in: header
+        description: "Cloudflare Email Worker 提供的寄件者地址（路線 B 提供）"
+        schema:
+          type: string
+          format: email
+      - name: X-CF-Mail-To
+        in: header
+        description: "Cloudflare Email Worker 提供的收件者地址（路線 B 提供）"
+        schema:
+          type: string
+          format: email
+      - name: X-CF-Raw-Size
+        in: header
+        description: "Cloudflare Email Worker 提供的原始郵件大小（bytes）（路線 B 提供）"
+        schema:
+          type: integer
+    requestBody:
+      required: true
+      description: "原始 MIME 郵件（RFC 5322 格式），以二進位串流傳送"
+      content:
+        message/rfc822:
+          schema:
+            type: string
+            format: binary
+            description: "原始 MIME 郵件二進位串流"
+    responses:
+      '200':
+        description: Email 處理完成
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/email-inbound.yaml#/InboundEmailResponse'
+            examples:
+              matched:
+                summary: 成功匹配到任務
+                value:
+                  status: "matched"
+                  taskId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                  messageId: "018e4a2c-a012-7d8e-9a1b-2c3d4e5f6a7b"
+                  threadId: "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
+              unmatched:
+                summary: 無法匹配，歸入未分類收件匣
+                value:
+                  status: "unmatched"
+                  emailId: "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b"
+                  projectId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+      '400':
+        description: MIME 格式錯誤或無法解析
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://api.conf-ops.dev/errors/invalid-email"
+              title: "Invalid Email Format"
+              status: 400
+              detail: "無法解析 MIME 郵件內容"
+      '401':
+        description: Authorization token 驗證失敗
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ProblemDetails'
+            example:
+              type: "https://api.conf-ops.dev/errors/unauthorized"
+              title: "Unauthorized"
+              status: 401
+              detail: "Inbound API key 驗證失敗"
+
+# --- 未分類收件匣 ---
+
+/projects/{projectId}/unassigned-inbox:
+  get:
+    operationId: listUnassignedEmails
+    summary: 列出未分類信件
+    description: |
+      列出指定專案的未分類收件匣中的信件。
+      這些信件無法自動匹配到任何任務，需成員手動分配。
+      支援游標分頁，按收件時間降冪排序。
+    tags:
+      - EmailInbound
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: cursor
+        in: query
+        description: 分頁游標
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每頁數量
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    responses:
+      '200':
+        description: 未分類信件列表
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - emails
+                - pagination
+              properties:
+                emails:
+                  type: array
+                  items:
+                    $ref: '../schemas/email-inbound.yaml#/UnassignedEmail'
+                pagination:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+            example:
+              emails:
+                - id: "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b"
+                  from:
+                    name: "Unknown Sender"
+                    address: "unknown@example.com"
+                  subject: "詢問贊助方案"
+                  snippet: "您好，我們想了解 COSCUP 2026 的贊助方案..."
+                  receivedAt: "2025-02-15T16:00:00Z"
+                  hasAttachments: false
+              pagination:
+                hasMore: false
+                nextCursor: null
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+/projects/{projectId}/unassigned-inbox/{emailId}/assign:
+  post:
+    operationId: assignUnassignedEmail
+    summary: 將未分類信件指派到任務
+    description: |
+      將未分類收件匣中的信件指派到指定任務。
+      指派後，信件內容會新增至該任務的對話中，並觸發 AI 建議流程。
+      同時會嘗試建立或匹配 Email Thread。
+    tags:
+      - EmailInbound
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_member
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+      - name: emailId
+        in: path
+        required: true
+        description: 未分類信件 ID
+        schema:
+          $ref: '../schemas/common.yaml#/UUID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - taskId
+            properties:
+              taskId:
+                $ref: '../schemas/common.yaml#/UUID'
+                description: "指派目標任務 ID"
+          example:
+            taskId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+    responses:
+      '200':
+        description: 信件已指派到任務
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messageId
+                - taskId
+              properties:
+                messageId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                  description: "新增至任務對話的訊息 ID"
+                taskId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                  description: "指派的目標任務 ID"
+                threadId:
+                  $ref: '../schemas/common.yaml#/UUID'
+                  description: "匹配或建立的 Email Thread ID"
+            example:
+              messageId: "018e4a2c-a013-7d8e-9a1b-2c3d4e5f6a7b"
+              taskId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+              threadId: "018e4a2c-b002-7d8e-9a1b-2c3d4e5f6a7b"
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# /tasks/{taskId}/email-threads
+# ===========================================================
+
+/tasks/{taskId}/email-threads:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "任務 ID"
+
+  get:
+    operationId: listEmailThreads
+    summary: "列出任務的 Email 對話串"
+    description: |
+      取得指定任務下的所有 Email 對話串列表。
+      每個對話串包含主旨、參與者、最後訊息時間等摘要資訊。
+      使用游標分頁，依最後訊息時間由新到舊排列。
+    tags:
+      - Email
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: "每頁數量"
+    responses:
+      '200':
+        description: "Email 對話串列表"
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - threads
+                - pagination
+              properties:
+                threads:
+                  type: array
+                  items:
+                    $ref: '../schemas/entities.yaml#/EmailThreadResponse'
+                pagination:
+                  $ref: '../schemas/common.yaml#/CursorPaginationMeta'
+            example:
+              threads:
+                - id: "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
+                  taskId: "018e4a2c-0004-7000-8000-000000000001"
+                  subject: "贊助方案討論"
+                  participants:
+                    - "alice@example.com"
+                    - "bob@example.com"
+                  messageCount: 5
+                  lastMessageAt: "2026-02-18T14:30:00Z"
+                  createdAt: "2026-02-15T10:00:00Z"
+                  updatedAt: "2026-02-18T14:30:00Z"
+              pagination:
+                hasMore: false
+                nextCursor: null
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  post:
+    operationId: createEmailThread
+    summary: "手動建立 Email 對話串"
+    description: |
+      在任務中手動建立一個新的 Email 對話串。
+      用於將外部 Email 通訊手動關聯至任務，或預先建立對話串以便追蹤。
+    tags:
+      - Email
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - subject
+            properties:
+              subject:
+                type: string
+                description: "Email 對話串主旨"
+              participants:
+                type: array
+                items:
+                  type: string
+                  format: email
+                description: "參與者 Email 地址列表"
+          example:
+            subject: "贊助方案討論"
+            participants:
+              - "sponsor@example.com"
+              - "team@coscup.org"
+    responses:
+      '201':
+        description: "Email 對話串建立成功"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/entities.yaml#/EmailThreadResponse'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+# ===========================================================
+# /tasks/{taskId}/email-threads/{threadId}
+# ===========================================================
+
+/tasks/{taskId}/email-threads/{threadId}:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "任務 ID"
+    - name: threadId
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common.yaml#/UUID'
+      description: "Email 對話串 ID"
+
+  patch:
+    operationId: updateEmailThread
+    summary: "更新 Email 對話串資訊"
+    description: |
+      更新 Email 對話串的主旨或參與者等資訊。
+    tags:
+      - Email
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              subject:
+                type: string
+                description: "Email 對話串主旨"
+              participants:
+                type: array
+                items:
+                  type: string
+                  format: email
+                description: "參與者 Email 地址列表"
+          example:
+            subject: "贊助方案討論（更新）"
+            participants:
+              - "sponsor@example.com"
+              - "team@coscup.org"
+              - "finance@coscup.org"
+    responses:
+      '200':
+        description: "Email 對話串更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/entities.yaml#/EmailThreadResponse'
+      '400':
+        $ref: '../schemas/common.yaml#/responses/BadRequest'
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'
+
+  delete:
+    operationId: deleteEmailThread
+    summary: "刪除 Email 對話串"
+    description: |
+      刪除指定的 Email 對話串。對話串中的訊息記錄將一併移除。
+    tags:
+      - Email
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      '204':
+        description: "Email 對話串已刪除"
+      '401':
+        $ref: '../schemas/common.yaml#/responses/Unauthorized'
+      '403':
+        $ref: '../schemas/common.yaml#/responses/Forbidden'
+      '404':
+        $ref: '../schemas/common.yaml#/responses/NotFound'

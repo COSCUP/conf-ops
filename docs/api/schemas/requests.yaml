@@ -1,0 +1,1049 @@
+# Conf-Ops API - 請求主體 Schema 定義
+# 所有 API 端點的請求主體結構
+
+# =============================================================================
+# Aliases（路徑檔案參照名稱 → 實際 Schema）
+# =============================================================================
+
+CreateTaskTemplateRequest:
+  $ref: '#/CreateTaskTemplate'
+
+UpdateTaskTemplateRequest:
+  $ref: '#/UpdateTaskTemplate'
+
+CreateTodoTemplateRequest:
+  $ref: '#/CreateTodoTemplate'
+
+UpdateTodoTemplateRequest:
+  $ref: '#/UpdateTodoTemplate'
+
+CreateDataSchemaRequest:
+  $ref: '#/CreateDataSchema'
+
+UpdateDataSchemaRequest:
+  $ref: '#/UpdateDataSchema'
+
+CreateTaskRequest:
+  $ref: '#/CreateTask'
+
+UpdateTaskRequest:
+  type: object
+  description: "更新任務資料"
+  required:
+    - lastSeenMessageId
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+UpdateTaskStatusRequest:
+  $ref: '#/UpdateTaskStatus'
+
+SendMessageRequest:
+  $ref: '#/SendMessage'
+
+SendMessageMultipartRequest:
+  type: object
+  description: "Multipart form 訊息傳送（含附件）"
+
+CreateTodoRequest:
+  $ref: '#/CreateTodo'
+
+UpdateTodoRequest:
+  $ref: '#/UpdateTodo'
+
+UpdateTodoStatusRequest:
+  type: object
+  description: "更新待辦事項狀態"
+  required:
+    - status
+    - lastSeenMessageId
+  properties:
+    status:
+      $ref: "./common.yaml#/TodoStatus"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+AssignTodoMembersRequest:
+  $ref: '#/AssignTodo'
+
+LinkTodoToTaskRequest:
+  type: object
+  description: "將待辦事項關聯至跨組任務"
+  required:
+    - linkedTaskId
+  properties:
+    linkedTaskId:
+      $ref: "./common.yaml#/UUID"
+      description: "關聯的任務 ID"
+
+UpsertDataEntryRequest:
+  $ref: '#/UpsertDataEntry'
+
+ShareDataToTaskRequest:
+  type: object
+  description: "分享資料至其他任務"
+  required:
+    - targetTaskId
+    - targetSchemaId
+    - fieldMappings
+  properties:
+    targetTaskId:
+      $ref: "./common.yaml#/UUID"
+      description: "目標任務 ID"
+    targetSchemaId:
+      $ref: "./common.yaml#/UUID"
+      description: "目標資料表定義 ID"
+    fieldMappings:
+      type: array
+      items:
+        type: object
+        required:
+          - sourceField
+          - targetField
+        properties:
+          sourceField:
+            type: string
+            description: "來源欄位 key"
+          targetField:
+            type: string
+            description: "目標欄位 key"
+      description: "欄位對應關係列表"
+
+# =============================================================================
+# Account（帳號）
+# =============================================================================
+
+CreateAccount:
+  type: object
+  description: "建立帳號"
+  required:
+    - name
+    - email
+  properties:
+    name:
+      type: string
+      description: "使用者名稱"
+    email:
+      type: string
+      format: email
+      description: "Email，系統唯一識別"
+    avatarUrl:
+      type: string
+      description: "頭像 URL"
+    bio:
+      type: string
+      description: "公開的自我介紹文字"
+    locale:
+      type: string
+      default: "zh-TW"
+      description: "使用者偏好語系"
+
+UpdateAccount:
+  type: object
+  description: "更新帳號資料"
+  properties:
+    name:
+      type: string
+    avatarUrl:
+      type: string
+      nullable: true
+    bio:
+      type: string
+      nullable: true
+    profileData:
+      type: object
+      additionalProperties: true
+      description: "私人的結構化資料"
+    locale:
+      type: string
+
+UpdateNotificationPreferences:
+  type: object
+  description: "更新通知偏好設定"
+  properties:
+    channels:
+      type: object
+      properties:
+        email:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            categories:
+              type: object
+              properties:
+                taskUpdates:
+                  type: boolean
+                todoAssignments:
+                  type: boolean
+                aiSuggestions:
+                  type: boolean
+                mentions:
+                  type: boolean
+                systemAnnouncements:
+                  type: boolean
+        webPush:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            categories:
+              type: object
+              properties:
+                taskUpdates:
+                  type: boolean
+                todoAssignments:
+                  type: boolean
+                aiSuggestions:
+                  type: boolean
+                mentions:
+                  type: boolean
+                systemAnnouncements:
+                  type: boolean
+
+# =============================================================================
+# Organization（組織）
+# =============================================================================
+
+CreateOrganization:
+  type: object
+  description: "建立組織"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "組織名稱"
+    description:
+      type: string
+      description: "組織描述"
+    logoUrl:
+      type: string
+      description: "組織 Logo URL"
+
+UpdateOrganization:
+  type: object
+  description: "更新組織資料"
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    logoUrl:
+      type: string
+      nullable: true
+
+InviteOrgMember:
+  type: object
+  description: "邀請組織成員"
+  required:
+    - email
+    - role
+  properties:
+    email:
+      type: string
+      format: email
+      description: "被邀請者的 Email"
+    role:
+      $ref: "./common.yaml#/OrgRole"
+      description: "指定的組織角色"
+
+# =============================================================================
+# Project（專案）
+# =============================================================================
+
+CreateProject:
+  type: object
+  description: "建立專案"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "專案名稱"
+    description:
+      type: string
+      description: "專案描述"
+
+UpdateProject:
+  type: object
+  description: "更新專案資料"
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    status:
+      $ref: "./common.yaml#/ProjectStatus"
+    permissionSettings:
+      type: object
+      description: "專案權限設定"
+      properties:
+        taskVisibility:
+          type: array
+          items:
+            type: object
+            required:
+              - tag
+              - allow
+              - deny
+            properties:
+              tag:
+                type: string
+              allow:
+                type: array
+                items:
+                  type: string
+              deny:
+                type: array
+                items:
+                  type: string
+        toolPermissions:
+          type: array
+          items:
+            type: object
+            required:
+              - tag
+              - allow
+              - deny
+            properties:
+              tag:
+                type: string
+              allow:
+                type: array
+                items:
+                  type: string
+              deny:
+                type: array
+                items:
+                  type: string
+        memoryVisibility:
+          type: array
+          items:
+            type: object
+            required:
+              - tag
+              - allow
+              - deny
+            properties:
+              tag:
+                type: string
+              allow:
+                type: array
+                items:
+                  type: string
+              deny:
+                type: array
+                items:
+                  type: string
+        dataAccess:
+          type: array
+          items:
+            type: object
+            required:
+              - tag
+              - allow
+              - deny
+            properties:
+              tag:
+                type: string
+              allow:
+                type: array
+                items:
+                  type: string
+              deny:
+                type: array
+                items:
+                  type: string
+
+CopyProject:
+  type: object
+  description: "複製專案"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "新專案名稱"
+    description:
+      type: string
+      description: "新專案描述"
+
+# =============================================================================
+# Member（專案成員）
+# =============================================================================
+
+UpdateMember:
+  type: object
+  description: "更新成員角色"
+  required:
+    - role
+  properties:
+    role:
+      $ref: "./common.yaml#/MemberRole"
+
+# =============================================================================
+# Contact（外部聯絡人）
+# =============================================================================
+
+CreateContact:
+  type: object
+  description: "建立外部聯絡人"
+  required:
+    - name
+    - email
+  properties:
+    name:
+      type: string
+      description: "聯絡人名稱"
+    email:
+      type: string
+      format: email
+      description: "聯絡人 Email"
+
+UpdateContact:
+  type: object
+  description: "更新外部聯絡人"
+  properties:
+    name:
+      type: string
+    email:
+      type: string
+      format: email
+
+MergeContacts:
+  type: object
+  description: "合併聯絡人 - 將多個 Contact 合併為一個主要 Contact"
+  required:
+    - primaryContactId
+    - mergedContactIds
+  properties:
+    primaryContactId:
+      $ref: "./common.yaml#/UUID"
+      description: "保留的主要 Contact ID"
+    mergedContactIds:
+      type: array
+      items:
+        $ref: "./common.yaml#/UUID"
+      minItems: 1
+      description: "被合併的 Contact ID 列表"
+
+# =============================================================================
+# MemberTag（成員標籤）
+# =============================================================================
+
+CreateMemberTag:
+  type: object
+  description: "建立成員標籤"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "標籤名稱"
+    description:
+      type: string
+      description: "標籤描述"
+    externalTaskCreation:
+      type: array
+      items:
+        type: object
+        required:
+          - taskTemplateId
+          - allowedFromTags
+        properties:
+          taskTemplateId:
+            $ref: "./common.yaml#/UUID"
+          allowedFromTags:
+            oneOf:
+              - type: string
+                const: "*"
+              - type: array
+                items:
+                  type: string
+      description: "外部建立任務設定"
+
+UpdateMemberTag:
+  type: object
+  description: "更新成員標籤"
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    externalTaskCreation:
+      type: array
+      items:
+        type: object
+        required:
+          - taskTemplateId
+          - allowedFromTags
+        properties:
+          taskTemplateId:
+            $ref: "./common.yaml#/UUID"
+          allowedFromTags:
+            oneOf:
+              - type: string
+                const: "*"
+              - type: array
+                items:
+                  type: string
+
+AssignTag:
+  type: object
+  description: "指派成員標籤給成員或聯絡人"
+  required: []
+  properties:
+    memberId:
+      $ref: "./common.yaml#/UUID"
+      description: "被指派的成員 ID（與 contactId 二擇一）"
+    contactId:
+      $ref: "./common.yaml#/UUID"
+      description: "被指派的聯絡人 ID（與 memberId 二擇一）"
+  oneOf:
+    - required:
+        - memberId
+    - required:
+        - contactId
+
+# =============================================================================
+# TaskTemplate（任務模板）
+# =============================================================================
+
+CreateTaskTemplate:
+  type: object
+  description: "建立任務模板"
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: "模板名稱"
+    description:
+      type: string
+      description: "模板描述"
+    tagIds:
+      type: array
+      items:
+        $ref: "./common.yaml#/UUID"
+      description: "關聯的成員標籤 ID 列表"
+
+UpdateTaskTemplate:
+  type: object
+  description: "更新任務模板"
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    tagIds:
+      type: array
+      items:
+        $ref: "./common.yaml#/UUID"
+      description: "更新關聯的成員標籤 ID 列表（完整替換）"
+
+# =============================================================================
+# TodoTemplate（待辦事項模板）
+# =============================================================================
+
+CreateTodoTemplate:
+  type: object
+  description: "建立待辦事項模板"
+  required:
+    - name
+    - sortOrder
+  properties:
+    parentId:
+      $ref: "./common.yaml#/UUID"
+      description: "父待辦模板 ID（最多一層巢狀）"
+    name:
+      type: string
+      description: "待辦模板名稱"
+    description:
+      type: string
+    sortOrder:
+      type: integer
+      description: "排序順序"
+
+UpdateTodoTemplate:
+  type: object
+  description: "更新待辦事項模板"
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    sortOrder:
+      type: integer
+
+# =============================================================================
+# DataSchema（資料表定義）
+# =============================================================================
+
+CreateDataSchema:
+  type: object
+  description: "建立資料表定義"
+  required:
+    - name
+    - fields
+  properties:
+    name:
+      type: string
+      description: "資料表名稱"
+    fields:
+      type: array
+      items:
+        $ref: "./entities.yaml#/DataSchemaField"
+      minItems: 1
+      description: "欄位定義"
+
+UpdateDataSchema:
+  type: object
+  description: "更新資料表定義"
+  properties:
+    name:
+      type: string
+    fields:
+      type: array
+      items:
+        $ref: "./entities.yaml#/DataSchemaField"
+      minItems: 1
+
+# =============================================================================
+# Task（任務）
+# =============================================================================
+
+CreateTask:
+  type: object
+  description: "建立任務（從模板實例化）"
+  required:
+    - taskTemplateId
+    - ownerTagId
+    - name
+  properties:
+    taskTemplateId:
+      $ref: "./common.yaml#/UUID"
+      description: "來源任務模板 ID"
+    ownerTagId:
+      $ref: "./common.yaml#/UUID"
+      description: "歸屬的成員標籤 ID"
+    name:
+      type: string
+      description: "任務名稱"
+    description:
+      type: string
+      description: "任務描述"
+
+UpdateTaskStatus:
+  type: object
+  description: "更新任務狀態"
+  required:
+    - status
+    - lastSeenMessageId
+  properties:
+    status:
+      $ref: "./common.yaml#/TaskStatus"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+# =============================================================================
+# Message（訊息）
+# =============================================================================
+
+SendMessage:
+  type: object
+  description: "發送任務對話訊息"
+  required:
+    - content
+    - lastSeenMessageId
+  properties:
+    content:
+      type: object
+      description: "訊息內容"
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: "訊息文字內容"
+        mentions:
+          type: array
+          items:
+            type: object
+            required:
+              - type
+              - id
+            properties:
+              type:
+                type: string
+                enum:
+                  - member
+                  - tag
+                description: "提及類型：member（提及成員）或 tag（提及標籤下所有成員）"
+              id:
+                $ref: "./common.yaml#/UUID"
+                description: "被提及的成員 ID 或標籤 ID"
+    attachments:
+      type: array
+      description: "附件檔案 ID 列表（先透過檔案上傳 API 取得 fileId，再於發送訊息時引用）"
+      items:
+        $ref: "./common.yaml#/UUID"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+# =============================================================================
+# Todo（待辦事項）
+# =============================================================================
+
+CreateTodo:
+  type: object
+  description: "建立臨時待辦事項（ad_hoc）"
+  required:
+    - title
+    - sortOrder
+  properties:
+    parentId:
+      $ref: "./common.yaml#/UUID"
+      description: "父待辦 ID（最多一層巢狀）"
+    title:
+      type: string
+      description: "待辦標題"
+    description:
+      type: string
+    dueDate:
+      type: string
+      format: date-time
+      description: "截止日期"
+    sortOrder:
+      type: integer
+      description: "排序順序"
+    assigneeIds:
+      type: array
+      items:
+        $ref: "./common.yaml#/UUID"
+      description: "被指派的成員 ID 列表"
+    linkedTaskId:
+      $ref: "./common.yaml#/UUID"
+      description: "跨組協作的關聯任務 ID"
+
+UpdateTodo:
+  type: object
+  description: "更新待辦事項"
+  required:
+    - lastSeenMessageId
+  properties:
+    title:
+      type: string
+    description:
+      type: string
+      nullable: true
+    dueDate:
+      type: string
+      format: date-time
+      nullable: true
+    sortOrder:
+      type: integer
+    status:
+      $ref: "./common.yaml#/TodoStatus"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+AssignTodo:
+  type: object
+  description: "指派待辦事項給成員"
+  required:
+    - memberIds
+  properties:
+    memberIds:
+      type: array
+      items:
+        $ref: "./common.yaml#/UUID"
+      description: "被指派的成員 ID 列表（完整替換）"
+
+# =============================================================================
+# DataEntry（資料列）
+# =============================================================================
+
+UpsertDataEntry:
+  type: object
+  description: "新增或更新資料列欄位值"
+  required:
+    - values
+    - lastSeenMessageId
+  properties:
+    values:
+      type: object
+      additionalProperties: true
+      description: "欄位值，key 對應 DataSchema 的 field key"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+# =============================================================================
+# ToolExecute（工具執行）
+# =============================================================================
+
+ToolExecuteRequest:
+  type: object
+  description: "執行工具請求（通用格式，所有工具共用）"
+  required:
+    - parameters
+    - lastSeenMessageId
+  properties:
+    parameters:
+      type: object
+      additionalProperties: true
+      description: "工具執行參數（依工具定義而異）"
+    metadata:
+      type: object
+      description: "工具執行的額外中繼資訊（如 saveToProfile 的欄位結構）"
+      properties:
+        label:
+          type: string
+          description: "欄位顯示名稱（saveToProfile 新欄位時必填）"
+        type:
+          type: string
+          description: "欄位類型（saveToProfile 新欄位時必填）"
+        description:
+          type: string
+          description: "欄位說明（saveToProfile 新欄位時必填）"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+# =============================================================================
+# ToolConfig（工具設定）
+# =============================================================================
+
+CreateToolConfig:
+  type: object
+  description: "建立工具設定"
+  required:
+    - toolType
+    - toolName
+    - config
+  properties:
+    toolType:
+      type: string
+      enum:
+        - builtin
+        - external
+      description: "工具類型"
+    toolName:
+      type: string
+      description: "工具識別名稱"
+    displayName:
+      type: string
+      description: "顯示名稱"
+    description:
+      type: string
+      description: "工具說明"
+    enabled:
+      type: boolean
+      default: false
+    config:
+      type: object
+      additionalProperties: true
+      description: "工具設定"
+    mcpServerConfig:
+      type: object
+      description: "MCP Server 連線設定（僅 toolType = external 時必填）"
+      required:
+        - transport
+      properties:
+        transport:
+          type: string
+          enum:
+            - stdio
+            - sse
+        command:
+          type: string
+        url:
+          type: string
+          format: uri
+        args:
+          type: array
+          items:
+            type: string
+
+UpdateToolConfig:
+  type: object
+  description: "更新工具設定"
+  properties:
+    displayName:
+      type: string
+      nullable: true
+    description:
+      type: string
+      nullable: true
+    enabled:
+      type: boolean
+    config:
+      type: object
+      additionalProperties: true
+    mcpServerConfig:
+      type: object
+      nullable: true
+      properties:
+        transport:
+          type: string
+          enum:
+            - stdio
+            - sse
+        command:
+          type: string
+        url:
+          type: string
+          format: uri
+        args:
+          type: array
+          items:
+            type: string
+
+# =============================================================================
+# Memory（記憶）
+# =============================================================================
+
+CreateMemory:
+  type: object
+  description: "建立記憶"
+  required:
+    - scopeType
+    - scopeId
+    - content
+  properties:
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    content:
+      type: string
+      description: "記憶摘要內容"
+    libraryRef:
+      $ref: "./common.yaml#/UUID"
+      description: "關聯的記憶庫文件 ID"
+
+UpdateMemory:
+  type: object
+  description: "更新記憶"
+  required:
+    - content
+  properties:
+    content:
+      type: string
+      description: "更新後的記憶內容"
+    libraryRef:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+
+# =============================================================================
+# LibraryDocument（記憶庫文件）
+# =============================================================================
+
+CreateLibraryDocument:
+  type: object
+  description: "建立記憶庫文件"
+  required:
+    - scopeType
+    - scopeId
+    - title
+    - content
+  properties:
+    scopeType:
+      $ref: "./common.yaml#/ScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    title:
+      type: string
+      description: "文件標題"
+    content:
+      type: string
+      description: "文件內容"
+
+UpdateLibraryDocument:
+  type: object
+  description: "更新記憶庫文件"
+  properties:
+    title:
+      type: string
+    content:
+      type: string
+
+# =============================================================================
+# Suggestion Decision（AI 建議決策）
+# 完整定義位於 ai-suggestions.yaml#/SuggestionDecisionRequest
+# =============================================================================
+
+SuggestionDecision:
+  $ref: './ai-suggestions.yaml#/SuggestionDecisionRequest'
+
+# =============================================================================
+# Webhook（Webhook 設定）
+# =============================================================================
+
+CreateWebhook:
+  type: object
+  description: "建立 Webhook"
+  required:
+    - name
+    - url
+    - events
+  properties:
+    name:
+      type: string
+      description: "Webhook 名稱"
+    url:
+      type: string
+      format: uri
+      description: "目標推送 URL（生產環境必須為 HTTPS）"
+    secret:
+      type: string
+      nullable: true
+      description: "Webhook 簽章密鑰。設定後，每次推送都會在 X-Webhook-Signature 標頭中包含 HMAC-SHA256 簽章"
+      writeOnly: true
+    events:
+      type: array
+      items:
+        type: string
+      minItems: 1
+      description: "訂閱的事件類型列表"
+    enabled:
+      type: boolean
+      default: true
+
+UpdateWebhook:
+  type: object
+  description: "更新 Webhook"
+  properties:
+    name:
+      type: string
+    url:
+      type: string
+      format: uri
+    secret:
+      type: string
+      nullable: true
+      description: "Webhook 簽章密鑰。設定後，每次推送都會在 X-Webhook-Signature 標頭中包含 HMAC-SHA256 簽章"
+      writeOnly: true
+    events:
+      type: array
+      items:
+        type: string
+      minItems: 1
+    enabled:
+      type: boolean

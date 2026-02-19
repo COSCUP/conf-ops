@@ -1,0 +1,211 @@
+# Conf-Ops API - 通知 Schema 定義
+# Notification, NotificationPreferences, 及請求結構
+
+# =============================================================================
+# Notification（通知）
+# =============================================================================
+
+Notification:
+  type: object
+  description: "通知完整物件"
+  required:
+    - id
+    - accountId
+    - type
+    - title
+    - isRead
+    - createdAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    accountId:
+      $ref: "./common.yaml#/UUID"
+      description: "接收者帳號 ID"
+    type:
+      $ref: "./common.yaml#/NotificationType"
+    title:
+      type: string
+      description: "通知標題"
+    body:
+      type: string
+      nullable: true
+      description: "通知內文"
+    referenceType:
+      type: string
+      enum:
+        - task
+        - todo
+        - message
+      nullable: true
+      description: "參照資源類型"
+    referenceId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "參照資源 ID"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "所屬專案 ID（系統級通知無專案）"
+    projectName:
+      type: string
+      nullable: true
+      description: "所屬專案名稱"
+    taskId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "相關任務 ID"
+    taskName:
+      type: string
+      nullable: true
+      description: "相關任務名稱"
+    isRead:
+      type: boolean
+      description: "是否已讀"
+    readAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: "已讀時間（UTC）"
+    deliveredChannels:
+      type: array
+      items:
+        type: string
+        enum:
+          - in_app
+          - web_push
+          - email
+      description: "已投遞的頻道列表"
+    createdAt:
+      type: string
+      format: date-time
+      description: "建立時間（UTC）"
+
+# =============================================================================
+# NotificationPreferences（通知偏好設定）
+# =============================================================================
+
+NotificationPreferences:
+  type: object
+  description: "通知偏好設定，以 channels 包裝各頻道的啟用與通知類別"
+  required:
+    - channels
+  properties:
+    channels:
+      type: object
+      description: "各通知頻道設定"
+      properties:
+        email:
+          $ref: "#/ChannelPreference"
+        webPush:
+          $ref: "#/ChannelPreference"
+        inApp:
+          $ref: "#/ChannelPreference"
+
+ChannelPreference:
+  type: object
+  description: "單一通知頻道的偏好設定"
+  required:
+    - enabled
+    - categories
+  properties:
+    enabled:
+      type: boolean
+      description: "此頻道是否啟用"
+    categories:
+      type: object
+      description: "各通知類別的啟用狀態"
+      properties:
+        taskUpdates:
+          type: boolean
+          description: "任務更新通知"
+        todoAssignments:
+          type: boolean
+          description: "待辦指派通知"
+        aiSuggestions:
+          type: boolean
+          description: "AI 建議通知"
+        mentions:
+          type: boolean
+          description: "成員提及通知"
+        systemAnnouncements:
+          type: boolean
+          description: "系統公告通知"
+
+# =============================================================================
+# 請求結構
+# =============================================================================
+
+UpdateNotificationPreferencesRequest:
+  type: object
+  description: "更新通知偏好設定請求。僅需傳入要修改的部分，未傳入的設定維持不變。"
+  properties:
+    channels:
+      type: object
+      description: "各通知頻道設定（僅傳入要修改的頻道）"
+      properties:
+        email:
+          $ref: "#/ChannelPreferenceUpdate"
+        webPush:
+          $ref: "#/ChannelPreferenceUpdate"
+        inApp:
+          $ref: "#/ChannelPreferenceUpdate"
+
+ChannelPreferenceUpdate:
+  type: object
+  description: "單一通知頻道的偏好更新（部分更新）"
+  properties:
+    enabled:
+      type: boolean
+      description: "此頻道是否啟用"
+    categories:
+      type: object
+      description: "各通知類別的啟用狀態（僅傳入要修改的類別）"
+      properties:
+        taskUpdates:
+          type: boolean
+        todoAssignments:
+          type: boolean
+        aiSuggestions:
+          type: boolean
+        mentions:
+          type: boolean
+        systemAnnouncements:
+          type: boolean
+
+WebPushSubscribeRequest:
+  type: object
+  description: "Web Push 訂閱請求，將瀏覽器的 push subscription 物件送至伺服器"
+  required:
+    - subscription
+  properties:
+    subscription:
+      type: object
+      description: "瀏覽器 PushSubscription 物件"
+      required:
+        - endpoint
+        - keys
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          description: "Push service 的訂閱端點 URL"
+        keys:
+          type: object
+          description: "加密金鑰"
+          required:
+            - p256dh
+            - auth
+          properties:
+            p256dh:
+              type: string
+              description: "P-256 Diffie-Hellman 公鑰（Base64 URL 編碼）"
+            auth:
+              type: string
+              description: "認證密鑰（Base64 URL 編碼）"
+    deviceName:
+      type: string
+      nullable: true
+      description: "裝置名稱（用於使用者辨識不同訂閱）"
+      examples:
+        - "Chrome on MacBook"
+        - "Firefox on Desktop"

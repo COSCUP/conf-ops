@@ -1,0 +1,295 @@
+# Conf-Ops API - Tool Schema 定義
+# 執行工具相關的請求與回應結構
+
+# =============================================================================
+# 工具定義與摘要
+# =============================================================================
+
+ToolDefinition:
+  type: object
+  description: "MCP 工具完整定義，包含參數結構（inputSchema）"
+  required:
+    - name
+    - description
+    - inputSchema
+  properties:
+    name:
+      type: string
+      description: "工具識別名稱（如 'createTask'、'smtp/sendEmail'）"
+    displayName:
+      type: string
+      nullable: true
+      description: "工具顯示名稱"
+    category:
+      type: string
+      enum:
+        - core
+        - builtin
+        - external
+      description: "工具類別：core（核心）、builtin（內建）、external（外部 MCP Server）"
+    type:
+      type: string
+      enum:
+        - read
+        - write
+      description: "工具操作類型：read（查詢，不需確認）或 write（寫入，需人類確認）"
+    description:
+      type: string
+      description: "工具功能說明"
+    inputSchema:
+      type: object
+      description: "工具參數的 JSON Schema 定義"
+      additionalProperties: true
+
+ToolSummary:
+  type: object
+  description: "工具摘要，用於列表顯示"
+  required:
+    - name
+    - description
+  properties:
+    name:
+      type: string
+      description: "工具識別名稱"
+    displayName:
+      type: string
+      nullable: true
+      description: "工具顯示名稱"
+    category:
+      type: string
+      enum:
+        - core
+        - builtin
+        - external
+      description: "工具類別"
+    type:
+      type: string
+      enum:
+        - read
+        - write
+      description: "工具操作類型"
+    description:
+      type: string
+      description: "工具功能說明"
+
+# =============================================================================
+# 工具設定
+# =============================================================================
+
+ToolConfig:
+  type: object
+  description: "工具設定完整回應"
+  required:
+    - id
+    - scopeType
+    - scopeId
+    - toolType
+    - toolName
+    - enabled
+    - config
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    scopeType:
+      $ref: "./common.yaml#/ToolScopeType"
+    scopeId:
+      $ref: "./common.yaml#/UUID"
+    toolType:
+      type: string
+      enum:
+        - builtin
+        - external
+      description: "工具類型：builtin（內建）或 external（外部 MCP Server）"
+    toolName:
+      type: string
+      description: "工具識別名稱（如 'smtp/sendEmail'）"
+    displayName:
+      type: string
+      nullable: true
+      description: "顯示名稱"
+    description:
+      type: string
+      nullable: true
+      description: "工具說明"
+    enabled:
+      type: boolean
+      description: "是否啟用"
+    config:
+      type: object
+      additionalProperties: true
+      description: "工具設定（敏感欄位以遮罩形式呈現）"
+    mcpServerConfig:
+      $ref: "#/McpServerConfig"
+      nullable: true
+      description: "外部工具的 MCP Server 連線設定（僅 tool_type = external 時有值）"
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+McpServerConfig:
+  type: object
+  description: "MCP Server 連線設定"
+  required:
+    - transport
+  properties:
+    transport:
+      type: string
+      enum:
+        - stdio
+        - sse
+      description: "傳輸方式"
+    command:
+      type: string
+      description: "stdio 模式的啟動指令"
+    url:
+      type: string
+      format: uri
+      description: "sse 模式的伺服器 URL"
+    args:
+      type: array
+      items:
+        type: string
+      description: "啟動參數"
+
+# =============================================================================
+# 工具執行
+# =============================================================================
+
+ToolExecuteRequest:
+  type: object
+  description: "工具執行請求"
+  required:
+    - taskId
+    - parameters
+    - lastSeenMessageId
+  properties:
+    taskId:
+      $ref: "./common.yaml#/UUID"
+      description: "執行工具的任務 ID"
+    parameters:
+      type: object
+      additionalProperties: true
+      description: "工具參數，結構依工具的 inputSchema 而定"
+    lastSeenMessageId:
+      $ref: "./common.yaml#/UUID"
+      description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
+
+ToolExecuteResponse:
+  type: object
+  description: "工具執行結果回應"
+  required:
+    - success
+  properties:
+    success:
+      type: boolean
+      description: "執行是否成功"
+    result:
+      type: object
+      additionalProperties: true
+      description: "執行結果資料，結構依工具而異"
+    error:
+      type: string
+      description: "錯誤訊息（success = false 時）"
+    messageId:
+      $ref: "./common.yaml#/UUID"
+      description: "執行結果產生的對話訊息 ID"
+
+# =============================================================================
+# 工具設定請求
+# =============================================================================
+
+CreateToolConfigRequest:
+  type: object
+  description: "建立工具設定"
+  required:
+    - toolType
+    - toolName
+    - config
+  properties:
+    toolType:
+      type: string
+      enum:
+        - builtin
+        - external
+      description: "工具類型"
+    toolName:
+      type: string
+      description: "工具識別名稱"
+    displayName:
+      type: string
+      description: "顯示名稱"
+    description:
+      type: string
+      description: "工具說明"
+    enabled:
+      type: boolean
+      default: false
+      description: "是否啟用"
+    config:
+      type: object
+      additionalProperties: true
+      description: "工具設定"
+    mcpServerConfig:
+      type: object
+      description: "MCP Server 連線設定（僅 toolType = external 時必填）"
+      required:
+        - transport
+      properties:
+        transport:
+          type: string
+          enum:
+            - stdio
+            - sse
+        command:
+          type: string
+        url:
+          type: string
+          format: uri
+        args:
+          type: array
+          items:
+            type: string
+
+UpdateToolConfigRequest:
+  type: object
+  description: "更新工具設定"
+  properties:
+    displayName:
+      type: string
+      nullable: true
+      description: "顯示名稱"
+    description:
+      type: string
+      nullable: true
+      description: "工具說明"
+    enabled:
+      type: boolean
+      description: "是否啟用"
+    config:
+      type: object
+      additionalProperties: true
+      description: "工具設定"
+    mcpServerConfig:
+      type: object
+      nullable: true
+      description: "MCP Server 連線設定"
+      properties:
+        transport:
+          type: string
+          enum:
+            - stdio
+            - sse
+        command:
+          type: string
+        url:
+          type: string
+          format: uri
+        args:
+          type: array
+          items:
+            type: string

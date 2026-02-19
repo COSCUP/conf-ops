@@ -1,0 +1,478 @@
+openapi: 3.1.0
+info:
+  title: Conf-Ops API
+  version: 1.0.0
+  description: |
+    Conf-Ops — AI 輔助的研討會/活動專案管理系統 API。
+
+    內部 API 端點使用 `/api/v1/` 前綴，外部資料 API 使用 `/external/v1/` 前綴。
+    認證使用 JWT Bearer Token（透過 Passkey 或 Magic Link 取得）。
+    外部資料 API 使用專案層級 API Key 認證。
+
+    ## 分頁
+    使用 cursor-based 分頁，回傳 opaque cursor token。
+
+    ## 錯誤處理
+    遵循 RFC 7807 Problem Details 格式。
+
+    ## 即時通訊
+    任務對話支援 WebSocket 連線（CRDT 同步 + 即時更新 + 通知推送）。
+
+  contact:
+    name: Conf-Ops Team
+  license:
+    name: MIT
+
+servers:
+  - url: /api/v1
+    description: API v1 主要端點（內部 API，JWT 認證）
+  - url: /external/v1
+    description: 外部資料 API 端點（API Key 認證）
+
+tags:
+  - name: Auth
+    description: 認證 — Passkey (WebAuthn) + Email Magic Link
+  - name: Accounts
+    description: 帳號管理 — 個人資料、偏好設定、個人資料表
+  - name: Organizations
+    description: 組織管理 — 成員、聯絡人、工具設定
+  - name: Projects
+    description: 專案管理 — 建立、複製、權限設定
+  - name: Members
+    description: 專案成員管理 — 邀請、角色、標籤指派
+  - name: Contacts
+    description: 外部聯絡人管理 — 建立、合併、標籤指派
+  - name: MemberTags
+    description: 成員標籤管理 — 角色/組別定義、外部建立任務設定
+  - name: TaskTemplates
+    description: 任務模板管理 — 待辦模板、資料表定義、資料表聚合
+  - name: Tasks
+    description: 任務管理 — 建立、狀態轉換、參與人
+  - name: Conversations
+    description: 任務對話 — 訊息、CRDT 同步、WebSocket、附件
+  - name: Todos
+    description: 待辦事項管理 — 建立、指派、關聯任務、狀態更新
+  - name: DataSheets
+    description: 資料表 — 資料列新增/修改、跨任務聚合、資料分享
+  - name: ExternalData
+    description: 外部資料 API — 專案層級 API Key 認證（讀取與寫入）
+  - name: ApiKeys
+    description: API Key 管理 — 產生、列出、撤銷專案層級 API Key
+  - name: AuditLogs
+    description: 審計日誌 — 組織與專案層級操作記錄查詢
+  - name: Tools
+    description: 執行工具 — MCP 工具執行、工具設定管理
+  - name: ToolConfigs
+    description: 工具設定管理
+  - name: Memories
+    description: 記憶系統 — 記憶 CRUD、記憶庫文件、繼承鏈查詢
+  - name: Notifications
+    description: 通知系統 — 通知列表、已讀標記、偏好設定、Web Push 訂閱
+  - name: AISuggestions
+    description: AI 建議 — SuggestionGroup 生命週期、決策操作
+  - name: Email
+    description: 電子郵件整合 — 收信 webhook、未分類收件匣
+  - name: EmailInbound
+    description: 電子郵件接收 — HTTP webhook 收信處理（AWS SES Lambda / Cloudflare Email Worker）
+  - name: LibraryDocuments
+    description: 記憶庫文件 — 文件 CRUD、版本歷史
+  - name: Webhooks
+    description: Webhook — 設定管理、事件日誌、外部系統整合
+  - name: Files
+    description: 檔案儲存 — 上傳、下載、刪除檔案
+  - name: Operations
+    description: 運維端點 — 健康檢查、就緒探測、Prometheus 指標
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token，透過 Passkey 或 Magic Link 認證後取得。
+        有效期 15 分鐘，過期後使用 refresh token 更新。
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        專案層級 API Key，用於外部資料 API 的存取。
+
+  schemas:
+    # ── 共用 Schema ──
+    CursorPaginationParams:
+      $ref: './schemas/common.yaml#/CursorPaginationParams'
+    CursorPaginationMeta:
+      $ref: './schemas/common.yaml#/CursorPaginationMeta'
+    ProblemDetails:
+      $ref: './schemas/common.yaml#/ProblemDetails'
+    ValidationError:
+      $ref: './schemas/common.yaml#/ValidationError'
+    Timestamps:
+      $ref: './schemas/common.yaml#/Timestamps'
+
+    # ── Entity Schema ──
+    Account:
+      $ref: './schemas/entities.yaml#/Account'
+    Organization:
+      $ref: './schemas/entities.yaml#/Organization'
+    OrganizationMember:
+      $ref: './schemas/entities.yaml#/OrganizationMember'
+    Project:
+      $ref: './schemas/entities.yaml#/Project'
+    Member:
+      $ref: './schemas/entities.yaml#/Member'
+    Contact:
+      $ref: './schemas/entities.yaml#/Contact'
+    MemberTag:
+      $ref: './schemas/entities.yaml#/MemberTag'
+    TaskTemplate:
+      $ref: './schemas/entities.yaml#/TaskTemplate'
+    TodoTemplate:
+      $ref: './schemas/entities.yaml#/TodoTemplate'
+    DataSchema:
+      $ref: './schemas/entities.yaml#/DataSchema'
+    Task:
+      $ref: './schemas/entities.yaml#/Task'
+    Message:
+      $ref: './schemas/entities.yaml#/Message'
+    SuggestionGroup:
+      $ref: './schemas/entities.yaml#/SuggestionGroup'
+    Suggestion:
+      $ref: './schemas/entities.yaml#/Suggestion'
+    Todo:
+      $ref: './schemas/entities.yaml#/Todo'
+    DataEntry:
+      $ref: './schemas/entities.yaml#/DataEntry'
+    ToolConfig:
+      $ref: './schemas/entities.yaml#/ToolConfig'
+    Memory:
+      $ref: './schemas/entities.yaml#/Memory'
+    LibraryDocument:
+      $ref: './schemas/entities.yaml#/LibraryDocument'
+    AuditLog:
+      $ref: './schemas/entities.yaml#/AuditLog'
+    Notification:
+      $ref: './schemas/entities.yaml#/Notification'
+    Reminder:
+      $ref: './schemas/entities.yaml#/Reminder'
+    EmailThread:
+      $ref: './schemas/entities.yaml#/EmailThread'
+    Webhook:
+      $ref: './schemas/entities.yaml#/Webhook'
+    WebhookEventLog:
+      $ref: './schemas/entities.yaml#/WebhookEventLog'
+
+    # ── Request Schema ──
+    CreateAccount:
+      $ref: './schemas/requests.yaml#/CreateAccount'
+    UpdateAccount:
+      $ref: './schemas/requests.yaml#/UpdateAccount'
+    CreateOrganization:
+      $ref: './schemas/requests.yaml#/CreateOrganization'
+    UpdateOrganization:
+      $ref: './schemas/requests.yaml#/UpdateOrganization'
+    CreateProject:
+      $ref: './schemas/requests.yaml#/CreateProject'
+    UpdateProject:
+      $ref: './schemas/requests.yaml#/UpdateProject'
+    CopyProject:
+      $ref: './schemas/requests.yaml#/CopyProject'
+    CreateTask:
+      $ref: './schemas/requests.yaml#/CreateTask'
+    SendMessage:
+      $ref: './schemas/requests.yaml#/SendMessage'
+    SuggestionDecision:
+      $ref: './schemas/requests.yaml#/SuggestionDecision'
+
+    # ── Response Schema ──
+    ListResponse:
+      $ref: './schemas/responses.yaml#/ListResponse'
+    TokenPairResponse:
+      $ref: './schemas/responses.yaml#/TokenPairResponse'
+    HealthResponse:
+      $ref: './schemas/responses.yaml#/HealthResponse'
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ── 認證 (Auth) ──
+  /auth/passkey/register/begin:
+    $ref: './paths/auth.yaml#/~1auth~1passkey~1register~1begin'
+  /auth/passkey/register/complete:
+    $ref: './paths/auth.yaml#/~1auth~1passkey~1register~1complete'
+  /auth/passkey/login/begin:
+    $ref: './paths/auth.yaml#/~1auth~1passkey~1login~1begin'
+  /auth/passkey/login/complete:
+    $ref: './paths/auth.yaml#/~1auth~1passkey~1login~1complete'
+  /auth/magic-link/request:
+    $ref: './paths/auth.yaml#/~1auth~1magic-link~1request'
+  /auth/magic-link/verify:
+    $ref: './paths/auth.yaml#/~1auth~1magic-link~1verify'
+  /auth/refresh:
+    $ref: './paths/auth.yaml#/~1auth~1refresh'
+  /auth/logout:
+    $ref: './paths/auth.yaml#/~1auth~1logout'
+  /auth/passkeys:
+    $ref: './paths/auth.yaml#/~1auth~1passkeys'
+  /auth/passkeys/{passkeyId}:
+    $ref: './paths/auth.yaml#/~1auth~1passkeys~1{passkeyId}'
+
+  # ── 帳號 (Accounts) ──
+  /accounts/me:
+    $ref: './paths/accounts.yaml#/~1accounts~1me'
+  /accounts/me/profile:
+    $ref: './paths/accounts.yaml#/~1accounts~1me~1profile'
+  /accounts/me/todos:
+    $ref: './paths/accounts.yaml#/~1accounts~1me~1todos'
+  /accounts/me/notifications:
+    $ref: './paths/accounts.yaml#/~1accounts~1me~1notifications'
+
+  # ── 組織 (Organizations) ──
+  /organizations:
+    $ref: './paths/organizations.yaml#/~1organizations'
+  /organizations/{orgId}:
+    $ref: './paths/organizations.yaml#/~1organizations~1{orgId}'
+  /organizations/{orgId}/members:
+    $ref: './paths/organizations.yaml#/~1organizations~1{orgId}~1members'
+  /organizations/{orgId}/members/invite:
+    $ref: './paths/organizations.yaml#/~1organizations~1{orgId}~1members~1invite'
+  /organizations/{orgId}/members/{memberId}:
+    $ref: './paths/organizations.yaml#/~1organizations~1{orgId}~1members~1{memberId}'
+  /organizations/{orgId}/restore:
+    $ref: './paths/organizations.yaml#/~1organizations~1{orgId}~1restore'
+  /organizations/{orgId}/contacts:
+    $ref: './paths/contacts.yaml#/~1organizations~1{orgId}~1contacts'
+  /organizations/{orgId}/contacts/{contactId}:
+    $ref: './paths/contacts.yaml#/~1organizations~1{orgId}~1contacts~1{contactId}'
+  /organizations/{orgId}/contacts/merge:
+    $ref: './paths/contacts.yaml#/~1organizations~1{orgId}~1contacts~1merge'
+  /projects/{projectId}/contacts:
+    $ref: './paths/contacts.yaml#/~1projects~1{projectId}~1contacts'
+  /organizations/{orgId}/tool-configs:
+    $ref: './paths/tools.yaml#/~1organizations~1{orgId}~1tool-configs'
+
+  # ── 專案 (Projects) ──
+  /organizations/{orgId}/projects:
+    $ref: './paths/projects.yaml#/~1organizations~1{orgId}~1projects'
+  /organizations/{orgId}/projects/copy:
+    $ref: './paths/projects.yaml#/~1organizations~1{orgId}~1projects~1copy'
+  /projects/{projectId}:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}'
+  /projects/{projectId}/status:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}~1status'
+  /projects/{projectId}/permission-settings:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}~1permission-settings'
+  /projects/{projectId}/stats:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}~1stats'
+  /projects/{projectId}/reminders:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}~1reminders'
+  /projects/{projectId}/reminders/{reminderId}:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}~1reminders~1{reminderId}'
+  /projects/{projectId}/restore:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}~1restore'
+  /projects/{projectId}/members/me:
+    $ref: './paths/projects.yaml#/~1projects~1{projectId}~1members~1me'
+
+  # ── 成員 (Members) ──
+  /projects/{projectId}/members:
+    $ref: './paths/members.yaml#/~1projects~1{projectId}~1members'
+  /projects/{projectId}/members/invite:
+    $ref: './paths/members.yaml#/~1projects~1{projectId}~1members~1invite'
+  /projects/{projectId}/members/{memberId}:
+    $ref: './paths/members.yaml#/~1projects~1{projectId}~1members~1{memberId}'
+
+  # ── 成員標籤 (Member Tags) ──
+  /projects/{projectId}/member-tags:
+    $ref: './paths/member-tags.yaml#/~1projects~1{projectId}~1member-tags'
+  /projects/{projectId}/member-tags/{tagId}:
+    $ref: './paths/member-tags.yaml#/~1projects~1{projectId}~1member-tags~1{tagId}'
+  /projects/{projectId}/member-tags/{tagId}/assign:
+    $ref: './paths/member-tags.yaml#/~1projects~1{projectId}~1member-tags~1{tagId}~1assign'
+  /projects/{projectId}/member-tags/{tagId}/assignments/{assignmentId}:
+    $ref: './paths/member-tags.yaml#/~1projects~1{projectId}~1member-tags~1{tagId}~1assignments~1{assignmentId}'
+  /projects/{projectId}/member-tags/{tagId}/external-task-creation:
+    $ref: './paths/member-tags.yaml#/~1projects~1{projectId}~1member-tags~1{tagId}~1external-task-creation'
+
+  # ── 任務模板 (Task Templates) ──
+  /projects/{projectId}/task-templates:
+    $ref: './paths/task-templates.yaml#/~1projects~1{projectId}~1task-templates'
+  /projects/{projectId}/task-templates/{templateId}:
+    $ref: './paths/task-templates.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}'
+  /projects/{projectId}/task-templates/{templateId}/todo-templates:
+    $ref: './paths/task-templates.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}~1todo-templates'
+  /projects/{projectId}/task-templates/{templateId}/todo-templates/{todoTemplateId}:
+    $ref: './paths/task-templates.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}~1todo-templates~1{todoTemplateId}'
+  /projects/{projectId}/task-templates/{templateId}/data-schemas:
+    $ref: './paths/task-templates.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}~1data-schemas'
+  /projects/{projectId}/task-templates/{templateId}/data-schemas/{schemaId}:
+    $ref: './paths/task-templates.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}~1data-schemas~1{schemaId}'
+  /projects/{projectId}/task-templates/{templateId}/data-sheet:
+    $ref: './paths/task-templates.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}~1data-sheet'
+
+  # ── 任務 (Tasks) ──
+  /projects/{projectId}/tasks:
+    $ref: './paths/tasks.yaml#/~1projects~1{projectId}~1tasks'
+  /projects/{projectId}/tasks/{taskId}:
+    $ref: './paths/tasks.yaml#/~1projects~1{projectId}~1tasks~1{taskId}'
+  /projects/{projectId}/tasks/{taskId}/status:
+    $ref: './paths/tasks.yaml#/~1projects~1{projectId}~1tasks~1{taskId}~1status'
+
+  /tasks/{taskId}/restore:
+    $ref: './paths/tasks.yaml#/~1tasks~1{taskId}~1restore'
+
+  # ── 對話 (Conversations) ──
+  /tasks/{taskId}/conversation:
+    $ref: './paths/conversations.yaml#/~1tasks~1{taskId}~1conversation'
+  /tasks/{taskId}/conversation/messages:
+    $ref: './paths/conversations.yaml#/~1tasks~1{taskId}~1conversation~1messages'
+  /tasks/{taskId}/conversation/sync:
+    $ref: './paths/conversations.yaml#/~1tasks~1{taskId}~1conversation~1sync'
+  /tasks/{taskId}/conversation/ws-token:
+    $ref: './paths/conversations.yaml#/~1tasks~1{taskId}~1conversation~1ws-token'
+  /tasks/{taskId}/conversation/ws:
+    $ref: './paths/conversations.yaml#/~1tasks~1{taskId}~1conversation~1ws'
+  /tasks/{taskId}/conversation/attachments/{attachmentId}:
+    $ref: './paths/conversations.yaml#/~1tasks~1{taskId}~1conversation~1attachments~1{attachmentId}'
+
+  # ── 待辦事項 (Todos) ──
+  /tasks/{taskId}/todos:
+    $ref: './paths/todos.yaml#/~1tasks~1{taskId}~1todos'
+  /tasks/{taskId}/todos/{todoId}:
+    $ref: './paths/todos.yaml#/~1tasks~1{taskId}~1todos~1{todoId}'
+  /tasks/{taskId}/todos/{todoId}/status:
+    $ref: './paths/todos.yaml#/~1tasks~1{taskId}~1todos~1{todoId}~1status'
+  /tasks/{taskId}/todos/{todoId}/assignees:
+    $ref: './paths/todos.yaml#/~1tasks~1{taskId}~1todos~1{todoId}~1assignees'
+  /tasks/{taskId}/todos/{todoId}/assignees/{memberId}:
+    $ref: './paths/todos.yaml#/~1tasks~1{taskId}~1todos~1{todoId}~1assignees~1{memberId}'
+  /tasks/{taskId}/todos/{todoId}/link:
+    $ref: './paths/todos.yaml#/~1tasks~1{taskId}~1todos~1{todoId}~1link'
+
+  # ── 資料表 (Data Sheets) ──
+  /tasks/{taskId}/data-entries:
+    $ref: './paths/data-sheets.yaml#/~1tasks~1{taskId}~1data-entries'
+  /tasks/{taskId}/data-entries/{schemaId}:
+    $ref: './paths/data-sheets.yaml#/~1tasks~1{taskId}~1data-entries~1{schemaId}'
+  /tasks/{taskId}/data-entries/{schemaId}/share:
+    $ref: './paths/data-sheets.yaml#/~1tasks~1{taskId}~1data-entries~1{schemaId}~1share'
+  /task-templates/{templateId}/data-sheet/{schemaId}:
+    $ref: './paths/data-sheets.yaml#/~1task-templates~1{templateId}~1data-sheet~1{schemaId}'
+
+  # ── 外部資料 API (External Data) ──
+  /projects/{projectId}/task-templates:
+    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1task-templates'
+  /projects/{projectId}/task-templates/{templateId}/data:
+    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}~1data'
+  /projects/{projectId}/tasks:
+    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1tasks'
+  /projects/{projectId}/tasks/{taskId}/data:
+    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1tasks~1{taskId}~1data'
+
+  # ── 工具 (Tools) ──
+  /projects/{projectId}/tools:
+    $ref: './paths/tools.yaml#/~1projects~1{projectId}~1tools'
+  /projects/{projectId}/tools/{toolName}:
+    $ref: './paths/tools.yaml#/~1projects~1{projectId}~1tools~1{toolName}'
+  /projects/{projectId}/tools/{toolName}/execute:
+    $ref: './paths/tools.yaml#/~1projects~1{projectId}~1tools~1{toolName}~1execute'
+  /projects/{projectId}/tool-configs:
+    $ref: './paths/tools.yaml#/~1projects~1{projectId}~1tool-configs'
+  /projects/{projectId}/tool-configs/{configId}:
+    $ref: './paths/tools.yaml#/~1projects~1{projectId}~1tool-configs~1{configId}'
+
+  # ── 記憶 (Memories) ──
+  /memories:
+    $ref: './paths/memories.yaml#/~1memories'
+  /memories/{memoryId}:
+    $ref: './paths/memories.yaml#/~1memories~1{memoryId}'
+  /memories/{memoryId}/versions:
+    $ref: './paths/memories.yaml#/~1memories~1{memoryId}~1versions'
+  /library-documents:
+    $ref: './paths/memories.yaml#/~1library-documents'
+  /library-documents/{docId}:
+    $ref: './paths/memories.yaml#/~1library-documents~1{docId}'
+  /library-documents/{docId}/versions:
+    $ref: './paths/memories.yaml#/~1library-documents~1{docId}~1versions'
+  /tasks/{taskId}/memory-chain:
+    $ref: './paths/memories.yaml#/~1tasks~1{taskId}~1memory-chain'
+
+  # ── 通知 (Notifications) ──
+  /notifications:
+    $ref: './paths/notifications.yaml#/~1notifications'
+  /notifications/{notificationId}/read:
+    $ref: './paths/notifications.yaml#/~1notifications~1{notificationId}~1read'
+  /notifications/read-all:
+    $ref: './paths/notifications.yaml#/~1notifications~1read-all'
+  /notifications/unread-count:
+    $ref: './paths/notifications.yaml#/~1notifications~1unread-count'
+  /accounts/me/notification-preferences:
+    $ref: './paths/notifications.yaml#/~1accounts~1me~1notification-preferences'
+  /notifications/web-push/subscribe:
+    $ref: './paths/notifications.yaml#/~1notifications~1web-push~1subscribe'
+  /notifications/web-push/subscriptions/{endpoint}:
+    $ref: './paths/notifications.yaml#/~1notifications~1web-push~1subscriptions~1{endpoint}'
+
+  # ── AI 建議 (AI Suggestions) ──
+  /tasks/{taskId}/suggestions:
+    $ref: './paths/ai-suggestions.yaml#/~1tasks~1{taskId}~1suggestions'
+  /tasks/{taskId}/suggestions/{groupId}:
+    $ref: './paths/ai-suggestions.yaml#/~1tasks~1{taskId}~1suggestions~1{groupId}'
+  /tasks/{taskId}/suggestions/{groupId}/suggestions/{suggestionId}/decide:
+    $ref: './paths/ai-suggestions.yaml#/~1tasks~1{taskId}~1suggestions~1{groupId}~1suggestions~1{suggestionId}~1decide'
+  /tasks/{taskId}/suggestions/request:
+    $ref: './paths/ai-suggestions.yaml#/~1tasks~1{taskId}~1suggestions~1request'
+  /tasks/{taskId}/ai/resolve-placeholders:
+    $ref: './paths/ai-suggestions.yaml#/~1tasks~1{taskId}~1ai~1resolve-placeholders'
+
+  # ── 電子郵件 (Email) ──
+  /email/inbound:
+    $ref: './paths/email-inbound.yaml#/~1email~1inbound'
+  /projects/{projectId}/unassigned-inbox:
+    $ref: './paths/email-inbound.yaml#/~1projects~1{projectId}~1unassigned-inbox'
+  /projects/{projectId}/unassigned-inbox/{emailId}/assign:
+    $ref: './paths/email-inbound.yaml#/~1projects~1{projectId}~1unassigned-inbox~1{emailId}~1assign'
+  /tasks/{taskId}/email-threads:
+    $ref: './paths/email-inbound.yaml#/~1tasks~1{taskId}~1email-threads'
+  /tasks/{taskId}/email-threads/{threadId}:
+    $ref: './paths/email-inbound.yaml#/~1tasks~1{taskId}~1email-threads~1{threadId}'
+
+  # ── Webhook ──
+  /projects/{projectId}/webhooks:
+    $ref: './paths/webhooks.yaml#/~1projects~1{projectId}~1webhooks'
+  /projects/{projectId}/webhooks/{webhookId}:
+    $ref: './paths/webhooks.yaml#/~1projects~1{projectId}~1webhooks~1{webhookId}'
+  /projects/{projectId}/webhooks/{webhookId}/test:
+    $ref: './paths/webhooks.yaml#/~1projects~1{projectId}~1webhooks~1{webhookId}~1test'
+  /projects/{projectId}/webhooks/{webhookId}/logs:
+    $ref: './paths/webhooks.yaml#/~1projects~1{projectId}~1webhooks~1{webhookId}~1logs'
+  /webhooks/inbound/{endpointId}:
+    $ref: './paths/webhooks.yaml#/~1webhooks~1inbound~1{endpointId}'
+
+  # ── API Keys ──
+  /projects/{projectId}/api-keys:
+    $ref: './paths/api-keys.yaml#/~1projects~1{projectId}~1api-keys'
+  /projects/{projectId}/api-keys/{keyId}:
+    $ref: './paths/api-keys.yaml#/~1projects~1{projectId}~1api-keys~1{keyId}'
+
+  # ── 審計日誌 (Audit Logs) ──
+  /organizations/{orgId}/audit-logs:
+    $ref: './paths/audit-logs.yaml#/~1organizations~1{orgId}~1audit-logs'
+  /projects/{projectId}/audit-logs:
+    $ref: './paths/audit-logs.yaml#/~1projects~1{projectId}~1audit-logs'
+
+  # ── 檔案 (Files) ──
+  /files/upload:
+    $ref: './paths/files.yaml#/~1files~1upload'
+  /files/{fileId}:
+    $ref: './paths/files.yaml#/~1files~1{fileId}'
+
+  # ── 運維 (Operations) ──
+  /healthz:
+    $ref: './paths/health.yaml#/~1healthz'
+  /readyz:
+    $ref: './paths/health.yaml#/~1readyz'
+  /metrics:
+    $ref: './paths/health.yaml#/~1metrics'

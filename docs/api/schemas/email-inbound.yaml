@@ -1,0 +1,85 @@
+# Conf-Ops API - Email 收信相關 Schema 定義
+# Inbound Email schemas: processing results, unassigned inbox
+
+# =============================================================================
+# InboundEmailResponse（收信處理結果）
+# =============================================================================
+
+InboundEmailResponse:
+  type: object
+  description: "Inbound Email 處理結果回應"
+  required:
+    - status
+  properties:
+    status:
+      type: string
+      enum:
+        - matched
+        - unmatched
+      description: |
+        處理狀態：
+        - matched：成功匹配到任務，信件已加入任務對話
+        - unmatched：無法匹配，已歸入專案的未分類收件匣
+    taskId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "匹配到的任務 ID（status = matched 時有值）"
+    messageId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "新增至任務對話的訊息 ID（status = matched 時有值）"
+    threadId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "匹配或建立的 Email Thread ID（status = matched 時有值）"
+    emailId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "未分類信件 ID（status = unmatched 時有值）"
+    projectId:
+      $ref: "./common.yaml#/UUID"
+      nullable: true
+      description: "歸入的專案 ID（status = unmatched 時有值）"
+
+# =============================================================================
+# UnassignedEmail（未分類收件匣項目）
+# =============================================================================
+
+UnassignedEmail:
+  type: object
+  description: "未分類收件匣中的信件項目，尚未匹配到任何任務"
+  required:
+    - id
+    - from
+    - subject
+    - receivedAt
+  properties:
+    id:
+      $ref: "./common.yaml#/UUID"
+    from:
+      type: object
+      description: "寄件者資訊"
+      required:
+        - address
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: "寄件者顯示名稱"
+        address:
+          type: string
+          format: email
+          description: "寄件者 Email 地址"
+    subject:
+      type: string
+      description: "Email 主旨"
+    snippet:
+      type: string
+      description: "Email 內容預覽片段"
+    receivedAt:
+      type: string
+      format: date-time
+      description: "收件時間（UTC）"
+    hasAttachments:
+      type: boolean
+      description: "是否包含附件"

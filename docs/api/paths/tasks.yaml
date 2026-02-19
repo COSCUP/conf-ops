@@ -1,0 +1,456 @@
+# Conf-Ops API - 任務相關路徑
+# Tasks CRUD, Status, Participants
+
+# ===========================================================
+# /projects/{projectId}/tasks
+# ===========================================================
+
+/projects/{projectId}/tasks:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+
+  post:
+    operationId: createTask
+    summary: "建立任務"
+    description: |
+      從任務模板建立新任務，需指定歸屬的成員標籤（ownerTag）。
+
+      - 系統自動從模板實例化待辦事項與資料表結構
+      - 建立者自動成為任務參與人
+      - 可建立自身成員標籤的任務，也可建立其他組別允許外部建立的任務（依 externalTaskCreation 設定）
+      - 建立成功後觸發 `task_created` 事件，啟動 AI 建議流程
+    tags:
+      - Tasks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/CreateTaskRequest"
+          examples:
+            basic:
+              summary: "從模板建立贊助商聯絡任務"
+              value:
+                name: "與 X 公司聯絡"
+                description: "負責聯絡 X 科技股份有限公司的贊助事宜"
+                taskTemplateId: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                ownerTagId: "018e4a2c-0001-7000-8000-000000000001"
+            crossTeam:
+              summary: "跨組建立任務（關聯待辦事項）"
+              value:
+                name: "發佈 X 公司贊助商貼文"
+                description: "請公關組協助發佈 X 公司的贊助商宣傳貼文"
+                taskTemplateId: "018e4a2c-0005-7000-8000-000000000001"
+                ownerTagId: "018e4a2c-0001-7000-8000-000000000002"
+                parentTodoId: "018e4a2c-0006-7000-8000-000000000001"
+    responses:
+      "201":
+        description: "任務建立成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限從此任務模板建立任務，或無權限指定此 ownerTag"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  get:
+    operationId: listTasks
+    summary: "列出任務"
+    description: |
+      列出專案中的任務，可依狀態、成員標籤、參與身份進行篩選。
+
+      - 一般成員僅可查看自己作為參與人（participants）的任務
+      - 標籤管理者可查看所管理標籤下的所有任務（若具備 canViewAllTagTasks 權限）
+      - 專案擁有者可查看所有任務
+      - 支援游標分頁
+    tags:
+      - Tasks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    parameters:
+      - name: status
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/TaskStatus"
+        description: "依任務狀態篩選"
+      - name: tagId
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/UUID"
+        description: "依 ownerTag 成員標籤篩選"
+      - name: participatingOnly
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: "僅顯示自己參與的任務"
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: "分頁游標"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: "每頁數量"
+      - name: sortBy
+        in: query
+        schema:
+          type: string
+          enum:
+            - createdAt
+            - updatedAt
+            - name
+          default: createdAt
+        description: "排序欄位"
+      - name: sortOrder
+        in: query
+        schema:
+          $ref: "../schemas/common.yaml#/SortOrder"
+        description: "排序方向"
+    responses:
+      "200":
+        description: "任務列表"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskListResponse"
+
+# ===========================================================
+# /projects/{projectId}/tasks/{taskId}
+# ===========================================================
+
+/projects/{projectId}/tasks/{taskId}:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  get:
+    operationId: getTask
+    summary: "取得任務詳情"
+    description: |
+      取得指定任務的完整資訊，包含參與人列表、關聯任務、待辦進度摘要等。
+    tags:
+      - Tasks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    responses:
+      "200":
+        description: "任務詳情"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskDetailResponse"
+            examples:
+              full:
+                summary: "含參與人與關聯任務"
+                value:
+                  id: "018e4a2c-0004-7000-8000-000000000001"
+                  name: "與 X 公司聯絡"
+                  description: "負責聯絡 X 科技股份有限公司的贊助事宜"
+                  status: "in_progress"
+                  ownerTag:
+                    id: "018e4a2c-0001-7000-8000-000000000001"
+                    name: "贊助組"
+                  sourceTemplate:
+                    id: "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
+                    name: "與贊助商保持聯絡"
+                  createdBy:
+                    id: "018e4a2c-0007-7000-8000-000000000001"
+                    name: "小明"
+                  participants:
+                    - id: "018e4a2c-0007-7000-8000-000000000001"
+                      name: "小明"
+                      reason: "createdBy"
+                    - id: "018e4a2c-0007-7000-8000-000000000002"
+                      name: "小華"
+                      reason: "ownerTag"
+                  linkedTasks:
+                    - taskId: "018e4a2c-0004-7000-8000-000000000003"
+                      taskName: "發佈 X 公司贊助商貼文"
+                      direction: "outgoing"
+                      todoId: "018e4a2c-0006-7000-8000-000000000001"
+                      todoTitle: "請公關組發文"
+                      status: "in_progress"
+                  todoSummary:
+                    total: 5
+                    completed: 2
+                    open: 3
+                  createdAt: "2026-01-15T08:00:00Z"
+                  updatedAt: "2026-02-10T14:30:00Z"
+      "403":
+        description: "無權限查看此任務"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  put:
+    operationId: updateTask
+    summary: "更新任務"
+    description: |
+      更新任務的名稱與描述。狀態更新請使用專用的狀態端點。
+    tags:
+      - Tasks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpdateTaskRequest"
+          examples:
+            basic:
+              summary: "更新任務名稱"
+              value:
+                name: "與 X 科技公司聯絡（贊助確認中）"
+                description: "負責聯絡 X 科技股份有限公司的贊助事宜，目前已寄出方案等待回覆"
+    responses:
+      "200":
+        description: "更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskResponse"
+      "400":
+        description: "請求參數驗證失敗"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限更新此任務"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+  delete:
+    operationId: deleteTask
+    summary: "刪除任務（軟刪除）"
+    description: |
+      軟刪除任務，設定 `deletedAt` 時間戳。任務對話與相關資料保留但不可存取。
+    tags:
+      - Tasks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    responses:
+      "204":
+        description: "刪除成功"
+      "403":
+        description: "無權限刪除此任務"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+
+# ===========================================================
+# /projects/{projectId}/tasks/{taskId}/status
+# ===========================================================
+
+/projects/{projectId}/tasks/{taskId}/status:
+  parameters:
+    - name: projectId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "專案 ID"
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  put:
+    operationId: updateTaskStatus
+    summary: "更新任務狀態"
+    description: |
+      更新任務的狀態。狀態轉換規則：
+
+      - `pending` → `in_progress`：當任務有實質活動時自動轉換，也可手動觸發
+      - `in_progress` → `completed`：所有待辦事項皆已完成後，由參與人手動標記
+      - 任何狀態 → `cancelled`：由參與人手動標記
+
+      標記為 `completed` 時，若有未完成的待辦事項，將回傳 409 錯誤。
+    tags:
+      - Tasks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+      - task_participant
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/requests.yaml#/UpdateTaskStatusRequest"
+          examples:
+            complete:
+              summary: "標記任務完成"
+              value:
+                status: "completed"
+            cancel:
+              summary: "取消任務"
+              value:
+                status: "cancelled"
+                reason: "贊助商表示今年不參加"
+    responses:
+      "200":
+        description: "狀態更新成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskResponse"
+      "400":
+        description: "無效的狀態轉換"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "403":
+        description: "無權限更新此任務狀態"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "409":
+        description: "衝突 — 例如嘗試標記完成但仍有未完成的待辦事項"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+            examples:
+              incompleteTodos:
+                summary: "仍有未完成的待辦事項"
+                value:
+                  type: "https://api.conf-ops.dev/errors/incomplete-todos"
+                  title: "Cannot Complete Task"
+                  status: 409
+                  detail: "任務仍有 3 個未完成的待辦事項，請先完成所有待辦事項再標記任務完成"
+
+# ===========================================================
+# /tasks/{taskId}/restore
+# ===========================================================
+
+/tasks/{taskId}/restore:
+  parameters:
+    - name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "../schemas/common.yaml#/UUID"
+      description: "任務 ID"
+
+  post:
+    operationId: restoreTask
+    summary: "還原已刪除的任務"
+    description: |
+      還原軟刪除的任務，清除 `deletedAt` 時間戳。
+      還原後任務恢復為刪除前的狀態，對話與相關資料重新可存取。
+    tags:
+      - Tasks
+    security:
+      - bearerAuth: []
+    x-permissions:
+      - project_owner
+      - tag_admin
+    responses:
+      "200":
+        description: "任務還原成功"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/responses.yaml#/TaskResponse"
+      "401":
+        $ref: "../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        description: "無權限還原此任務"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "404":
+        description: "任務不存在"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
+      "409":
+        description: "任務未處於已刪除狀態"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/common.yaml#/ProblemDetails"
