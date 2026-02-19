@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,6 +12,18 @@ const router = createRouter({
           path: '',
           name: 'login',
           component: () => import('@/views/LoginView.vue'),
+        },
+      ],
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/auth/magic-link',
+      component: () => import('@/layouts/AuthLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'magic-link-verify',
+          component: () => import('@/views/auth/MagicLinkVerifyView.vue'),
         },
       ],
       meta: { requiresAuth: false },
@@ -42,11 +54,11 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const { checkAuth } = useAuth()
+  const store = useAuthStore()
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth === true)
 
-  if (requiresAuth && !checkAuth()) {
+  if (requiresAuth && !store.isAuthenticated) {
     return { name: 'login' }
   }
 

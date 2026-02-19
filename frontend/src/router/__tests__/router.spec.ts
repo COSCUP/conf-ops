@@ -1,6 +1,16 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createRouter, createWebHistory, type Router } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
+import { createPinia, setActivePinia } from 'pinia'
+import { useAuthStore } from '@/stores/auth'
+
+vi.mock('@/api/client', () => ({
+  default: {
+    GET: vi.fn(),
+    POST: vi.fn(),
+    use: vi.fn(),
+  },
+  setupAuthInterceptor: vi.fn(),
+}))
 
 function createTestRouter(): Router {
   const router = createRouter({
@@ -22,9 +32,9 @@ function createTestRouter(): Router {
   })
 
   router.beforeEach((to) => {
-    const { checkAuth } = useAuth()
-    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth !== false)
-    if (requiresAuth && !checkAuth()) {
+    const store = useAuthStore()
+    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth === true)
+    if (requiresAuth && !store.isAuthenticated) {
       return { name: 'login' }
     }
     return true
@@ -35,8 +45,7 @@ function createTestRouter(): Router {
 
 describe('Router guard', () => {
   beforeEach(() => {
-    const { setAuthenticated } = useAuth()
-    setAuthenticated(false)
+    setActivePinia(createPinia())
   })
 
   it('redirects to login when not authenticated', async () => {
@@ -54,8 +63,8 @@ describe('Router guard', () => {
   })
 
   it('allows access to protected route when authenticated', async () => {
-    const { setAuthenticated } = useAuth()
-    setAuthenticated(true)
+    const store = useAuthStore()
+    store.setTokens('test-token')
 
     const router = createTestRouter()
     await router.push('/')

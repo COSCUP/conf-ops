@@ -1,0 +1,74 @@
+import { ref, computed } from 'vue'
+import { defineStore } from 'pinia'
+import client from '@/api/client'
+
+interface CurrentUser {
+  id: string
+  email: string
+  display_name: string
+  avatar_url: string | null
+  locale: string
+}
+
+export const useAuthStore = defineStore('auth', () => {
+  const accessToken = ref<string | null>(null)
+  const currentUser = ref<CurrentUser | null>(null)
+  const isAuthenticated = computed(() => accessToken.value !== null)
+
+  function setTokens(token: string) {
+    accessToken.value = token
+  }
+
+  function clearAuth() {
+    accessToken.value = null
+    currentUser.value = null
+  }
+
+  async function fetchCurrentUser() {
+    if (!accessToken.value) return
+
+    const { data } = await client.GET('/api/v1/accounts/me' as never)
+
+    if (data) {
+      currentUser.value = data as CurrentUser
+    }
+  }
+
+  async function refreshToken(): Promise<boolean> {
+    try {
+      const { data } = await client.POST('/api/v1/auth/refresh' as never)
+
+      if (data) {
+        const tokenData = data as { access_token: string }
+        accessToken.value = tokenData.access_token
+        await fetchCurrentUser()
+        return true
+      }
+      return false
+    } catch {
+      clearAuth()
+      return false
+    }
+  }
+
+  async function logout() {
+    try {
+      if (accessToken.value) {
+        await client.POST('/api/v1/auth/logout' as never)
+      }
+    } finally {
+      clearAuth()
+    }
+  }
+
+  return {
+    accessToken,
+    currentUser,
+    isAuthenticated,
+    setTokens,
+    clearAuth,
+    fetchCurrentUser,
+    refreshToken,
+    logout,
+  }
+})
