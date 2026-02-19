@@ -7,6 +7,8 @@ use tokio::sync::broadcast;
 pub enum DomainEvent {
     SystemStarted,
     SystemHealthCheck,
+    AccountCreated { account_id: uuid::Uuid },
+    AccountUpdated { account_id: uuid::Uuid },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.

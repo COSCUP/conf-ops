@@ -1,11 +1,13 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::Router;
+use axum::routing::{delete, get, post};
+use axum::{middleware, Router};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
-use conf_ops::api::routes::health;
+use conf_ops::api::middleware::auth::auth_middleware;
+use conf_ops::api::routes::{accounts, auth, health};
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
 use conf_ops::db;
@@ -63,9 +65,51 @@ async fn main() {
         auth_service,
     };
 
+    let auth_routes = Router::new()
+        .route("/magic-link/request", post(auth::request_magic_link))
+        .route("/magic-link/verify", post(auth::verify_magic_link))
+        .route("/refresh", post(auth::refresh))
+        .route("/logout", post(auth::logout))
+        .route(
+            "/passkeys/register/begin",
+            post(auth::passkey_register_begin),
+        )
+        .route(
+            "/passkeys/register/complete",
+            post(auth::passkey_register_complete),
+        )
+        .route("/passkeys/login/begin", post(auth::passkey_login_begin))
+        .route(
+            "/passkeys/login/complete",
+            post(auth::passkey_login_complete),
+        );
+
+    let account_routes = Router::new()
+        .route("/me", get(accounts::get_me).patch(accounts::update_me))
+        .route(
+            "/me/profile",
+            get(accounts::get_profile).put(accounts::update_profile),
+        )
+        .route(
+            "/me/notification-preferences",
+            get(accounts::get_notification_preferences)
+                .put(accounts::update_notification_preferences),
+        )
+        .route("/me/passkeys", get(accounts::list_passkeys))
+        .route("/me/passkeys/{id}", delete(accounts::delete_passkey));
+
+    let api_v1 = Router::new()
+        .nest("/auth", auth_routes)
+        .nest("/accounts", account_routes);
+
     let app = Router::new()
-        .route("/healthz", axum::routing::get(health::healthz))
-        .route("/readyz", axum::routing::get(health::readyz))
+        .route("/healthz", get(health::healthz))
+        .route("/readyz", get(health::readyz))
+        .nest("/api/v1", api_v1)
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
         .with_state(state);
 
     let addr: SocketAddr = format!("{}:{}", config.app_host, config.app_port)
