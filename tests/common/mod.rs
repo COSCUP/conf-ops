@@ -6,6 +6,7 @@ use conf_ops::config::AppConfig;
 use conf_ops::events::EventBus;
 use conf_ops::id::generate_id;
 use conf_ops::modules::auth::jwt::{issue_access_token, JwtConfig};
+use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::repository::AccountRepository;
 use conf_ops::modules::auth::service::AuthService;
 use conf_ops::modules::email::EmailService;
@@ -116,10 +117,13 @@ impl TestContext {
         let jwt_config = Self::test_jwt_config();
         let app_config = Self::test_app_config();
 
+        let webauthn = build_webauthn(&app_config).expect("should build webauthn");
+
         let auth_service = Arc::new(AuthService::new(
             self.pool.clone(),
             jwt_config.clone(),
             self.email_service.clone(),
+            webauthn,
             &app_config,
         ));
 

@@ -5,12 +5,16 @@ use axum::Json;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use webauthn_rs_proto::{PublicKeyCredential, RegisterPublicKeyCredential};
 
 use crate::api::error::ProblemDetails;
 use crate::api::middleware::auth::AuthUser;
 use crate::app_state::AppState;
 use crate::modules::auth::jwt::rotate_refresh_token;
 use crate::modules::auth::repository::RefreshTokenRepository;
+
+// ── Request/Response types ──────────────────────────────────────
 
 #[derive(Deserialize)]
 pub struct MagicLinkRequest {
@@ -33,6 +37,32 @@ pub struct AuthTokenResponse {
     pub token_type: String,
     pub expires_in: i64,
 }
+
+#[derive(Deserialize)]
+pub struct PasskeyRegisterCompleteRequest {
+    pub credential: RegisterPublicKeyCredential,
+    #[serde(default = "default_passkey_name")]
+    pub name: String,
+}
+
+fn default_passkey_name() -> String {
+    "My Passkey".to_string()
+}
+
+#[derive(Serialize)]
+pub struct PasskeyLoginBeginResponse {
+    pub challenge_id: Uuid,
+    #[serde(flatten)]
+    pub options: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+pub struct PasskeyLoginCompleteRequest {
+    pub challenge_id: Uuid,
+    pub credential: PublicKeyCredential,
+}
+
+// ── Magic Link ──────────────────────────────────────────────────
 
 /// Request a magic link email.
 ///
@@ -81,6 +111,104 @@ pub async fn verify_magic_link(
         }),
     ))
 }
+
+// ── Passkey ─────────────────────────────────────────────────────
+
+/// Begin passkey registration (requires authentication).
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on `WebAuthn` or database failure.
+pub async fn passkey_register_begin(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> Result<Json<serde_json::Value>, ProblemDetails> {
+    let ccr = state
+        .auth_service
+        .passkey_register_begin(user.account_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    let json = serde_json::to_value(ccr).map_err(|e| {
+        ProblemDetails::new(StatusCode::INTERNAL_SERVER_ERROR, "Serialization error")
+            .with_detail(e.to_string())
+    })?;
+
+    Ok(Json(json))
+}
+
+/// Complete passkey registration.
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on `WebAuthn` verification failure.
+pub async fn passkey_register_complete(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Json(body): Json<PasskeyRegisterCompleteRequest>,
+) -> Result<StatusCode, ProblemDetails> {
+    state
+        .auth_service
+        .passkey_register_complete(user.account_id, &body.credential, &body.name)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    Ok(StatusCode::CREATED)
+}
+
+/// Begin passkey login (public, no auth required).
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on `WebAuthn` failure.
+pub async fn passkey_login_begin(
+    State(state): State<AppState>,
+) -> Result<Json<PasskeyLoginBeginResponse>, ProblemDetails> {
+    let (rcr, challenge_id) = state
+        .auth_service
+        .passkey_login_begin()
+        .map_err(ProblemDetails::from)?;
+
+    let options = serde_json::to_value(rcr).map_err(|e| {
+        ProblemDetails::new(StatusCode::INTERNAL_SERVER_ERROR, "Serialization error")
+            .with_detail(e.to_string())
+    })?;
+
+    Ok(Json(PasskeyLoginBeginResponse {
+        challenge_id,
+        options,
+    }))
+}
+
+/// Complete passkey login and return tokens.
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on `WebAuthn` verification or credential failure.
+pub async fn passkey_login_complete(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(body): Json<PasskeyLoginCompleteRequest>,
+) -> Result<(CookieJar, Json<AuthTokenResponse>), ProblemDetails> {
+    let (access_token, refresh_token, _account_id) = state
+        .auth_service
+        .passkey_login_complete(body.challenge_id, &body.credential)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    let cookie = build_refresh_cookie(refresh_token, state.jwt_config.refresh_token_expiry_secs);
+
+    Ok((
+        jar.add(cookie),
+        Json(AuthTokenResponse {
+            access_token,
+            token_type: "Bearer".to_string(),
+            expires_in: state.jwt_config.access_token_expiry_secs,
+        }),
+    ))
+}
+
+// ── Refresh & Logout ────────────────────────────────────────────
 
 /// Rotate the refresh token and return new tokens.
 ///

@@ -1,7 +1,5 @@
 mod common;
 
-use std::sync::Arc;
-
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::middleware;
@@ -14,7 +12,6 @@ use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::auth;
 use conf_ops::modules::auth::jwt::validate_access_token;
 use conf_ops::modules::auth::repository::AccountRepository;
-use conf_ops::modules::auth::service::AuthService;
 
 fn build_auth_app(state: conf_ops::app_state::AppState) -> Router {
     Router::new()
@@ -71,23 +68,18 @@ async fn request_magic_link_sends_email() {
 async fn verify_magic_link_creates_account_and_returns_tokens() {
     let ctx = TestContext::new().await;
     let jwt_config = TestContext::test_jwt_config();
-    let app_config = TestContext::test_app_config();
+    let state = ctx.app_state();
 
-    let auth_service = Arc::new(AuthService::new(
-        ctx.pool.clone(),
-        jwt_config.clone(),
-        ctx.email_service.clone(),
-        &app_config,
-    ));
-
-    auth_service
+    state
+        .auth_service
         .request_magic_link("verify@example.com")
         .await
         .expect("should send magic link");
 
     let token = extract_token_from_email(&ctx).await;
 
-    let (access_token, _refresh_token, account_id) = auth_service
+    let (access_token, _refresh_token, account_id) = state
+        .auth_service
         .verify_magic_link(&token)
         .await
         .expect("should verify magic link");
@@ -105,26 +97,19 @@ async fn verify_magic_link_creates_account_and_returns_tokens() {
 #[tokio::test]
 async fn verify_magic_link_with_existing_account() {
     let ctx = TestContext::new().await;
-    let jwt_config = TestContext::test_jwt_config();
-    let app_config = TestContext::test_app_config();
-
+    let state = ctx.app_state();
     let (account_id, email) = ctx.create_test_account().await;
 
-    let auth_service = Arc::new(AuthService::new(
-        ctx.pool.clone(),
-        jwt_config,
-        ctx.email_service.clone(),
-        &app_config,
-    ));
-
-    auth_service
+    state
+        .auth_service
         .request_magic_link(&email)
         .await
         .expect("should send magic link");
 
     let token = extract_token_from_email(&ctx).await;
 
-    let (_access_token, _refresh_token, returned_id) = auth_service
+    let (_access_token, _refresh_token, returned_id) = state
+        .auth_service
         .verify_magic_link(&token)
         .await
         .expect("should verify");
@@ -135,46 +120,32 @@ async fn verify_magic_link_with_existing_account() {
 #[tokio::test]
 async fn verify_magic_link_token_cannot_be_reused() {
     let ctx = TestContext::new().await;
-    let jwt_config = TestContext::test_jwt_config();
-    let app_config = TestContext::test_app_config();
+    let state = ctx.app_state();
 
-    let auth_service = Arc::new(AuthService::new(
-        ctx.pool.clone(),
-        jwt_config,
-        ctx.email_service.clone(),
-        &app_config,
-    ));
-
-    auth_service
+    state
+        .auth_service
         .request_magic_link("reuse@example.com")
         .await
         .expect("should send");
 
     let token = extract_token_from_email(&ctx).await;
 
-    auth_service
+    state
+        .auth_service
         .verify_magic_link(&token)
         .await
         .expect("first verify should succeed");
 
-    let result = auth_service.verify_magic_link(&token).await;
+    let result = state.auth_service.verify_magic_link(&token).await;
     assert!(result.is_err());
 }
 
 #[tokio::test]
 async fn verify_invalid_token_fails() {
     let ctx = TestContext::new().await;
-    let jwt_config = TestContext::test_jwt_config();
-    let app_config = TestContext::test_app_config();
+    let state = ctx.app_state();
 
-    let auth_service = Arc::new(AuthService::new(
-        ctx.pool.clone(),
-        jwt_config,
-        ctx.email_service.clone(),
-        &app_config,
-    ));
-
-    let result = auth_service.verify_magic_link("bogus-token").await;
+    let result = state.auth_service.verify_magic_link("bogus-token").await;
     assert!(result.is_err());
 }
 
