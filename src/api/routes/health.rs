@@ -3,29 +3,47 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::app_state::AppState;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct HealthResponse {
     pub status: &'static str,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ReadyResponse {
     pub status: &'static str,
     pub checks: ReadyChecks,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ReadyChecks {
     pub database: &'static str,
 }
 
+#[utoipa::path(
+    get,
+    path = "/healthz",
+    tag = "health",
+    responses(
+        (status = 200, description = "Service is healthy", body = HealthResponse)
+    )
+)]
 pub async fn healthz() -> Json<HealthResponse> {
     Json(HealthResponse { status: "ok" })
 }
 
+#[utoipa::path(
+    get,
+    path = "/readyz",
+    tag = "health",
+    responses(
+        (status = 200, description = "Service is ready", body = ReadyResponse),
+        (status = 503, description = "Service is not ready", body = ReadyResponse)
+    )
+)]
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     match sqlx::query("SELECT 1").execute(&state.pool).await {
         Ok(_) => (

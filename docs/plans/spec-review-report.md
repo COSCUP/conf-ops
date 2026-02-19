@@ -212,8 +212,8 @@
 ### 11. ✅ CI Pipeline 缺少型別生成同步驗證
 
 - **修復**：
-  - 在 `docs/plans/phase-00-scaffolding.md` S-0.4 CI Pipeline 中補充 `cargo xtask generate-api-types --check` 和 `npx openapi-typescript` 型別同步驗證步驟
-  - 在 `docs/plans/phase-01-auth-account.md` B-1.1 驗收標準中新增 `cargo xtask generate-api-types --check` 通過項目，作為所有 API 變更 Phase 的範例
+  - 在 `docs/plans/phase-00-scaffolding.md` S-0.4 CI Pipeline 中補充 `cargo xtask generate-openapi --check` 和 `npx openapi-typescript` 型別同步驗證步驟
+  - 在 `docs/plans/phase-01-auth-account.md` B-1.1 驗收標準中新增 `cargo xtask generate-openapi --check` 通過項目，作為所有 API 變更 Phase 的範例
 
 ### 12. ✅ Phase 1 Magic Link 請求路徑不一致
 

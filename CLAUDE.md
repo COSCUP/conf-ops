@@ -31,9 +31,9 @@ Modular Monolith 架構，單一 Rust binary，9 個內部模組。
 - `cargo test` — 所有測試通過
 
 **前端：**
-- `npm run lint -- --max-warnings 0` — 零錯誤、零警告
-- `npm run typecheck` — TypeScript strict 模式類型檢查通過
-- `npm run test` — 所有測試通過
+- `pnpm run lint` — 零錯誤、零警告
+- `pnpm run typecheck` — TypeScript strict 模式類型檢查通過
+- `pnpm run test` — 所有測試通過
 
 ### 測試要求
 
@@ -60,10 +60,11 @@ Modular Monolith 架構，單一 Rust binary，9 個內部模組。
 
 ### 前後端契約
 
-- OpenAPI 3.1 spec（`docs/api/openapi.yaml`）為唯一真相來源
-- 後端類型：`cargo xtask generate-api-types` 生成至 `src/api/generated/`
-- 前端類型：`npx openapi-typescript` 生成至 `src/api/schema.d.ts`
-- 禁止手動定義 API 通訊相關類型
+- Rust 手寫類型（含 utoipa 註解）為 runtime source of truth
+- `cargo xtask generate-openapi` 從 utoipa 匯出 OpenAPI spec 至 `docs/api/openapi-generated.yaml`
+- 前端類型：`npx openapi-typescript` 從 `openapi-generated.yaml` 生成至 `src/api/schema.d.ts`
+- API request/response 類型直接在 route handler 檔案定義並加上 utoipa 註解
+- `docs/api/openapi.yaml` 保留為設計參考
 
 ### Git 規範
 

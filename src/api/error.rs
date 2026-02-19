@@ -2,9 +2,10 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 /// RFC 7807 Problem Details error response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ProblemDetails {
     /// Error type URI for programmatic identification.
     #[serde(rename = "type")]
@@ -30,7 +31,7 @@ pub struct ProblemDetails {
 }
 
 /// A single field validation error.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ValidationError {
     /// Field path (e.g. "name", "config.apiKey").
     pub field: String,

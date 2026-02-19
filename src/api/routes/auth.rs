@@ -1,10 +1,11 @@
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs_proto::{PublicKeyCredential, RegisterPublicKeyCredential};
 
@@ -16,30 +17,32 @@ use crate::modules::auth::repository::RefreshTokenRepository;
 
 // ── Request/Response types ──────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct MagicLinkRequest {
     pub email: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct MagicLinkResponse {
     pub message: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct MagicLinkVerifyRequest {
     pub token: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthTokenResponse {
     pub access_token: String,
     pub token_type: String,
     pub expires_in: i64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PasskeyRegisterCompleteRequest {
+    #[schema(value_type = Object)]
     pub credential: RegisterPublicKeyCredential,
     #[serde(default = "default_passkey_name")]
     pub name: String,
@@ -49,16 +52,18 @@ fn default_passkey_name() -> String {
     "My Passkey".to_string()
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PasskeyLoginBeginResponse {
     pub challenge_id: Uuid,
+    #[schema(value_type = Object)]
     #[serde(flatten)]
     pub options: serde_json::Value,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PasskeyLoginCompleteRequest {
     pub challenge_id: Uuid,
+    #[schema(value_type = Object)]
     pub credential: PublicKeyCredential,
 }
 
@@ -69,6 +74,16 @@ pub struct PasskeyLoginCompleteRequest {
 /// # Errors
 ///
 /// Returns `ProblemDetails` on failure.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/magic-link/request",
+    tag = "auth",
+    request_body = MagicLinkRequest,
+    responses(
+        (status = 200, description = "Magic link email sent", body = MagicLinkResponse),
+        (status = 400, description = "Invalid request", body = ProblemDetails)
+    )
+)]
 pub async fn request_magic_link(
     State(state): State<AppState>,
     Json(body): Json<MagicLinkRequest>,
@@ -89,14 +104,26 @@ pub async fn request_magic_link(
 /// # Errors
 ///
 /// Returns `ProblemDetails` on invalid or expired token.
+#[utoipa::path(
+    get,
+    path = "/api/v1/auth/magic-link/verify",
+    tag = "auth",
+    params(
+        ("token" = String, Query, description = "Magic link token")
+    ),
+    responses(
+        (status = 200, description = "Authentication successful", body = AuthTokenResponse),
+        (status = 401, description = "Invalid or expired token", body = ProblemDetails)
+    )
+)]
 pub async fn verify_magic_link(
     State(state): State<AppState>,
     jar: CookieJar,
-    Json(body): Json<MagicLinkVerifyRequest>,
+    Query(params): Query<MagicLinkVerifyRequest>,
 ) -> Result<(CookieJar, Json<AuthTokenResponse>), ProblemDetails> {
     let (access_token, refresh_token, _account_id) = state
         .auth_service
-        .verify_magic_link(&body.token)
+        .verify_magic_link(&params.token)
         .await
         .map_err(ProblemDetails::from)?;
 
@@ -119,6 +146,16 @@ pub async fn verify_magic_link(
 /// # Errors
 ///
 /// Returns `ProblemDetails` on `WebAuthn` or database failure.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/passkey/register/begin",
+    tag = "auth",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Registration challenge created", body = Object),
+        (status = 401, description = "Unauthorized", body = ProblemDetails)
+    )
+)]
 pub async fn passkey_register_begin(
     State(state): State<AppState>,
     user: AuthUser,
@@ -142,6 +179,17 @@ pub async fn passkey_register_begin(
 /// # Errors
 ///
 /// Returns `ProblemDetails` on `WebAuthn` verification failure.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/passkey/register/complete",
+    tag = "auth",
+    security(("bearer_auth" = [])),
+    request_body = PasskeyRegisterCompleteRequest,
+    responses(
+        (status = 201, description = "Passkey registered"),
+        (status = 401, description = "Unauthorized", body = ProblemDetails)
+    )
+)]
 pub async fn passkey_register_complete(
     State(state): State<AppState>,
     user: AuthUser,
@@ -161,6 +209,15 @@ pub async fn passkey_register_complete(
 /// # Errors
 ///
 /// Returns `ProblemDetails` on `WebAuthn` failure.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/passkey/login/begin",
+    tag = "auth",
+    responses(
+        (status = 200, description = "Login challenge created", body = PasskeyLoginBeginResponse),
+        (status = 500, description = "Internal error", body = ProblemDetails)
+    )
+)]
 pub async fn passkey_login_begin(
     State(state): State<AppState>,
 ) -> Result<Json<PasskeyLoginBeginResponse>, ProblemDetails> {
@@ -185,6 +242,16 @@ pub async fn passkey_login_begin(
 /// # Errors
 ///
 /// Returns `ProblemDetails` on `WebAuthn` verification or credential failure.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/passkey/login/complete",
+    tag = "auth",
+    request_body = PasskeyLoginCompleteRequest,
+    responses(
+        (status = 200, description = "Login successful", body = AuthTokenResponse),
+        (status = 401, description = "Invalid credentials", body = ProblemDetails)
+    )
+)]
 pub async fn passkey_login_complete(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -215,6 +282,15 @@ pub async fn passkey_login_complete(
 /// # Errors
 ///
 /// Returns `ProblemDetails` if no refresh token cookie or token is invalid.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/refresh",
+    tag = "auth",
+    responses(
+        (status = 200, description = "Tokens refreshed", body = AuthTokenResponse),
+        (status = 401, description = "Invalid refresh token", body = ProblemDetails)
+    )
+)]
 pub async fn refresh(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -249,6 +325,16 @@ pub async fn refresh(
 /// # Errors
 ///
 /// Returns `ProblemDetails` on database failure.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/logout",
+    tag = "auth",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 204, description = "Logged out successfully"),
+        (status = 401, description = "Unauthorized", body = ProblemDetails)
+    )
+)]
 pub async fn logout(
     State(state): State<AppState>,
     user: AuthUser,

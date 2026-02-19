@@ -32,6 +32,9 @@ jobs:
       - name: Run tests
         run: cargo test
 
+      - name: Check OpenAPI spec is up-to-date
+        run: cargo xtask generate-openapi --check
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

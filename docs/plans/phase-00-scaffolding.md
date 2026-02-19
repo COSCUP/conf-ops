@@ -40,7 +40,7 @@
 3. 設定 `Cargo.toml` lints（clippy all deny、pedantic warn、nursery warn）
 4. 新增共用依賴：`tokio`, `axum`, `sqlx`, `serde`, `uuid`, `chrono`, `thiserror`, `tracing`, `tracing-subscriber`
 5. 建立 `.env.example` 參考 `docs/system/02-deployment-architecture.md` 中的環境變數
-6. 建立 `xtask` 子專案（`cargo xtask generate-api-types`），參考 `docs/development-guidelines.md` 第 5 節，供後續 Phase 從 OpenAPI spec 生成 Rust API 類型
+6. 建立 `xtask` 子專案（`cargo xtask generate-openapi`），參考 `docs/development-guidelines.md` 第 5 節，供後續 Phase 從 OpenAPI spec 生成 Rust API 類型
 
 **涉及檔案：**
 - `Cargo.toml`, `Cargo.lock`
@@ -139,7 +139,7 @@
 
 **說明：**
 1. 建立 `.github/workflows/ci.yml`，參考 `docs/development-guidelines.md` 第 6 節
-2. 後端 job：`cargo fmt -- --check` → `cargo clippy -- -D warnings` → `cargo test` → `cargo xtask generate-api-types --check`（驗證生成的 API 類型與 spec 同步）
+2. 後端 job：`cargo fmt -- --check` → `cargo clippy -- -D warnings` → `cargo test` → `cargo xtask generate-openapi --check`（驗證生成的 API 類型與 spec 同步）
 3. 前端 job：`npm ci` → `npm run lint -- --max-warnings 0` → `npm run typecheck` → `npm run test` → `npx openapi-typescript` 型別同步驗證
 4. OpenAPI spec 驗證 job：`npx @redocly/cli lint docs/api/openapi.yaml`
 5. 後端測試使用 `pg_lite` 管理測試用 PostgreSQL（無需 CI service container）

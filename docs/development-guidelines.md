@@ -19,9 +19,9 @@
 - [ ] `cargo clippy -- -D warnings` 無任何錯誤與警告（含 info 層級）
 - [ ] `cargo fmt -- --check` 格式檢查通過
 - [ ] `cargo test` 所有測試通過（單元測試 + 整合測試）
-- [ ] 前端 `npm run lint` 無任何錯誤與警告
-- [ ] 前端 `npm run typecheck` 類型檢查通過
-- [ ] 前端 `npm run test` 所有測試通過
+- [ ] 前端 `pnpm run lint` 無任何錯誤與警告
+- [ ] 前端 `pnpm run typecheck` 類型檢查通過
+- [ ] 前端 `pnpm run test` 所有測試通過
 
 ### Lint 修復原則
 
@@ -273,46 +273,52 @@ const emit = defineEmits<{
 
 - ESLint：使用 `@antfu/eslint-config` 或等效的嚴格配置
 - Prettier（若未整合至 ESLint）：統一程式碼格式
-- 所有 lint 規則須零警告（`--max-warnings 0`）
+- 所有 lint 規則須零警告
 
 ---
 
-## 5. 前後端契約：OpenAPI 自動生成
+## 5. 前後端契約：Rust → OpenAPI → TypeScript
 
-前後端透過 OpenAPI 3.1 規格文件（`docs/api/openapi.yaml`）作為唯一契約來源。
+Rust 手寫類型（含 utoipa 註解）為 runtime source of truth，透過 utoipa 自動匯出 OpenAPI spec，前端再從 spec 生成 TypeScript 類型。
 
 ### 5.1 後端（Rust）
 
-使用工具從 OpenAPI spec 生成 Rust 類型定義：
-
-- Request / Response 結構體
-- Enum 類型
-- 驗證規則
-
-```bash
-# 從 OpenAPI spec 生成 Rust 類型
-cargo xtask generate-api-types
-```
-
-生成的類型放置在 `src/api/generated/` 目錄，禁止手動修改。手寫的 handler 引用生成的類型：
+API request/response 類型直接定義在 route handler 檔案中，加上 utoipa 註解：
 
 ```rust
-use crate::api::generated::{CreateTaskRequest, TaskResponse};
+use utoipa::ToSchema;
 
-async fn create_task(
-    Json(req): Json<CreateTaskRequest>,
-) -> Result<Json<TaskResponse>, ApiError> {
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskResponse {
+    pub id: Uuid,
+    pub title: String,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/tasks/{id}",
+    tag = "tasks",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Task details", body = TaskResponse),
+        (status = 404, description = "Not found", body = ProblemDetails)
+    )
+)]
+pub async fn get_task(/* ... */) -> Result<Json<TaskResponse>, ProblemDetails> {
     // ...
 }
 ```
 
+所有 handler 須在 `src/api/openapi.rs` 的 `ApiDoc` 中註冊。
+
 ### 5.2 前端（TypeScript）
 
-使用 `openapi-typescript` 從 spec 生成 TypeScript 類型：
+使用 `openapi-typescript` 從 utoipa 匯出的 spec 生成 TypeScript 類型：
 
 ```bash
-# 從 OpenAPI spec 生成 TypeScript 類型
-npx openapi-typescript docs/api/openapi.yaml -o src/api/schema.d.ts
+# 從 utoipa 匯出的 OpenAPI spec 生成 TypeScript 類型
+npx openapi-typescript ../docs/api/openapi-generated.yaml -o src/api/schema.d.ts
 ```
 
 搭配 `openapi-fetch` 實現類型安全的 API 呼叫：
@@ -332,16 +338,20 @@ const { data, error } = await client.GET('/projects/{projectId}/tasks', {
 ### 5.3 契約同步流程
 
 ```
-OpenAPI spec 變更
-    ├── cargo xtask generate-api-types   → 後端類型更新
-    └── npx openapi-typescript           → 前端類型更新
+Rust 類型（utoipa 註解）
+    ├── cargo xtask generate-openapi     → docs/api/openapi-generated.yaml
+    └── npx openapi-typescript           → 前端 TypeScript 類型更新
 ```
 
-- OpenAPI spec 為唯一真相來源（Single Source of Truth）
-- 禁止手動在前端或後端定義與 API 通訊相關的類型
-- CI 中驗證生成的類型是否與 spec 同步
+- Rust 手寫類型（含 utoipa 註解）為唯一真相來源（Single Source of Truth）
+- API request/response 類型直接在 route handler 檔案定義並加上 utoipa 註解
+- CI 中驗證匯出的 spec 是否與程式碼同步
 
-### 5.4 API 回應序列化注意事項
+### 5.4 設計參考文件
+
+`docs/api/openapi.yaml` 及 `docs/api/` 目錄下的原始設計稿保留為設計參考，不再用於程式碼生成。實際的 OpenAPI spec 由 utoipa 從 Rust 類型匯出至 `docs/api/openapi-generated.yaml`。
+
+### 5.5 API 回應序列化注意事項
 
 當資料庫 JSONB 欄位（如 `messages.content`）與 API 回應 Schema 使用 `discriminator`（辨別器）時，後端在序列化回應時必須根據資料庫的對應欄位（如 `source_type`）動態注入 `type` 值至 JSONB 內容中。例如 `MessageResponse.content` 的 `type` 欄位不儲存於資料庫，而是在 API handler 或 serializer 層根據 `messages.source_type` 映射注入（`member` → `"member"`、`email_inbound` → `"email_inbound"` 等），確保前端依據 OpenAPI discriminator 正確解析。
 
@@ -357,8 +367,8 @@ jobs:
       - cargo fmt -- --check
       - cargo clippy -- -D warnings
       - cargo test
-      # 驗證生成的 API 類型是否與 spec 同步
-      - cargo xtask generate-api-types --check
+      # 驗證 utoipa 匯出的 OpenAPI spec 是否與程式碼同步
+      - cargo xtask generate-openapi --check
 
   frontend:
     steps:
@@ -367,12 +377,12 @@ jobs:
       - npm run typecheck
       - npm run test
       # 驗證生成的 API 類型是否與 spec 同步
-      - npx openapi-typescript docs/api/openapi.yaml -o src/api/schema.d.ts
+      - npx openapi-typescript docs/api/openapi-generated.yaml -o src/api/schema.d.ts
       - git diff --exit-code src/api/schema.d.ts
 
   api-spec:
     steps:
-      # 驗證 OpenAPI spec 格式正確
+      # 驗證 OpenAPI spec 設計稿格式正確
       - npx @redocly/cli lint docs/api/openapi.yaml
 ```
 

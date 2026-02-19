@@ -1,7 +1,7 @@
 # Conf-Ops Makefile
 
 .PHONY: help dev-up dev-down migrate lint lint-backend lint-frontend lint-spec \
-        test test-backend test-frontend validate bundle build-docs check-refs
+        test test-backend test-frontend validate generate-openapi build-docs check-refs
 
 help: ## Show this help message
 	@echo "Conf-Ops Development Commands"
@@ -49,12 +49,12 @@ test-frontend: ## Run frontend tests
 validate: ## Run all spec validations
 	@bash scripts/validate-all.sh
 
-bundle: ## Bundle OpenAPI spec into single file
-	@npx @redocly/cli bundle docs/api/openapi.yaml -o docs/api/openapi-bundled.yaml
-	@echo "Bundled to docs/api/openapi-bundled.yaml"
+generate-openapi: ## Generate OpenAPI spec from utoipa annotations
+	@cargo xtask generate-openapi
+	@echo "Generated docs/api/openapi-generated.yaml"
 
-build-docs: bundle ## Build HTML documentation
-	@npx @redocly/cli build-docs docs/api/openapi-bundled.yaml -o docs/api/index.html
+build-docs: generate-openapi ## Build HTML documentation
+	@npx @redocly/cli build-docs docs/api/openapi-generated.yaml -o docs/api/index.html
 	@echo "Built docs/api/index.html"
 
 check-refs: ## Run cross-reference checks

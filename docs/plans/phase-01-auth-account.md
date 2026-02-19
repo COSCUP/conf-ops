@@ -41,14 +41,14 @@
 - 整合測試：Profile data JSONB 讀寫
 
 **驗收標準：**
-- [ ] accounts 及相關表 migration 成功
-- [ ] Repository CRUD 全部通過測試
-- [ ] 軟刪除機制正確運作
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] `cargo xtask generate-api-types --check` 型別同步通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] accounts 及相關表 migration 成功
+- [x] Repository CRUD 全部通過測試
+- [x] 軟刪除機制正確運作
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] `cargo xtask generate-openapi --check` 型別同步通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -84,14 +84,14 @@
 - 整合測試：並發 refresh 請求的原子性
 
 **驗收標準：**
-- [ ] JWT access token 15 分鐘過期
-- [ ] Refresh token 7 天過期，使用 HTTP-only cookie
-- [ ] Token rotation 正確運作
-- [ ] 認證 middleware 可保護路由
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] JWT access token 15 分鐘過期
+- [x] Refresh token 7 天過期，使用 HTTP-only cookie
+- [x] Token rotation 正確運作
+- [x] 認證 middleware 可保護路由
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -125,13 +125,13 @@
 - API 測試：完整 HTTP 流程
 
 **驗收標準：**
-- [ ] Magic link 可成功寄出（開發環境透過 MailHog 確認）
-- [ ] Token 驗證後可取得 JWT
-- [ ] 新使用者自動建立帳號
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] Magic link 可成功寄出（開發環境透過 MailHog 確認）
+- [x] Token 驗證後可取得 JWT
+- [x] 新使用者自動建立帳號
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -161,13 +161,13 @@
 - API 測試：認證 begin/complete 完整流程
 
 **驗收標準：**
-- [ ] Passkey 註冊流程完整
-- [ ] Passkey 認證流程完整
-- [ ] Sign count 正確遞增
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] Passkey 註冊流程完整
+- [x] Passkey 認證流程完整
+- [x] Sign count 正確遞增
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -199,13 +199,13 @@
 - 整合測試：Logout 後 refresh token 失效
 
 **驗收標準：**
-- [ ] 帳號 CRUD API 完整
-- [ ] 認證保護正確
-- [ ] DomainEvent 正確發布
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 帳號 CRUD API 完整
+- [x] 認證保護正確
+- [x] DomainEvent 正確發布
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -241,12 +241,12 @@
 - 單元測試：authStore 狀態管理
 
 **驗收標準：**
-- [ ] Email Magic Link 登入流程可操作
-- [ ] Passkey 登入按鈕可觸發 WebAuthn
-- [ ] Token 管理正確（存儲、refresh、過期處理）
-- [ ] `npm run lint -- --max-warnings 0` 零警告
-- [ ] `npm run typecheck` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] Email Magic Link 登入流程可操作
+- [x] Passkey 登入按鈕可觸發 WebAuthn
+- [x] Token 管理正確（存儲、refresh、過期處理）
+- [x] `npm run lint -- --max-warnings 0` 零警告
+- [x] `npm run typecheck` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -275,12 +275,12 @@
 - 單元測試：useAccount composable
 
 **驗收標準：**
-- [ ] 個人資料可編輯並儲存
-- [ ] Passkey 可新增與管理
-- [ ] 通知偏好可設定
-- [ ] `npm run lint -- --max-warnings 0` 零警告
-- [ ] `npm run typecheck` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 個人資料可編輯並儲存
+- [x] Passkey 可新增與管理
+- [x] 通知偏好可設定
+- [x] `npm run lint -- --max-warnings 0` 零警告
+- [x] `npm run typecheck` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 

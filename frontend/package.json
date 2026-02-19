@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
-    "test:unit": "vitest",
-    "test": "vitest",
+    "test": "vitest run",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "typecheck": "vue-tsc --build",
@@ -18,7 +17,7 @@
     "fix": "run-s fix-oxlint fix-eslint",
     "fix-oxlint": "oxlint . --fix",
     "fix-eslint": "eslint . --fix --cache",
-    "generate-types": "openapi-typescript ../docs/api/openapi.yaml -o src/api/schema.d.ts"
+    "generate-types": "openapi-typescript ../docs/api/openapi-generated.yaml -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.2.2",
