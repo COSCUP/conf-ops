@@ -9,6 +9,7 @@ use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
 use conf_ops::db;
 use conf_ops::events::EventBus;
+use conf_ops::modules::auth::jwt::JwtConfig;
 
 #[tokio::main]
 async fn main() {
@@ -30,7 +31,19 @@ async fn main() {
         .expect("Failed to run database migrations");
 
     let event_bus = EventBus::default();
-    let state = AppState { pool, event_bus };
+    let jwt_config = JwtConfig {
+        secret: config.jwt_secret.clone(),
+        issuer: config.jwt_issuer.clone(),
+        access_token_expiry_secs: config.jwt_access_expiry_secs,
+        refresh_token_expiry_secs: config.jwt_refresh_expiry_secs,
+    };
+
+    let state = AppState {
+        pool,
+        event_bus,
+        jwt_config,
+        app_base_url: config.app_base_url.clone(),
+    };
 
     let app = Router::new()
         .route("/healthz", axum::routing::get(health::healthz))

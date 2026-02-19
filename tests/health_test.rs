@@ -8,7 +8,6 @@ use tower::ServiceExt;
 
 use conf_ops::api::routes::health;
 use conf_ops::app_state::AppState;
-use conf_ops::events::EventBus;
 
 fn build_app(state: AppState) -> Router {
     Router::new()
@@ -20,11 +19,7 @@ fn build_app(state: AppState) -> Router {
 #[tokio::test]
 async fn healthz_returns_200() {
     let ctx = TestContext::new().await;
-    let state = AppState {
-        pool: ctx.pool.clone(),
-        event_bus: EventBus::default(),
-    };
-    let app = build_app(state);
+    let app = build_app(ctx.app_state());
 
     let response = app
         .oneshot(
@@ -48,11 +43,7 @@ async fn healthz_returns_200() {
 #[tokio::test]
 async fn readyz_returns_200_when_db_is_healthy() {
     let ctx = TestContext::new().await;
-    let state = AppState {
-        pool: ctx.pool.clone(),
-        event_bus: EventBus::default(),
-    };
-    let app = build_app(state);
+    let app = build_app(ctx.app_state());
 
     let response = app
         .oneshot(
@@ -77,14 +68,10 @@ async fn readyz_returns_200_when_db_is_healthy() {
 #[tokio::test]
 async fn readyz_returns_503_when_db_is_down() {
     let ctx = TestContext::new().await;
-    let pool = ctx.pool.clone();
-    // Close the pool to simulate DB failure
+    let state = ctx.app_state();
+    let pool = state.pool.clone();
     pool.close().await;
 
-    let state = AppState {
-        pool,
-        event_bus: EventBus::default(),
-    };
     let app = build_app(state);
 
     let response = app

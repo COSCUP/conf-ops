@@ -8,6 +8,28 @@ pub struct AppConfig {
     pub app_host: String,
     pub app_port: u16,
     pub app_log_level: String,
+    pub app_base_url: String,
+
+    // JWT
+    pub jwt_secret: String,
+    pub jwt_issuer: String,
+    pub jwt_access_expiry_secs: i64,
+    pub jwt_refresh_expiry_secs: i64,
+
+    // WebAuthn
+    pub webauthn_rp_id: String,
+    pub webauthn_rp_origin: String,
+    pub webauthn_rp_name: String,
+
+    // SMTP
+    pub smtp_host: String,
+    pub smtp_port: u16,
+    pub smtp_username: Option<String>,
+    pub smtp_password: Option<String>,
+    pub smtp_from: String,
+
+    // Frontend URL (for magic link redirect)
+    pub frontend_url: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -43,6 +65,30 @@ impl AppConfig {
         let app_port = parse_or(&lookup, "APP_PORT", 8080)?;
         let app_log_level =
             lookup("APP_LOG_LEVEL").unwrap_or_else(|| "debug,conf_ops=trace".to_string());
+        let app_base_url =
+            lookup("APP_BASE_URL").unwrap_or_else(|| "http://localhost:8080".to_string());
+
+        let jwt_secret = lookup("AUTH_JWT_SECRET")
+            .ok_or_else(|| ConfigError::MissingEnvVar("AUTH_JWT_SECRET".to_string()))?;
+        let jwt_issuer = lookup("AUTH_JWT_ISSUER").unwrap_or_else(|| "conf-ops".to_string());
+        let jwt_access_expiry_secs = parse_or(&lookup, "JWT_ACCESS_EXPIRY", 900)?;
+        let jwt_refresh_expiry_secs = parse_or(&lookup, "JWT_REFRESH_EXPIRY", 604_800)?;
+
+        let webauthn_rp_id =
+            lookup("AUTH_WEBAUTHN_RP_ID").unwrap_or_else(|| "localhost".to_string());
+        let webauthn_rp_origin = lookup("AUTH_WEBAUTHN_RP_ORIGIN")
+            .unwrap_or_else(|| "http://localhost:3000".to_string());
+        let webauthn_rp_name =
+            lookup("AUTH_WEBAUTHN_RP_NAME").unwrap_or_else(|| "Conf-Ops".to_string());
+
+        let smtp_host = lookup("SMTP_HOST").unwrap_or_else(|| "localhost".to_string());
+        let smtp_port = parse_or(&lookup, "SMTP_PORT", 1025)?;
+        let smtp_username = lookup("SMTP_USERNAME");
+        let smtp_password = lookup("SMTP_PASSWORD");
+        let smtp_from = lookup("SMTP_FROM").unwrap_or_else(|| "noreply@conf-ops.dev".to_string());
+
+        let frontend_url =
+            lookup("FRONTEND_URL").unwrap_or_else(|| "http://localhost:3000".to_string());
 
         Ok(Self {
             database_url,
@@ -51,6 +97,20 @@ impl AppConfig {
             app_host,
             app_port,
             app_log_level,
+            app_base_url,
+            jwt_secret,
+            jwt_issuer,
+            jwt_access_expiry_secs,
+            jwt_refresh_expiry_secs,
+            webauthn_rp_id,
+            webauthn_rp_origin,
+            webauthn_rp_name,
+            smtp_host,
+            smtp_port,
+            smtp_username,
+            smtp_password,
+            smtp_from,
+            frontend_url,
         })
     }
 }
@@ -86,9 +146,16 @@ mod tests {
         move |key: &str| map.get(key).cloned()
     }
 
+    fn required_pairs() -> Vec<(&'static str, &'static str)> {
+        vec![
+            ("DATABASE_URL", "postgres://test:test@localhost/test"),
+            ("AUTH_JWT_SECRET", "test-secret-key"),
+        ]
+    }
+
     #[test]
     fn missing_database_url_returns_error() {
-        let lookup = make_lookup(&[]);
+        let lookup = make_lookup(&[("AUTH_JWT_SECRET", "secret")]);
         let result = AppConfig::from_lookup(lookup);
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -99,25 +166,37 @@ mod tests {
     }
 
     #[test]
+    fn missing_jwt_secret_returns_error() {
+        let lookup = make_lookup(&[("DATABASE_URL", "postgres://test:test@localhost/test")]);
+        let result = AppConfig::from_lookup(lookup);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("AUTH_JWT_SECRET"),
+            "Error should mention AUTH_JWT_SECRET: {err}"
+        );
+    }
+
+    #[test]
     fn valid_config() {
-        let lookup = make_lookup(&[
-            ("DATABASE_URL", "postgres://test:test@localhost/test"),
-            ("DATABASE_MAX_CONNECTIONS", "20"),
-            ("APP_PORT", "3000"),
-        ]);
+        let mut pairs = required_pairs();
+        pairs.push(("DATABASE_MAX_CONNECTIONS", "20"));
+        pairs.push(("APP_PORT", "3000"));
+        let lookup = make_lookup(&pairs);
 
         let config = AppConfig::from_lookup(lookup).expect("should parse valid config");
         assert_eq!(config.database_max_connections, 20);
         assert_eq!(config.app_port, 3000);
-        assert_eq!(config.database_min_connections, 2); // default
+        assert_eq!(config.database_min_connections, 2);
+        assert_eq!(config.jwt_access_expiry_secs, 900);
+        assert_eq!(config.jwt_refresh_expiry_secs, 604_800);
     }
 
     #[test]
     fn invalid_port_returns_error() {
-        let lookup = make_lookup(&[
-            ("DATABASE_URL", "postgres://test:test@localhost/test"),
-            ("APP_PORT", "not-a-number"),
-        ]);
+        let mut pairs = required_pairs();
+        pairs.push(("APP_PORT", "not-a-number"));
+        let lookup = make_lookup(&pairs);
 
         let result = AppConfig::from_lookup(lookup);
         assert!(result.is_err());
