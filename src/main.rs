@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use axum::Router;
 use tokio::net::TcpListener;
@@ -10,6 +11,8 @@ use conf_ops::config::AppConfig;
 use conf_ops::db;
 use conf_ops::events::EventBus;
 use conf_ops::modules::auth::jwt::JwtConfig;
+use conf_ops::modules::auth::service::AuthService;
+use conf_ops::modules::email::smtp::SmtpEmailService;
 
 #[tokio::main]
 async fn main() {
@@ -38,11 +41,22 @@ async fn main() {
         refresh_token_expiry_secs: config.jwt_refresh_expiry_secs,
     };
 
+    let email_service =
+        Arc::new(SmtpEmailService::new(&config).expect("Failed to create email service"));
+
+    let auth_service = Arc::new(AuthService::new(
+        pool.clone(),
+        jwt_config.clone(),
+        email_service,
+        &config,
+    ));
+
     let state = AppState {
         pool,
         event_bus,
         jwt_config,
         app_base_url: config.app_base_url.clone(),
+        auth_service,
     };
 
     let app = Router::new()

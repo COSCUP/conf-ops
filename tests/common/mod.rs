@@ -1,14 +1,45 @@
+use std::sync::Arc;
+
+use async_trait::async_trait;
 use conf_ops::app_state::AppState;
+use conf_ops::config::AppConfig;
 use conf_ops::events::EventBus;
 use conf_ops::id::generate_id;
 use conf_ops::modules::auth::jwt::{issue_access_token, JwtConfig};
 use conf_ops::modules::auth::repository::AccountRepository;
+use conf_ops::modules::auth::service::AuthService;
+use conf_ops::modules::email::EmailService;
 use postgresql_embedded::PostgreSQL;
 use sqlx::PgPool;
+use tokio::sync::Mutex;
 use uuid::Uuid;
+
+pub struct MockEmailService {
+    pub sent: Mutex<Vec<(String, String, String)>>,
+}
+
+impl MockEmailService {
+    pub fn new() -> Self {
+        Self {
+            sent: Mutex::new(Vec::new()),
+        }
+    }
+}
+
+#[async_trait]
+impl EmailService for MockEmailService {
+    async fn send(&self, to: &str, subject: &str, html_body: &str) -> Result<(), String> {
+        self.sent
+            .lock()
+            .await
+            .push((to.to_string(), subject.to_string(), html_body.to_string()));
+        Ok(())
+    }
+}
 
 pub struct TestContext {
     pub pool: PgPool,
+    pub email_service: Arc<MockEmailService>,
     _pg: PostgreSQL,
 }
 
@@ -38,7 +69,13 @@ impl TestContext {
             .await
             .expect("Failed to run migrations");
 
-        Self { pool, _pg: pg }
+        let email_service = Arc::new(MockEmailService::new());
+
+        Self {
+            pool,
+            email_service,
+            _pg: pg,
+        }
     }
 
     pub fn test_jwt_config() -> JwtConfig {
@@ -50,12 +87,48 @@ impl TestContext {
         }
     }
 
+    pub fn test_app_config() -> AppConfig {
+        AppConfig {
+            database_url: String::new(),
+            database_max_connections: 5,
+            database_min_connections: 1,
+            app_host: "127.0.0.1".to_string(),
+            app_port: 8080,
+            app_log_level: "debug".to_string(),
+            app_base_url: "http://localhost:8080".to_string(),
+            jwt_secret: "test-secret-key-at-least-256-bits-long-for-hs256".to_string(),
+            jwt_issuer: "conf-ops-test".to_string(),
+            jwt_access_expiry_secs: 900,
+            jwt_refresh_expiry_secs: 604_800,
+            webauthn_rp_id: "localhost".to_string(),
+            webauthn_rp_origin: "http://localhost:3000".to_string(),
+            webauthn_rp_name: "Conf-Ops Test".to_string(),
+            smtp_host: "localhost".to_string(),
+            smtp_port: 1025,
+            smtp_username: None,
+            smtp_password: None,
+            smtp_from: "noreply@conf-ops.dev".to_string(),
+            frontend_url: "http://localhost:3000".to_string(),
+        }
+    }
+
     pub fn app_state(&self) -> AppState {
+        let jwt_config = Self::test_jwt_config();
+        let app_config = Self::test_app_config();
+
+        let auth_service = Arc::new(AuthService::new(
+            self.pool.clone(),
+            jwt_config.clone(),
+            self.email_service.clone(),
+            &app_config,
+        ));
+
         AppState {
             pool: self.pool.clone(),
             event_bus: EventBus::default(),
-            jwt_config: Self::test_jwt_config(),
+            jwt_config,
             app_base_url: "http://localhost:8080".to_string(),
+            auth_service,
         }
     }
 
