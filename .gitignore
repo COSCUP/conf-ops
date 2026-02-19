@@ -6,6 +6,7 @@ target/
 # Node.js
 node_modules/
 dist/
+.eslintcache
 
 # Python
 __pycache__/

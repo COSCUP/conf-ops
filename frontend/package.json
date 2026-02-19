@@ -1,0 +1,54 @@
+{
+  "name": "frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vite preview",
+    "test:unit": "vitest",
+    "test": "vitest",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "typecheck": "vue-tsc --build",
+    "lint": "run-s check-oxlint check-eslint",
+    "check-oxlint": "oxlint .",
+    "check-eslint": "eslint . --cache",
+    "fix": "run-s fix-oxlint fix-eslint",
+    "fix-oxlint": "oxlint . --fix",
+    "fix-eslint": "eslint . --fix --cache",
+    "generate-types": "openapi-typescript ../docs/api/openapi.yaml -o src/api/schema.d.ts"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.28",
+    "vue-router": "^5.0.2"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.4",
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^25.3.0",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "@vitest/eslint-plugin": "^1.6.9",
+    "@vue/eslint-config-typescript": "^14.7.0",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.8.1",
+    "eslint": "^10.0.0",
+    "eslint-plugin-oxlint": "~1.48.0",
+    "eslint-plugin-vue": "~10.8.0",
+    "jiti": "^2.6.1",
+    "jsdom": "^28.1.0",
+    "npm-run-all2": "^8.0.4",
+    "openapi-typescript": "^7.13.0",
+    "oxlint": "~1.48.0",
+    "typescript": "~5.9.3",
+    "vite": "8.0.0-beta.15",
+"vitest": "^4.0.18",
+    "vue-tsc": "^3.2.4"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}
