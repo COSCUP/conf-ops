@@ -46,11 +46,19 @@ describe('MagicLinkVerifyView', () => {
   })
 
   it('verifies token and redirects on success', async () => {
-    vi.mocked(client.POST).mockResolvedValue({
-      data: { access_token: 'new-token', token_type: 'Bearer' },
-    } as never)
-    vi.mocked(client.GET).mockResolvedValue({
-      data: { id: '1', email: 'a@b.c', display_name: 'A', avatar_url: null, locale: 'en' },
+    vi.mocked(client.GET).mockResolvedValueOnce({
+      data: { accessToken: 'new-token', tokenType: 'Bearer', expiresIn: 900 },
+    } as never).mockResolvedValueOnce({
+      data: {
+        id: '1',
+        email: 'a@b.c',
+        name: 'A',
+        avatarUrl: null,
+        bio: null,
+        locale: 'en',
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+      },
     } as never)
 
     const router = createTestRouter()
@@ -66,7 +74,7 @@ describe('MagicLinkVerifyView', () => {
   })
 
   it('shows error on verification failure', async () => {
-    vi.mocked(client.POST).mockResolvedValue({ data: null } as never)
+    vi.mocked(client.GET).mockResolvedValue({ data: undefined } as never)
 
     const router = createTestRouter()
     await router.push('/auth/magic-link?token=bad-token')

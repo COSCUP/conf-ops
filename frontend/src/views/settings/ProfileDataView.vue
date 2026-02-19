@@ -5,19 +5,17 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 
-const { profile, loading, error, fetchProfile, updateProfile } = useAccount()
+const { profileData, profileSchema, loading, error, fetchProfile, updateProfile } = useAccount()
 
-const bio = ref('')
 const saved = ref(false)
 
 onMounted(async () => {
   await fetchProfile()
-  bio.value = profile.value.bio ?? ''
 })
 
 async function handleSave() {
   saved.value = false
-  await updateProfile({ ...profile.value, bio: bio.value })
+  await updateProfile({ ...profileData.value })
   if (!error.value) {
     saved.value = true
   }
@@ -31,8 +29,36 @@ async function handleSave() {
     <p v-if="error" class="error-message">{{ error }}</p>
 
     <BaseCard title="Profile Information">
-      <form class="profile-form" @submit.prevent="handleSave">
-        <BaseInput v-model="bio" label="Bio" placeholder="Tell us about yourself" />
+      <template v-if="profileSchema.length === 0">
+        <p class="empty-schema">No profile fields have been configured yet.</p>
+      </template>
+
+      <form v-else class="profile-form" @submit.prevent="handleSave">
+        <div v-for="field in profileSchema" :key="field.key" class="profile-field">
+          <template v-if="field.type === 'checkbox'">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                :checked="Boolean(profileData[field.key])"
+                @change="
+                  profileData[field.key] = ($event.target as HTMLInputElement).checked
+                "
+              />
+              {{ field.label }}
+            </label>
+            <p v-if="field.description" class="field-description">{{ field.description }}</p>
+          </template>
+          <template v-else>
+            <BaseInput
+              :model-value="String(profileData[field.key] ?? '')"
+              :label="field.label"
+              :type="field.type === 'number' ? 'number' : field.type"
+              :placeholder="field.description"
+              @update:model-value="profileData[field.key] = $event"
+            />
+          </template>
+        </div>
+
         <div class="form-actions">
           <BaseButton :disabled="loading">
             {{ loading ? 'Saving...' : 'Save' }}
@@ -58,6 +84,12 @@ async function handleSave() {
   gap: 1rem;
 }
 
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .form-actions {
   display: flex;
   align-items: center;
@@ -76,5 +108,24 @@ async function handleSave() {
   padding: 0.5rem 0.75rem;
   background: #fef2f2;
   border-radius: 0.375rem;
+}
+
+.empty-schema {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.field-description {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
 }
 </style>

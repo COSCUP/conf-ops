@@ -54,6 +54,7 @@ async fn main() {
         jwt_config.clone(),
         email_service,
         webauthn,
+        event_bus.clone(),
         &config,
     ));
 
@@ -67,22 +68,24 @@ async fn main() {
 
     let auth_routes = Router::new()
         .route("/magic-link/request", post(auth::request_magic_link))
-        .route("/magic-link/verify", post(auth::verify_magic_link))
+        .route("/magic-link/verify", get(auth::verify_magic_link))
         .route("/refresh", post(auth::refresh))
         .route("/logout", post(auth::logout))
         .route(
-            "/passkeys/register/begin",
+            "/passkey/register/begin",
             post(auth::passkey_register_begin),
         )
         .route(
-            "/passkeys/register/complete",
+            "/passkey/register/complete",
             post(auth::passkey_register_complete),
         )
-        .route("/passkeys/login/begin", post(auth::passkey_login_begin))
+        .route("/passkey/login/begin", post(auth::passkey_login_begin))
         .route(
-            "/passkeys/login/complete",
+            "/passkey/login/complete",
             post(auth::passkey_login_complete),
-        );
+        )
+        .route("/passkeys", get(accounts::list_passkeys))
+        .route("/passkeys/{id}", delete(accounts::delete_passkey));
 
     let account_routes = Router::new()
         .route("/me", get(accounts::get_me).patch(accounts::update_me))
@@ -94,9 +97,7 @@ async fn main() {
             "/me/notification-preferences",
             get(accounts::get_notification_preferences)
                 .put(accounts::update_notification_preferences),
-        )
-        .route("/me/passkeys", get(accounts::list_passkeys))
-        .route("/me/passkeys/{id}", delete(accounts::delete_passkey));
+        );
 
     let api_v1 = Router::new()
         .nest("/auth", auth_routes)

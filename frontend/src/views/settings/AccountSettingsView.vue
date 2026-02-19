@@ -16,14 +16,17 @@ const {
   fetchNotificationPreferences,
   updateNotificationPreferences,
   fetchPasskeys,
+  registerPasskey,
   deletePasskey,
 } = useAccount()
 
 const displayName = ref('')
 const displayNameSaved = ref(false)
+const passkeyName = ref('')
+const showPasskeyInput = ref(false)
 
 onMounted(async () => {
-  displayName.value = authStore.currentUser?.display_name ?? ''
+  displayName.value = authStore.currentUser?.name ?? ''
   await Promise.all([fetchNotificationPreferences(), fetchPasskeys()])
 })
 
@@ -36,10 +39,28 @@ async function handleUpdateDisplayName() {
 }
 
 async function handleToggleEmailNotifications() {
+  const current = notificationPreferences.value
+  const emailChannel = current.channels.email
+  const currentEnabled = emailChannel?.enabled ?? true
   await updateNotificationPreferences({
-    ...notificationPreferences.value,
-    email_notifications: !notificationPreferences.value.email_notifications,
+    ...current,
+    channels: {
+      ...current.channels,
+      email: {
+        enabled: !currentEnabled,
+        categories: emailChannel?.categories ?? {},
+      },
+    },
   })
+}
+
+async function handleRegisterPasskey() {
+  const name = passkeyName.value.trim() || 'My Passkey'
+  const success = await registerPasskey(name)
+  if (success) {
+    passkeyName.value = ''
+    showPasskeyInput.value = false
+  }
 }
 
 async function handleDeletePasskey(id: string) {
@@ -64,14 +85,14 @@ async function handleDeletePasskey(id: string) {
     </BaseCard>
 
     <BaseCard title="Passkeys">
-      <div v-if="passkeys.length === 0" class="empty-state">
+      <div v-if="passkeys.length === 0 && !showPasskeyInput" class="empty-state">
         No passkeys registered.
       </div>
-      <ul v-else class="passkey-list">
+      <ul v-if="passkeys.length > 0" class="passkey-list">
         <li v-for="passkey in passkeys" :key="passkey.id" class="passkey-item">
           <div class="passkey-info">
             <strong>{{ passkey.name }}</strong>
-            <span class="passkey-date">Added {{ passkey.created_at }}</span>
+            <span class="passkey-date">Added {{ passkey.createdAt }}</span>
           </div>
           <BaseButton
             variant="danger"
@@ -82,6 +103,30 @@ async function handleDeletePasskey(id: string) {
           </BaseButton>
         </li>
       </ul>
+      <div v-if="showPasskeyInput" class="passkey-register-form">
+        <BaseInput
+          v-model="passkeyName"
+          label="Passkey Name"
+          placeholder="e.g. MacBook Touch ID"
+        />
+        <div class="form-actions">
+          <BaseButton :disabled="loading" @click="handleRegisterPasskey">
+            {{ loading ? 'Registering...' : 'Register' }}
+          </BaseButton>
+          <BaseButton
+            variant="secondary"
+            :disabled="loading"
+            @click="showPasskeyInput = false"
+          >
+            Cancel
+          </BaseButton>
+        </div>
+      </div>
+      <div v-if="!showPasskeyInput" class="passkey-add">
+        <BaseButton variant="secondary" @click="showPasskeyInput = true">
+          Add Passkey
+        </BaseButton>
+      </div>
     </BaseCard>
 
     <BaseCard title="Notification Preferences">
@@ -89,7 +134,7 @@ async function handleDeletePasskey(id: string) {
         <label>
           <input
             type="checkbox"
-            :checked="notificationPreferences.email_notifications"
+            :checked="notificationPreferences.channels.email?.enabled ?? true"
             :disabled="loading"
             @change="handleToggleEmailNotifications"
           />
@@ -173,5 +218,16 @@ async function handleDeletePasskey(id: string) {
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+}
+
+.passkey-register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.passkey-add {
+  margin-top: 0.75rem;
 }
 </style>

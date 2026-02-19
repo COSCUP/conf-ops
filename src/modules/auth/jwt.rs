@@ -124,7 +124,7 @@ pub async fn rotate_refresh_token(
     let mut tx = pool.begin().await.map_err(AuthError::Database)?;
 
     let old_token = sqlx::query_as::<_, super::models::RefreshToken>(
-        "SELECT id, account_id, token_hash, expires_at, revoked_at, replaced_by, created_at
+        "SELECT id, account_id, token_hash, expires_at, revoked_at, rotated_at, replaced_by, created_at
          FROM refresh_tokens
          WHERE token_hash = $1
          FOR UPDATE",

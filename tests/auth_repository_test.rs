@@ -20,7 +20,7 @@ async fn create_and_get_account() {
 
     assert_eq!(account.id, id);
     assert_eq!(account.email, "test@example.com");
-    assert_eq!(account.display_name, "Test User");
+    assert_eq!(account.name, "Test User");
     assert!(account.deleted_at.is_none());
 
     let fetched = AccountRepository::get_by_id(&ctx.pool, id)
@@ -81,12 +81,13 @@ async fn update_account() {
         id,
         Some("Updated Name"),
         Some(Some("https://example.com/avatar.png")),
+        None,
         Some("en-US"),
     )
     .await
     .expect("should update account");
 
-    assert_eq!(updated.display_name, "Updated Name");
+    assert_eq!(updated.name, "Updated Name");
     assert_eq!(
         updated.avatar_url.as_deref(),
         Some("https://example.com/avatar.png")
@@ -132,12 +133,12 @@ async fn profile_jsonb_read_write() {
         }
     });
 
-    let updated = AccountRepository::update_profile(&ctx.pool, id, &profile)
+    let updated = AccountRepository::update_profile(&ctx.pool, id, &profile, None)
         .await
         .expect("should update profile");
 
-    assert_eq!(updated.profile["bio"], "Hello world");
-    assert_eq!(updated.profile["social"]["twitter"], "@test");
+    assert_eq!(updated.profile_data["bio"], "Hello world");
+    assert_eq!(updated.profile_data["social"]["twitter"], "@test");
 }
 
 #[tokio::test]
@@ -188,6 +189,11 @@ async fn passkey_credential_crud() {
 #[tokio::test]
 async fn magic_link_token_lifecycle() {
     let ctx = TestContext::new().await;
+    let account_id = generate_id();
+    AccountRepository::create(&ctx.pool, account_id, "magic@example.com", "Magic User")
+        .await
+        .expect("should create account");
+
     let token_id = generate_id();
     let token_hash = b"hashed-token-value";
     let expires_at = Utc::now() + Duration::minutes(15);
@@ -195,7 +201,7 @@ async fn magic_link_token_lifecycle() {
     MagicLinkTokenRepository::create(
         &ctx.pool,
         token_id,
-        None,
+        account_id,
         "magic@example.com",
         token_hash,
         expires_at,

@@ -24,32 +24,41 @@ describe('useAccount', () => {
 
   it('fetchProfile loads profile data', async () => {
     vi.mocked(client.GET).mockResolvedValue({
-      data: { profile: { bio: 'Hello world' } },
+      data: {
+        profileData: { bio: 'Hello world' },
+        profileSchema: [{ key: 'bio', label: 'Bio', description: '', type: 'text' }],
+      },
     } as never)
 
-    const { profile, fetchProfile } = useAccount()
+    const { profileData, profileSchema, fetchProfile } = useAccount()
     await fetchProfile()
 
-    expect(profile.value).toEqual({ bio: 'Hello world' })
+    expect(profileData.value).toEqual({ bio: 'Hello world' })
+    expect(profileSchema.value).toHaveLength(1)
   })
 
   it('updateProfile sends update and refreshes', async () => {
     vi.mocked(client.PUT).mockResolvedValue({
-      data: { profile: { bio: 'Updated' } },
+      data: {
+        profileData: { bio: 'Updated' },
+        profileSchema: [],
+      },
     } as never)
 
-    const { profile, updateProfile } = useAccount()
+    const { profileData, updateProfile } = useAccount()
     await updateProfile({ bio: 'Updated' })
 
     expect(client.PUT).toHaveBeenCalled()
-    expect(profile.value).toEqual({ bio: 'Updated' })
+    expect(profileData.value).toEqual({ bio: 'Updated' })
   })
 
   it('fetchPasskeys loads passkey list', async () => {
     const mockPasskeys = [
-      { id: '1', name: 'My Key', created_at: '2024-01-01', last_used_at: null },
+      { id: '1', name: 'My Key', createdAt: '2024-01-01', lastUsedAt: null },
     ]
-    vi.mocked(client.GET).mockResolvedValue({ data: mockPasskeys } as never)
+    vi.mocked(client.GET).mockResolvedValue({
+      data: { passkeys: mockPasskeys },
+    } as never)
 
     const { passkeys, fetchPasskeys } = useAccount()
     await fetchPasskeys()
@@ -62,8 +71,8 @@ describe('useAccount', () => {
 
     const { passkeys, deletePasskey } = useAccount()
     passkeys.value = [
-      { id: '1', name: 'Key A', created_at: '2024-01-01', last_used_at: null },
-      { id: '2', name: 'Key B', created_at: '2024-01-02', last_used_at: null },
+      { id: '1', name: 'Key A', createdAt: '2024-01-01', lastUsedAt: null },
+      { id: '2', name: 'Key B', createdAt: '2024-01-02', lastUsedAt: null },
     ]
 
     await deletePasskey('1')
@@ -74,14 +83,47 @@ describe('useAccount', () => {
 
   it('fetchNotificationPreferences loads preferences', async () => {
     vi.mocked(client.GET).mockResolvedValue({
-      data: { email_notifications: false, push_notifications: true },
+      data: {
+        channels: {
+          email: {
+            enabled: false,
+            categories: {
+              taskUpdates: true,
+              todoAssignments: true,
+              aiSuggestions: true,
+              mentions: true,
+              systemAnnouncements: true,
+            },
+          },
+          webPush: {
+            enabled: true,
+            categories: {
+              taskUpdates: true,
+              todoAssignments: true,
+              aiSuggestions: true,
+              mentions: true,
+              systemAnnouncements: true,
+            },
+          },
+          inApp: {
+            enabled: true,
+            categories: {
+              taskUpdates: true,
+              todoAssignments: true,
+              aiSuggestions: true,
+              mentions: true,
+              systemAnnouncements: true,
+            },
+          },
+        },
+      },
     } as never)
 
     const { notificationPreferences, fetchNotificationPreferences } = useAccount()
     await fetchNotificationPreferences()
 
-    expect(notificationPreferences.value.email_notifications).toBe(false)
-    expect(notificationPreferences.value.push_notifications).toBe(true)
+    expect(notificationPreferences.value.channels.email?.enabled).toBe(false)
+    expect(notificationPreferences.value.channels.webPush?.enabled).toBe(true)
   })
 
   it('sets error on fetch failure', async () => {

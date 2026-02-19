@@ -124,6 +124,7 @@ impl TestContext {
             jwt_config.clone(),
             self.email_service.clone(),
             webauthn,
+            EventBus::default(),
             &app_config,
         ));
 

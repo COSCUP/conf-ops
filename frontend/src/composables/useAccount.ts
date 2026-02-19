@@ -1,32 +1,37 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import client from '@/api/client'
+import type { components } from '@/api/schema'
 
-interface Profile {
-  bio?: string
-  [key: string]: unknown
-}
+type ProfileSchemaField = components['schemas']['ProfileSchemaField']
+type NotificationPreferences = components['schemas']['NotificationPreferences']
+type ChannelPreference = components['schemas']['ChannelPreference']
 
-interface NotificationPreferences {
-  email_notifications: boolean
-  push_notifications: boolean
-}
-
-interface PasskeyItem {
-  id: string
-  name: string
-  created_at: string
-  last_used_at: string | null
+function defaultChannelPreference(): ChannelPreference {
+  return {
+    enabled: true,
+    categories: {
+      taskUpdates: true,
+      todoAssignments: true,
+      aiSuggestions: true,
+      mentions: true,
+      systemAnnouncements: true,
+    },
+  }
 }
 
 export function useAccount() {
   const authStore = useAuthStore()
-  const profile = ref<Profile>({})
+  const profileData = ref<Record<string, unknown>>({})
+  const profileSchema = ref<ProfileSchemaField[]>([])
   const notificationPreferences = ref<NotificationPreferences>({
-    email_notifications: true,
-    push_notifications: false,
+    channels: {
+      email: defaultChannelPreference(),
+      webPush: defaultChannelPreference(),
+      inApp: defaultChannelPreference(),
+    },
   })
-  const passkeys = ref<PasskeyItem[]>([])
+  const passkeys = ref<{ id: string; name: string; createdAt: string; lastUsedAt: string | null }[]>([])
   const loading = ref(false)
   const error = ref('')
 
@@ -34,10 +39,10 @@ export function useAccount() {
     loading.value = true
     error.value = ''
     try {
-      const { data } = await client.GET('/api/v1/accounts/me/profile' as never)
+      const { data } = await client.GET('/accounts/me/profile')
       if (data) {
-        const profileData = data as { profile: Profile }
-        profile.value = profileData.profile ?? {}
+        profileData.value = data.profileData ?? {}
+        profileSchema.value = data.profileSchema ?? []
       }
     } catch {
       error.value = 'Failed to load profile.'
@@ -46,16 +51,16 @@ export function useAccount() {
     }
   }
 
-  async function updateProfile(updates: Profile) {
+  async function updateProfile(updates: Record<string, unknown>) {
     loading.value = true
     error.value = ''
     try {
-      const { data } = await client.PUT('/api/v1/accounts/me/profile' as never, {
-        body: { profile: updates },
-      } as never)
+      const { data } = await client.PUT('/accounts/me/profile', {
+        body: { profileData: updates },
+      })
       if (data) {
-        const profileData = data as { profile: Profile }
-        profile.value = profileData.profile ?? {}
+        profileData.value = data.profileData ?? {}
+        profileSchema.value = data.profileSchema ?? []
       }
     } catch {
       error.value = 'Failed to update profile.'
@@ -68,9 +73,9 @@ export function useAccount() {
     loading.value = true
     error.value = ''
     try {
-      const { data } = await client.PATCH('/api/v1/accounts/me' as never, {
-        body: { display_name: displayName },
-      } as never)
+      const { data } = await client.PATCH('/accounts/me', {
+        body: { name: displayName },
+      })
       if (data) {
         await authStore.fetchCurrentUser()
       }
@@ -83,11 +88,9 @@ export function useAccount() {
 
   async function fetchNotificationPreferences() {
     try {
-      const { data } = await client.GET(
-        '/api/v1/accounts/me/notification-preferences' as never,
-      )
+      const { data } = await client.GET('/accounts/me/notification-preferences')
       if (data) {
-        notificationPreferences.value = data as NotificationPreferences
+        notificationPreferences.value = data
       }
     } catch {
       error.value = 'Failed to load notification preferences.'
@@ -98,12 +101,11 @@ export function useAccount() {
     loading.value = true
     error.value = ''
     try {
-      const { data } = await client.PUT(
-        '/api/v1/accounts/me/notification-preferences' as never,
-        { body: prefs } as never,
-      )
+      const { data } = await client.PUT('/accounts/me/notification-preferences', {
+        body: prefs,
+      })
       if (data) {
-        notificationPreferences.value = data as NotificationPreferences
+        notificationPreferences.value = data
       }
     } catch {
       error.value = 'Failed to update notification preferences.'
@@ -114,9 +116,9 @@ export function useAccount() {
 
   async function fetchPasskeys() {
     try {
-      const { data } = await client.GET('/api/v1/accounts/me/passkeys' as never)
+      const { data } = await client.GET('/auth/passkeys')
       if (data) {
-        passkeys.value = data as PasskeyItem[]
+        passkeys.value = data.passkeys
       }
     } catch {
       error.value = 'Failed to load passkeys.'
@@ -127,7 +129,9 @@ export function useAccount() {
     loading.value = true
     error.value = ''
     try {
-      await client.DELETE(`/api/v1/accounts/me/passkeys/${id}` as never)
+      await client.DELETE('/auth/passkeys/{passkeyId}', {
+        params: { path: { passkeyId: id } },
+      })
       passkeys.value = passkeys.value.filter((p) => p.id !== id)
     } catch {
       error.value = 'Failed to delete passkey.'
@@ -136,8 +140,43 @@ export function useAccount() {
     }
   }
 
+  async function registerPasskey(_name: string): Promise<boolean> {
+    loading.value = true
+    error.value = ''
+    try {
+      const { startRegistration } = await import('@simplewebauthn/browser')
+
+      const { data: beginData } = await client.POST('/auth/passkey/register/begin')
+      if (!beginData) {
+        error.value = 'Failed to start passkey registration.'
+        return false
+      }
+
+      const credential = await startRegistration({
+        optionsJSON: beginData as Parameters<typeof startRegistration>[0]['optionsJSON'],
+      })
+
+      const { data: completeData } = await client.POST('/auth/passkey/register/complete', {
+        body: credential,
+      })
+
+      if (completeData !== undefined) {
+        await fetchPasskeys()
+        return true
+      }
+      error.value = 'Failed to complete passkey registration.'
+      return false
+    } catch {
+      error.value = 'Passkey registration failed or was cancelled.'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
-    profile,
+    profileData,
+    profileSchema,
     notificationPreferences,
     passkeys,
     loading,
@@ -149,5 +188,6 @@ export function useAccount() {
     updateNotificationPreferences,
     fetchPasskeys,
     deletePasskey,
+    registerPasskey,
   }
 }

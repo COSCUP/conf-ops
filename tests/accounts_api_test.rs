@@ -21,11 +21,8 @@ fn build_accounts_app(state: conf_ops::app_state::AppState) -> Router {
             "/accounts/me/profile",
             get(accounts::get_profile).put(accounts::update_profile),
         )
-        .route("/accounts/me/passkeys", get(accounts::list_passkeys))
-        .route(
-            "/accounts/me/passkeys/{id}",
-            delete(accounts::delete_passkey),
-        )
+        .route("/auth/passkeys", get(accounts::list_passkeys))
+        .route("/auth/passkeys/{id}", delete(accounts::delete_passkey))
         .route(
             "/accounts/me/notification-preferences",
             get(accounts::get_notification_preferences)
@@ -85,6 +82,9 @@ async fn get_me_returns_account() {
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["email"], email);
     assert_eq!(json["id"], account_id.to_string());
+    assert!(json["name"].is_string());
+    assert!(json["createdAt"].is_string());
+    assert!(json["updatedAt"].is_string());
 }
 
 #[tokio::test]
@@ -103,7 +103,7 @@ async fn update_me_changes_display_name() {
                 .uri("/accounts/me")
                 .header("authorization", format!("Bearer {token}"))
                 .header("content-type", "application/json")
-                .body(Body::from(r#"{"display_name":"Updated Name"}"#))
+                .body(Body::from(r#"{"name":"Updated Name"}"#))
                 .unwrap(),
         )
         .await
@@ -115,7 +115,7 @@ async fn update_me_changes_display_name() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(json["display_name"], "Updated Name");
+    assert_eq!(json["name"], "Updated Name");
 }
 
 #[tokio::test]
@@ -139,6 +139,13 @@ async fn profile_crud() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert!(json["profileData"].is_object());
+    assert!(json["profileSchema"].is_array());
+
     // Update profile
     let app = build_accounts_app(state);
     let response = app
@@ -148,7 +155,7 @@ async fn profile_crud() {
                 .uri("/accounts/me/profile")
                 .header("authorization", format!("Bearer {token}"))
                 .header("content-type", "application/json")
-                .body(Body::from(r#"{"profile":{"bio":"Hello"}}"#))
+                .body(Body::from(r#"{"profileData":{"bio":"Hello"}}"#))
                 .unwrap(),
         )
         .await
@@ -159,7 +166,7 @@ async fn profile_crud() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(json["profile"]["bio"], "Hello");
+    assert_eq!(json["profileData"]["bio"], "Hello");
 }
 
 #[tokio::test]
@@ -187,7 +194,9 @@ async fn notification_preferences_stub() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(json["email_notifications"], true);
+    assert!(json["channels"]["email"]["enabled"].as_bool().unwrap());
+    assert!(json["channels"]["webPush"]["enabled"].as_bool().unwrap());
+    assert!(json["channels"]["inApp"]["enabled"].as_bool().unwrap());
 }
 
 #[tokio::test]
@@ -201,7 +210,7 @@ async fn list_passkeys_empty() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri("/accounts/me/passkeys")
+                .uri("/auth/passkeys")
                 .header("authorization", format!("Bearer {token}"))
                 .body(Body::empty())
                 .unwrap(),
@@ -215,5 +224,5 @@ async fn list_passkeys_empty() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert!(json.as_array().unwrap().is_empty());
+    assert!(json["passkeys"].as_array().unwrap().is_empty());
 }

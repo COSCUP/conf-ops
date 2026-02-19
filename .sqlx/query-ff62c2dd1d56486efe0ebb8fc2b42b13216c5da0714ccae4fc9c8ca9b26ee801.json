@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE magic_link_tokens SET used_at = NOW() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ff62c2dd1d56486efe0ebb8fc2b42b13216c5da0714ccae4fc9c8ca9b26ee801"
+}

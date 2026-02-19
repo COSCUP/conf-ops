@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import LoginView from '../../LoginView.vue'
+import LoginView from '../LoginView.vue'
 
 vi.mock('@/api/client', () => ({
   default: {

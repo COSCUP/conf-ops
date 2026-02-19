@@ -7,10 +7,13 @@ use uuid::Uuid;
 pub struct Account {
     pub id: Uuid,
     pub email: String,
-    pub display_name: String,
+    pub name: String,
     pub avatar_url: Option<String>,
     pub locale: String,
-    pub profile: serde_json::Value,
+    pub bio: Option<String>,
+    pub profile_data: serde_json::Value,
+    pub profile_schema: serde_json::Value,
+    pub notification_preferences: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -30,7 +33,7 @@ pub struct PasskeyCredential {
 #[derive(Debug, Clone, FromRow)]
 pub struct MagicLinkToken {
     pub id: Uuid,
-    pub account_id: Option<Uuid>,
+    pub account_id: Uuid,
     pub email: String,
     pub token_hash: Vec<u8>,
     pub expires_at: DateTime<Utc>,
@@ -45,6 +48,7 @@ pub struct RefreshToken {
     pub token_hash: Vec<u8>,
     pub expires_at: DateTime<Utc>,
     pub revoked_at: Option<DateTime<Utc>>,
+    pub rotated_at: Option<DateTime<Utc>>,
     pub replaced_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }

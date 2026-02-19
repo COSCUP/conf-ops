@@ -1,6 +1,5 @@
 import createClient, { type Middleware } from 'openapi-fetch'
-
-// import type { paths } from './schema'
+import type { paths } from './schema'
 
 let getAccessToken: (() => string | null) | undefined
 let onRefreshNeeded: (() => Promise<boolean>) | undefined
@@ -41,8 +40,8 @@ const authMiddleware: Middleware = {
   },
 }
 
-const client = createClient({
-  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
+const client = createClient<paths>({
+  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1',
 })
 
 client.use(authMiddleware)

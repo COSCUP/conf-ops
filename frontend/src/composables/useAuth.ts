@@ -12,19 +12,18 @@ export function useAuth() {
   }
 
   async function requestMagicLink(email: string): Promise<void> {
-    await client.POST('/api/v1/auth/magic-link/request' as never, {
+    await client.POST('/auth/magic-link/request', {
       body: { email },
-    } as never)
+    })
   }
 
   async function verifyMagicLink(token: string): Promise<boolean> {
-    const { data } = await client.POST('/api/v1/auth/magic-link/verify' as never, {
-      body: { token },
-    } as never)
+    const { data } = await client.GET('/auth/magic-link/verify', {
+      params: { query: { token } },
+    })
 
     if (data) {
-      const tokenData = data as { access_token: string }
-      store.setTokens(tokenData.access_token)
+      store.setTokens(data.accessToken)
       await store.fetchCurrentUser()
       return true
     }
@@ -32,31 +31,20 @@ export function useAuth() {
   }
 
   async function loginWithPasskey(): Promise<boolean> {
-    const { data: beginData } = await client.POST(
-      '/api/v1/auth/passkeys/login/begin' as never,
-    )
+    const { data: beginData } = await client.POST('/auth/passkey/login/begin')
 
     if (!beginData) return false
 
-    const begin = beginData as { challenge_id: string; options: unknown }
-
     const credential = await startAuthentication({
-      optionsJSON: begin.options as Parameters<typeof startAuthentication>[0]['optionsJSON'],
+      optionsJSON: beginData as Parameters<typeof startAuthentication>[0]['optionsJSON'],
     })
 
-    const { data: completeData } = await client.POST(
-      '/api/v1/auth/passkeys/login/complete' as never,
-      {
-        body: {
-          challenge_id: begin.challenge_id,
-          credential,
-        },
-      } as never,
-    )
+    const { data: completeData } = await client.POST('/auth/passkey/login/complete', {
+      body: credential,
+    })
 
     if (completeData) {
-      const tokenData = completeData as { access_token: string }
-      store.setTokens(tokenData.access_token)
+      store.setTokens(completeData.accessToken)
       await store.fetchCurrentUser()
       return true
     }

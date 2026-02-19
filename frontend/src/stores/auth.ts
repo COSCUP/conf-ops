@@ -1,18 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import client from '@/api/client'
+import type { components } from '@/api/schema'
 
-interface CurrentUser {
-  id: string
-  email: string
-  display_name: string
-  avatar_url: string | null
-  locale: string
-}
+type AccountResponse = components['schemas']['AccountResponse']
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(null)
-  const currentUser = ref<CurrentUser | null>(null)
+  const currentUser = ref<AccountResponse | null>(null)
   const isAuthenticated = computed(() => accessToken.value !== null)
 
   function setTokens(token: string) {
@@ -27,20 +22,19 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchCurrentUser() {
     if (!accessToken.value) return
 
-    const { data } = await client.GET('/api/v1/accounts/me' as never)
+    const { data } = await client.GET('/accounts/me')
 
     if (data) {
-      currentUser.value = data as CurrentUser
+      currentUser.value = data
     }
   }
 
   async function refreshToken(): Promise<boolean> {
     try {
-      const { data } = await client.POST('/api/v1/auth/refresh' as never)
+      const { data } = await client.POST('/auth/refresh')
 
       if (data) {
-        const tokenData = data as { access_token: string }
-        accessToken.value = tokenData.access_token
+        accessToken.value = data.accessToken
         await fetchCurrentUser()
         return true
       }
@@ -54,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       if (accessToken.value) {
-        await client.POST('/api/v1/auth/logout' as never)
+        await client.POST('/auth/logout')
       }
     } finally {
       clearAuth()

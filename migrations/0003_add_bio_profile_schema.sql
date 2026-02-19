@@ -1,0 +1,2 @@
+ALTER TABLE accounts ADD COLUMN bio TEXT;
+ALTER TABLE accounts ADD COLUMN profile_schema JSONB NOT NULL DEFAULT '[]';

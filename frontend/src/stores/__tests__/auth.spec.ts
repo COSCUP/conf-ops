@@ -44,8 +44,9 @@ describe('useAuthStore', () => {
     const mockUser = {
       id: '123',
       email: 'test@example.com',
-      display_name: 'Test',
-      avatar_url: null,
+      name: 'Test',
+      avatarUrl: null,
+      bio: null,
       locale: 'en',
     }
     vi.mocked(client.GET).mockResolvedValue({ data: mockUser } as never)
@@ -65,10 +66,17 @@ describe('useAuthStore', () => {
 
   it('refreshToken updates token on success', async () => {
     vi.mocked(client.POST).mockResolvedValue({
-      data: { access_token: 'new-token' },
+      data: { accessToken: 'new-token' },
     } as never)
     vi.mocked(client.GET).mockResolvedValue({
-      data: { id: '1', email: 'a@b.c', display_name: 'A', avatar_url: null, locale: 'en' },
+      data: {
+        id: '1',
+        email: 'a@b.c',
+        name: 'A',
+        avatarUrl: null,
+        bio: null,
+        locale: 'en',
+      },
     } as never)
 
     const store = useAuthStore()

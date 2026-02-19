@@ -7,6 +7,7 @@ use webauthn_rs::prelude::*;
 use webauthn_rs::Webauthn;
 
 use crate::config::AppConfig;
+use crate::events::{DomainEvent, EventBus};
 use crate::id::generate_id;
 use crate::modules::email::EmailService;
 
@@ -20,6 +21,7 @@ pub struct AuthService {
     pool: PgPool,
     jwt_config: JwtConfig,
     email_service: Arc<dyn EmailService>,
+    event_bus: EventBus,
     frontend_url: String,
     webauthn: Arc<Webauthn>,
     reg_challenges: ChallengeStore<PasskeyRegistration>,
@@ -32,12 +34,14 @@ impl AuthService {
         jwt_config: JwtConfig,
         email_service: Arc<dyn EmailService>,
         webauthn: Arc<Webauthn>,
+        event_bus: EventBus,
         config: &AppConfig,
     ) -> Self {
         Self {
             pool,
             jwt_config,
             email_service,
+            event_bus,
             frontend_url: config.frontend_url.clone(),
             webauthn,
             reg_challenges: ChallengeStore::new(std::time::Duration::from_secs(300)),
@@ -55,7 +59,16 @@ impl AuthService {
     /// Returns `AuthError` on database or email sending failures.
     pub async fn request_magic_link(&self, email: &str) -> Result<(), AuthError> {
         let account = AccountRepository::get_by_email(&self.pool, email).await?;
-        let account_id = account.as_ref().map(|a| a.id);
+        let account_id = if let Some(a) = account {
+            a.id
+        } else {
+            let new_id = generate_id();
+            let name = email.split('@').next().unwrap_or("User").to_string();
+            AccountRepository::create(&self.pool, new_id, email, &name).await?;
+            self.event_bus
+                .publish(DomainEvent::AccountCreated { account_id: new_id });
+            new_id
+        };
 
         let (raw_token, token_hash) = generate_magic_link_token();
         let expires_at = Utc::now() + Duration::minutes(15);
@@ -114,20 +127,7 @@ impl AuthService {
 
         MagicLinkTokenRepository::mark_used(&self.pool, token_record.id).await?;
 
-        let account_id = if let Some(id) = token_record.account_id {
-            id
-        } else {
-            let new_id = generate_id();
-            let display_name = token_record
-                .email
-                .split('@')
-                .next()
-                .unwrap_or("User")
-                .to_string();
-            AccountRepository::create(&self.pool, new_id, &token_record.email, &display_name)
-                .await?;
-            new_id
-        };
+        let account_id = token_record.account_id;
 
         let access_token = issue_access_token(&self.jwt_config, account_id)?;
         let refresh_token = issue_refresh_token(&self.pool, &self.jwt_config, account_id).await?;
@@ -160,7 +160,7 @@ impl AuthService {
             .start_passkey_registration(
                 account.id,
                 &account.email,
-                &account.display_name,
+                &account.name,
                 Some(exclude_credentials),
             )
             .map_err(|e| AuthError::WebAuthn(e.to_string()))?;

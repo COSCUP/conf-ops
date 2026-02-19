@@ -33,9 +33,47 @@ describe('AccountSettingsView', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
 
-    vi.mocked(client.GET).mockResolvedValue({
-      data: { email_notifications: true, push_notifications: false },
-    } as never)
+    vi.mocked(client.GET).mockImplementation((url: string) => {
+      if (String(url).includes('passkeys')) {
+        return Promise.resolve({ data: { passkeys: [] } }) as never
+      }
+      return Promise.resolve({
+        data: {
+          channels: {
+            email: {
+              enabled: true,
+              categories: {
+                taskUpdates: true,
+                todoAssignments: true,
+                aiSuggestions: true,
+                mentions: true,
+                systemAnnouncements: true,
+              },
+            },
+            webPush: {
+              enabled: true,
+              categories: {
+                taskUpdates: true,
+                todoAssignments: true,
+                aiSuggestions: true,
+                mentions: true,
+                systemAnnouncements: true,
+              },
+            },
+            inApp: {
+              enabled: true,
+              categories: {
+                taskUpdates: true,
+                todoAssignments: true,
+                aiSuggestions: true,
+                mentions: true,
+                systemAnnouncements: true,
+              },
+            },
+          },
+        },
+      }) as never
+    })
   })
 
   it('renders settings sections', async () => {
@@ -45,8 +83,9 @@ describe('AccountSettingsView', () => {
       currentUser: {
         id: '1',
         email: 'a@b.c',
-        display_name: 'Test User',
-        avatar_url: null,
+        name: 'Test User',
+        avatarUrl: null,
+        bio: null,
         locale: 'en',
       },
     })
@@ -67,10 +106,43 @@ describe('AccountSettingsView', () => {
   it('shows empty state when no passkeys', async () => {
     vi.mocked(client.GET).mockImplementation((url: string) => {
       if (String(url).includes('passkeys')) {
-        return Promise.resolve({ data: [] }) as never
+        return Promise.resolve({ data: { passkeys: [] } }) as never
       }
       return Promise.resolve({
-        data: { email_notifications: true, push_notifications: false },
+        data: {
+          channels: {
+            email: {
+              enabled: true,
+              categories: {
+                taskUpdates: true,
+                todoAssignments: true,
+                aiSuggestions: true,
+                mentions: true,
+                systemAnnouncements: true,
+              },
+            },
+            webPush: {
+              enabled: true,
+              categories: {
+                taskUpdates: true,
+                todoAssignments: true,
+                aiSuggestions: true,
+                mentions: true,
+                systemAnnouncements: true,
+              },
+            },
+            inApp: {
+              enabled: true,
+              categories: {
+                taskUpdates: true,
+                todoAssignments: true,
+                aiSuggestions: true,
+                mentions: true,
+                systemAnnouncements: true,
+              },
+            },
+          },
+        },
       }) as never
     })
 
