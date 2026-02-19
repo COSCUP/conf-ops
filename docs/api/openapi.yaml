@@ -362,14 +362,14 @@ paths:
     $ref: './paths/data-sheets.yaml#/~1task-templates~1{templateId}~1data-sheet~1{schemaId}'
 
   # ── 外部資料 API (External Data) ──
-  /projects/{projectId}/task-templates:
-    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1task-templates'
-  /projects/{projectId}/task-templates/{templateId}/data:
-    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1task-templates~1{templateId}~1data'
-  /projects/{projectId}/tasks:
-    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1tasks'
-  /projects/{projectId}/tasks/{taskId}/data:
-    $ref: './paths/data-external.yaml#/~1projects~1{projectId}~1tasks~1{taskId}~1data'
+  /external/projects/{projectId}/task-templates:
+    $ref: './paths/data-external.yaml#/~1external~1projects~1{projectId}~1task-templates'
+  /external/projects/{projectId}/task-templates/{templateId}/data:
+    $ref: './paths/data-external.yaml#/~1external~1projects~1{projectId}~1task-templates~1{templateId}~1data'
+  /external/projects/{projectId}/tasks:
+    $ref: './paths/data-external.yaml#/~1external~1projects~1{projectId}~1tasks'
+  /external/projects/{projectId}/tasks/{taskId}/data:
+    $ref: './paths/data-external.yaml#/~1external~1projects~1{projectId}~1tasks~1{taskId}~1data'
 
   # ── 工具 (Tools) ──
   /projects/{projectId}/tools:

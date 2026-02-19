@@ -26,12 +26,14 @@ AccountResponse:
       format: email
       description: "Email，系統唯一識別"
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "頭像 URL"
     bio:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "公開的自我介紹文字"
     locale:
       type: string
@@ -55,12 +57,14 @@ UpdateAccountRequest:
       type: string
       description: "使用者名稱"
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "頭像 URL，設為 null 可移除"
     bio:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "公開的自我介紹文字，設為 null 可移除"
     locale:
       type: string
@@ -140,9 +144,10 @@ AccountTodoItem:
     type:
       $ref: "./common.yaml#/TodoType"
     dueDate:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
       description: "截止日期"
     taskId:
       $ref: "./common.yaml#/UUID"

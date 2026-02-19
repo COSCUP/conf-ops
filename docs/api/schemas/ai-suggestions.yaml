@@ -31,8 +31,9 @@ SuggestionGroup:
         - manual_request
       description: "觸發此建議群組的事件類型"
     triggerMessageId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "觸發事件的訊息 ID（trigger = message_sent 時有值）"
     suggestions:
       type: array
@@ -79,21 +80,25 @@ Suggestion:
     decision:
       $ref: "./common.yaml#/SuggestionDecisionType"
     decidedBy:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "做出決策的成員帳號 ID"
     decidedAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
       description: "決策時間（UTC）"
     modifiedParameters:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "修改後的參數（decision = modify_and_accept 時有值）"
     executionResult:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "工具執行結果（accept / modify_and_accept 後有值）"
 
 SuggestionContextRef:
@@ -137,8 +142,9 @@ SuggestionGroupSummary:
         - manual_request
       description: "觸發此建議的事件類型"
     triggerMessageId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "觸發事件的訊息 ID"
     suggestionsCount:
       type: integer
@@ -233,8 +239,9 @@ SuggestionDecisionResponse:
           format: date-time
           description: "決策時間（UTC）"
     executionResult:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "工具執行結果（accept / modify_and_accept 時有值）"
       properties:
         success:
@@ -244,12 +251,14 @@ SuggestionDecisionResponse:
           type: object
           description: "工具回傳的結果資料"
         error:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           description: "執行錯誤訊息（success = false 時有值）"
     messageId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "決策結果產生的對話訊息 ID"
 
 # =============================================================================

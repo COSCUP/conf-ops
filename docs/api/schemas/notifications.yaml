@@ -27,44 +27,52 @@ Notification:
       type: string
       description: "通知標題"
     body:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "通知內文"
     referenceType:
-      type: string
+      type:
+        - string
+        - "null"
       enum:
         - task
         - todo
         - message
-      nullable: true
       description: "參照資源類型"
     referenceId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "參照資源 ID"
     projectId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "所屬專案 ID（系統級通知無專案）"
     projectName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "所屬專案名稱"
     taskId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "相關任務 ID"
     taskName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "相關任務名稱"
     isRead:
       type: boolean
       description: "是否已讀"
     readAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
       description: "已讀時間（UTC）"
     deliveredChannels:
       type: array
@@ -203,8 +211,9 @@ WebPushSubscribeRequest:
               type: string
               description: "認證密鑰（Base64 URL 編碼）"
     deviceName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "裝置名稱（用於使用者辨識不同訂閱）"
       examples:
         - "Chrome on MacBook"

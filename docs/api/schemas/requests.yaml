@@ -35,8 +35,9 @@ UpdateTaskRequest:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     lastSeenMessageId:
       $ref: "./common.yaml#/UUID"
       description: "客戶端已讀的最後一則訊息 ID（已讀保護機制）"
@@ -152,11 +153,13 @@ UpdateAccount:
     name:
       type: string
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     bio:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     profileData:
       type: object
       additionalProperties: true
@@ -235,11 +238,13 @@ UpdateOrganization:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     logoUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
 
 InviteOrgMember:
   type: object
@@ -280,8 +285,9 @@ UpdateProject:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     status:
       $ref: "./common.yaml#/ProjectStatus"
     permissionSettings:
@@ -479,8 +485,9 @@ UpdateMemberTag:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     externalTaskCreation:
       type: array
       items:
@@ -545,8 +552,9 @@ UpdateTaskTemplate:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     tagIds:
       type: array
       items:
@@ -583,8 +591,9 @@ UpdateTodoTemplate:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     sortOrder:
       type: integer
 
@@ -749,12 +758,14 @@ UpdateTodo:
     title:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     dueDate:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
     sortOrder:
       type: integer
     status:
@@ -886,19 +897,22 @@ UpdateToolConfig:
   description: "更新工具設定"
   properties:
     displayName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     enabled:
       type: boolean
     config:
       type: object
       additionalProperties: true
     mcpServerConfig:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       properties:
         transport:
           type: string
@@ -948,8 +962,9 @@ UpdateMemory:
       type: string
       description: "更新後的記憶內容"
     libraryRef:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
 
 # =============================================================================
 # LibraryDocument（記憶庫文件）
@@ -1012,8 +1027,9 @@ CreateWebhook:
       format: uri
       description: "目標推送 URL（生產環境必須為 HTTPS）"
     secret:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "Webhook 簽章密鑰。設定後，每次推送都會在 X-Webhook-Signature 標頭中包含 HMAC-SHA256 簽章"
       writeOnly: true
     events:
@@ -1036,8 +1052,9 @@ UpdateWebhook:
       type: string
       format: uri
     secret:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "Webhook 簽章密鑰。設定後，每次推送都會在 X-Webhook-Signature 標頭中包含 HMAC-SHA256 簽章"
       writeOnly: true
     events:

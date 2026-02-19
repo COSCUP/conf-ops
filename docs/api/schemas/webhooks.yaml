@@ -142,16 +142,19 @@ WebhookLog:
       $ref: "./common.yaml#/WebhookEventStatus"
       description: "推送狀態：pending（等待/重試中）、success（成功）、failed（失敗）"
     statusCode:
-      type: integer
-      nullable: true
+      type:
+        - integer
+        - "null"
       description: "目標端點的 HTTP 回應狀態碼"
     responseBody:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "目標端點的 HTTP 回應內容（截斷至 10KB）"
     responseTime:
-      type: integer
-      nullable: true
+      type:
+        - integer
+        - "null"
       description: "回應時間（毫秒）"
     attempts:
       type: integer
@@ -160,9 +163,10 @@ WebhookLog:
       type: integer
       description: "最大嘗試次數"
     nextRetryAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
       description: "下次重試時間（UTC）"
     isTest:
       type: boolean
@@ -172,9 +176,10 @@ WebhookLog:
       format: date-time
       description: "建立時間（UTC）"
     completedAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
       description: "最終完成時間（成功或放棄重試）"
 
 # =============================================================================
@@ -200,15 +205,17 @@ WebhookTestResponse:
       type: integer
       description: "回應時間（毫秒）"
     responseBody:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "目標端點的回應內容（截斷至 10KB）"
     logId:
       $ref: "./common.yaml#/UUID"
       description: "此次測試推送的事件日誌 ID，可用於查詢詳細紀錄"
     error:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "錯誤訊息（連線失敗、逾時等）"
 
 # =============================================================================

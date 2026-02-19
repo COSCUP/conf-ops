@@ -24,8 +24,9 @@ MemberTagResponse:
       type: string
       description: "標籤名稱（如「贊助組」、「資訊組」）"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "標籤描述"
     externalTaskCreation:
       type: array
@@ -58,8 +59,9 @@ MemberTagDetailResponse:
       type: string
       description: "標籤名稱（如「贊助組」、「資訊組」）"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "標籤描述"
     externalTaskCreation:
       type: array
@@ -114,8 +116,9 @@ MemberTagListItem:
       type: string
       description: "標籤名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "標籤描述"
     memberCount:
       type: integer
@@ -230,12 +233,14 @@ TagAssignmentResponse:
     tagId:
       $ref: "./common.yaml#/UUID"
     memberId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "被指派的成員 ID（與 contactId 二擇一）"
     contactId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "被指派的聯絡人 ID（與 memberId 二擇一）"
     projectId:
       $ref: "./common.yaml#/UUID"
@@ -273,8 +278,9 @@ UpdateMemberTagRequest:
       type: string
       description: "標籤名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "標籤描述"
 
 AssignTagRequest:

@@ -17,8 +17,9 @@ ToolDefinition:
       type: string
       description: "工具識別名稱（如 'createTask'、'smtp/sendEmail'）"
     displayName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "工具顯示名稱"
     category:
       type: string
@@ -52,8 +53,9 @@ ToolSummary:
       type: string
       description: "工具識別名稱"
     displayName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "工具顯示名稱"
     category:
       type: string
@@ -106,12 +108,14 @@ ToolConfig:
       type: string
       description: "工具識別名稱（如 'smtp/sendEmail'）"
     displayName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "顯示名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "工具說明"
     enabled:
       type: boolean
@@ -121,8 +125,9 @@ ToolConfig:
       additionalProperties: true
       description: "工具設定（敏感欄位以遮罩形式呈現）"
     mcpServerConfig:
-      $ref: "#/McpServerConfig"
-      nullable: true
+      oneOf:
+        - $ref: "#/McpServerConfig"
+        - type: "null"
       description: "外部工具的 MCP Server 連線設定（僅 tool_type = external 時有值）"
     createdAt:
       type: string
@@ -260,12 +265,14 @@ UpdateToolConfigRequest:
   description: "更新工具設定"
   properties:
     displayName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "顯示名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "工具說明"
     enabled:
       type: boolean
@@ -275,8 +282,9 @@ UpdateToolConfigRequest:
       additionalProperties: true
       description: "工具設定"
     mcpServerConfig:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "MCP Server 連線設定"
       properties:
         transport:

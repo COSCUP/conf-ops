@@ -25,14 +25,16 @@ ProjectResponse:
       type: string
       description: "專案名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "專案描述"
     status:
       $ref: "./common.yaml#/ProjectStatus"
     sourceProjectId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "來源專案 ID（若為複製建立）"
     createdBy:
       $ref: "./common.yaml#/UUID"
@@ -63,14 +65,16 @@ ProjectDetailResponse:
       type: string
       description: "專案名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "專案描述"
     status:
       $ref: "./common.yaml#/ProjectStatus"
     sourceProjectId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "來源專案 ID（若為複製建立）"
     createdBy:
       $ref: "./common.yaml#/UUID"
@@ -111,8 +115,9 @@ ProjectListResponse:
           name:
             type: string
           description:
-            type: string
-            nullable: true
+            type:
+              - string
+              - "null"
           status:
             $ref: "./common.yaml#/ProjectStatus"
           memberCount:
@@ -148,8 +153,9 @@ UpdateProjectRequest:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
 
 UpdateProjectStatusRequest:
   type: object

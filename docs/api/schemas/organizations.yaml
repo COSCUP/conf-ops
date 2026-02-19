@@ -21,12 +21,14 @@ OrganizationResponse:
       type: string
       description: "組織名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "組織描述"
     logoUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "組織 Logo URL"
     createdBy:
       $ref: "./common.yaml#/UUID"
@@ -53,12 +55,14 @@ OrganizationDetailResponse:
       type: string
       description: "組織名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "組織描述"
     logoUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "組織 Logo URL"
     createdBy:
       $ref: "./common.yaml#/UUID"
@@ -95,11 +99,13 @@ OrganizationListResponse:
           name:
             type: string
           description:
-            type: string
-            nullable: true
+            type:
+              - string
+              - "null"
           logoUrl:
-            type: string
-            nullable: true
+            type:
+              - string
+              - "null"
           role:
             $ref: "./common.yaml#/OrgRole"
             description: "當前使用者在該組織中的角色"
@@ -136,11 +142,13 @@ UpdateOrganizationRequest:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     logoUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
 
 # =============================================================================
 # Organization Member（組織成員）
@@ -167,8 +175,9 @@ OrgMemberResponse:
       format: email
       description: "成員 Email（來自帳號）"
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "成員頭像 URL"
     role:
       $ref: "./common.yaml#/OrgRole"

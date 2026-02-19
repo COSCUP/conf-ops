@@ -26,12 +26,14 @@ MemberResponse:
       format: email
       description: "成員 Email（來自帳號）"
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "成員頭像 URL"
     bio:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "公開的自我介紹文字"
     role:
       $ref: "./common.yaml#/MemberRole"
@@ -77,12 +79,14 @@ MemberDetailResponse:
       format: email
       description: "成員 Email（來自帳號）"
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "成員頭像 URL"
     bio:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "公開的自我介紹文字"
     role:
       $ref: "./common.yaml#/MemberRole"
@@ -99,8 +103,9 @@ MemberDetailResponse:
           name:
             type: string
           description:
-            type: string
-            nullable: true
+            type:
+              - string
+              - "null"
       description: "成員所屬的成員標籤（含描述）"
     todoStats:
       type: object

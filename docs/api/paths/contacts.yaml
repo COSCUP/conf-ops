@@ -57,8 +57,9 @@
                   items:
                     $ref: '../schemas/contacts.yaml#/ContactResponse'
                 nextCursor:
-                  type: string
-                  nullable: true
+                  type:
+                    - string
+                    - "null"
       '401':
         $ref: '../schemas/common.yaml#/responses/Unauthorized'
       '403':

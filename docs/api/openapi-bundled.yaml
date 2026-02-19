@@ -23,7 +23,9 @@ info:
     name: MIT
 servers:
   - url: /api/v1
-    description: API v1 主要端點
+    description: API v1 主要端點（內部 API，JWT 認證）
+  - url: /external/v1
+    description: 外部資料 API 端點（API Key 認證）
 security:
   - bearerAuth: []
 tags:
@@ -52,7 +54,11 @@ tags:
   - name: DataSheets
     description: 資料表 — 資料列新增/修改、跨任務聚合、資料分享
   - name: ExternalData
-    description: 外部資料 API — 唯讀、專案層級 API Key 認證
+    description: 外部資料 API — 專案層級 API Key 認證（讀取與寫入）
+  - name: ApiKeys
+    description: API Key 管理 — 產生、列出、撤銷專案層級 API Key
+  - name: AuditLogs
+    description: 審計日誌 — 組織與專案層級操作記錄查詢
   - name: Tools
     description: 執行工具 — MCP 工具執行、工具設定管理
   - name: ToolConfigs
@@ -66,7 +72,7 @@ tags:
   - name: Email
     description: 電子郵件整合 — 收信 webhook、未分類收件匣
   - name: EmailInbound
-    description: 電子郵件接收 — LMTP/HTTP webhook 收信處理
+    description: 電子郵件接收 — HTTP webhook 收信處理（AWS SES Lambda / Cloudflare Email Worker）
   - name: LibraryDocuments
     description: 記憶庫文件 — 文件 CRUD、版本歷史
   - name: Webhooks
@@ -399,6 +405,102 @@ paths:
                 example: refresh_token=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=0
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /auth/passkeys:
+    get:
+      operationId: listPasskeys
+      summary: 列出已註冊的 Passkeys
+      description: |
+        取得目前帳號已註冊的所有 Passkey 裝置列表。
+        用於帳號設定頁面中的 Passkey 管理。
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - authenticated
+      responses:
+        '200':
+          description: 已註冊的 Passkey 列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - passkeys
+                properties:
+                  passkeys:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - createdAt
+                        - lastUsedAt
+                      properties:
+                        id:
+                          $ref: '#/components/schemas/UUID'
+                          description: Passkey 識別碼
+                        name:
+                          type: string
+                          description: 裝置名稱（由 authenticator 提供或使用者自訂）
+                          example: MacBook Pro Touch ID
+                        createdAt:
+                          type: string
+                          format: date-time
+                          description: 註冊時間
+                        lastUsedAt:
+                          type:
+                            - string
+                            - 'null'
+                          format: date-time
+                          description: 最後使用時間
+              example:
+                passkeys:
+                  - id: 018e4a2c-0001-7000-8000-000000000001
+                    name: MacBook Pro Touch ID
+                    createdAt: '2026-01-15T10:00:00Z'
+                    lastUsedAt: '2026-02-18T14:30:00Z'
+                  - id: 018e4a2c-0001-7000-8000-000000000002
+                    name: YubiKey 5
+                    createdAt: '2026-01-20T09:00:00Z'
+                    lastUsedAt: '2026-02-10T08:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/passkeys/{passkeyId}:
+    parameters:
+      - name: passkeyId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Passkey 識別碼
+    delete:
+      operationId: deletePasskey
+      summary: 刪除 Passkey
+      description: |
+        刪除指定的 Passkey 裝置。
+        帳號至少需保留一種認證方式（至少一個 Passkey 或 Magic Link），
+        若此為最後一個 Passkey 且帳號無其他認證方式，回傳 409 Conflict。
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - authenticated
+      responses:
+        '204':
+          description: Passkey 已刪除
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 無法刪除最後一個認證方式
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /accounts/me:
     get:
       operationId: getCurrentAccount
@@ -430,11 +532,11 @@ paths:
                 updatedAt: '2025-06-15T10:30:00Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
-    put:
+    patch:
       operationId: updateCurrentAccount
       summary: 更新當前帳號資訊
       description: |
-        更新當前登入帳號的公開資訊。僅傳入需要更新的欄位。
+        部分更新當前登入帳號的公開資訊。僅傳入需要更新的欄位。
         可更新：名稱 `name`、自我介紹 `bio`、頭像 `avatarUrl`、語系 `locale`。
       tags:
         - Accounts
@@ -518,7 +620,7 @@ paths:
       description: |
         更新當前帳號的私人結構化資料。以 merge 方式更新 — 僅覆蓋傳入的欄位，
         未傳入的欄位保持不變。設定欄位值為 `null` 可刪除該欄位。
-        系統自動維護 `profileSchema`。
+        可選傳入 `profileSchema` 手動定義欄位結構；若未傳入，系統自動維護。
       tags:
         - Accounts
       security:
@@ -535,6 +637,15 @@ paths:
               profileData:
                 phone: +886-912-345-678
                 dietary_preference: 素食
+              profileSchema:
+                - key: phone
+                  label: 聯絡電話
+                  description: 個人手機號碼
+                  type: string
+                - key: dietary_preference
+                  label: 飲食偏好
+                  description: 素食、葷食或其他飲食需求
+                  type: string
       responses:
         '200':
           description: 個人資料表更新成功
@@ -1129,6 +1240,46 @@ paths:
                 title: Conflict
                 status: 409
                 detail: 組織必須至少有一位擁有者
+  /organizations/{orgId}/restore:
+    parameters:
+      - name: orgId
+        in: path
+        required: true
+        description: 組織 ID
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: restoreOrganization
+      summary: 還原已刪除的組織
+      description: |
+        還原軟刪除的組織，清除 `deletedAt` 時間戳。
+        僅組織擁有者（`org_owner`）可操作。
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - org_owner
+      responses:
+        '200':
+          description: 組織還原成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 組織未處於已刪除狀態
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /organizations/{orgId}/contacts:
     parameters:
       - name: orgId
@@ -1138,6 +1289,59 @@ paths:
         schema:
           type: string
           format: uuid
+    get:
+      operationId: listContacts
+      summary: 列出組織聯絡人
+      description: |
+        列出指定組織下的所有聯絡人，支援分頁與搜尋。
+        使用者必須是該組織的成員。
+      tags:
+        - Contacts
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - org_member
+        - org_admin
+        - org_owner
+      parameters:
+        - name: cursor
+          in: query
+          description: 分頁游標
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: 每頁筆數（預設 20，最大 100）
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          description: 搜尋關鍵字（搜尋 name 與 email）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 聯絡人列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContactResponse'
+                  nextCursor:
+                    type:
+                      - string
+                      - 'null'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       operationId: createContact
       summary: 建立外部聯絡人
@@ -1379,6 +1583,76 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /projects/{projectId}/contacts:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        description: 專案 ID
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: listProjectContacts
+      summary: 列出專案相關聯絡人
+      description: |
+        列出與指定專案相關的聯絡人（透過成員標籤指派關聯至該專案的 Contact）。
+        可選擇是否包含各 Contact 在該專案中的標籤指派資訊。
+        使用者必須是該專案的成員。
+      tags:
+        - Contacts
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_member
+      parameters:
+        - name: includeTags
+          in: query
+          description: 是否包含 Contact 在此專案中的成員標籤指派資訊
+          schema:
+            type: boolean
+            default: false
+        - name: cursor
+          in: query
+          description: 分頁游標
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: 每頁筆數（預設 20，最大 100）
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          description: 搜尋關鍵字（搜尋 name 與 email）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 專案聯絡人列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - meta
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContactResponse'
+                  meta:
+                    $ref: '#/components/schemas/CursorPaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /organizations/{orgId}/tool-configs:
     get:
       operationId: listOrgToolConfigs
@@ -1546,9 +1820,8 @@ paths:
         從同組織內的現有專案複製建立新專案。僅該專案的現有成員可操作。
         複製時操作者自動成為新專案的擁有者（`owner`）。
 
-        完整複製項目：成員標籤、任務模板、專案記憶、工具設定、權限設定。
+        Phase 2 僅複製專案基本資料（name, description, status 重設為 preparing）。完整複製（member_tags, task_templates, memories, tool_configs, permission_settings）於 Phase 12 實作。
         不複製項目：成員、任務實例、聯絡人標籤指派、資料表資料。
-        新專案狀態重設為 `preparing`。
       tags:
         - Projects
       security:
@@ -1869,6 +2142,303 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /projects/{projectId}/stats:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+    get:
+      operationId: getProjectStats
+      summary: 取得專案統計資料
+      description: |
+        取得專案的統計儀表板資料，包含任務數量、待辦事項完成率、
+        成員數量、最近活動等摘要資訊。
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - project_member
+      responses:
+        '200':
+          description: 專案統計資料
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - projectId
+                  - taskCounts
+                  - todoCounts
+                  - memberCount
+                properties:
+                  projectId:
+                    $ref: '#/components/schemas/UUID'
+                  taskCounts:
+                    type: object
+                    description: 任務數量統計
+                    properties:
+                      total:
+                        type: integer
+                      byStatus:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                  todoCounts:
+                    type: object
+                    description: 待辦事項統計
+                    properties:
+                      total:
+                        type: integer
+                      completed:
+                        type: integer
+                      overdue:
+                        type: integer
+                  memberCount:
+                    type: integer
+                    description: 專案成員數量
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /projects/{projectId}/reminders:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+    get:
+      operationId: listProjectReminders
+      summary: 列出專案排程提醒
+      description: |
+        取得專案下所有已排程的提醒列表，包含待辦事項到期提醒、
+        逾期提醒等。支援依狀態篩選（已觸發/未觸發）。
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - project_member
+      parameters:
+        - name: fired
+          in: query
+          schema:
+            type: boolean
+          description: 篩選已觸發或未觸發的提醒
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: 分頁游標
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: 每頁數量
+      responses:
+        '200':
+          description: 排程提醒列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createProjectReminder
+      summary: 建立專案提醒
+      description: |
+        在專案中建立新的排程提醒，可關聯到特定待辦事項。
+        支援到期提醒、逾期提醒等類型。
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - project_member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - triggerAt
+              properties:
+                todoId:
+                  $ref: '#/components/schemas/UUID'
+                  description: 關聯的待辦事項 ID（可選）
+                type:
+                  type: string
+                  enum:
+                    - due_date_approaching
+                    - due_date_overdue
+                    - todo_stale
+                  description: 提醒類型（與 ReminderResponse 及 scheduled_reminders 表一致）
+                triggerAt:
+                  type: string
+                  format: date-time
+                  description: 觸發時間（UTC）
+                config:
+                  type: object
+                  additionalProperties: true
+                  description: 提醒設定（如重複規則、通知管道等）
+            example:
+              todoId: 018e4a2c-0006-7000-8000-000000000001
+              type: due_date_approaching
+              triggerAt: '2026-02-28T09:00:00Z'
+              config:
+                channels:
+                  - in_app
+                  - email
+      responses:
+        '201':
+          description: 提醒建立成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /projects/{projectId}/reminders/{reminderId}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+      - name: reminderId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 提醒 ID
+    delete:
+      operationId: deleteProjectReminder
+      summary: 刪除專案提醒
+      description: |
+        刪除指定的排程提醒。已觸發的提醒也可刪除（僅移除排程記錄）。
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - project_member
+      responses:
+        '204':
+          description: 提醒已刪除
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /projects/{projectId}/restore:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+    post:
+      operationId: restoreProject
+      summary: 還原已刪除的專案
+      description: |
+        還原軟刪除的專案，清除 `deletedAt` 時間戳。
+        僅專案擁有者（`owner`）或組織擁有者（`org_owner`）可操作。
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - org_owner
+      responses:
+        '200':
+          description: 專案還原成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 專案未處於已刪除狀態
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /projects/{projectId}/members/me:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+    delete:
+      operationId: leaveProject
+      summary: 自行退出專案
+      description: |
+        目前登入的成員自行退出指定專案。
+
+        限制：
+        - 專案擁有者（owner）無法自行退出，需先轉移擁有權
+        - 退出後將無法存取該專案的任何資源
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_member
+      responses:
+        '204':
+          description: 已成功退出專案
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 專案擁有者無法自行退出
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
         '404':
           $ref: '#/components/responses/NotFound'
   /projects/{projectId}/members:
@@ -3331,14 +3901,14 @@ paths:
                 value:
                   name: 與 X 公司聯絡
                   description: 負責聯絡 X 科技股份有限公司的贊助事宜
-                  templateId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
+                  taskTemplateId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
                   ownerTagId: 018e4a2c-0001-7000-8000-000000000001
               crossTeam:
                 summary: 跨組建立任務（關聯待辦事項）
                 value:
                   name: 發佈 X 公司贊助商貼文
                   description: 請公關組協助發佈 X 公司的贊助商宣傳貼文
-                  templateId: 018e4a2c-0005-7000-8000-000000000001
+                  taskTemplateId: 018e4a2c-0005-7000-8000-000000000001
                   ownerTagId: 018e4a2c-0001-7000-8000-000000000002
                   parentTodoId: 018e4a2c-0006-7000-8000-000000000001
       responses:
@@ -3672,6 +4242,54 @@ paths:
                     title: Cannot Complete Task
                     status: 409
                     detail: 任務仍有 3 個未完成的待辦事項，請先完成所有待辦事項再標記任務完成
+  /tasks/{taskId}/restore:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 任務 ID
+    post:
+      operationId: restoreTask
+      summary: 還原已刪除的任務
+      description: |
+        還原軟刪除的任務，清除 `deletedAt` 時間戳。
+        還原後任務恢復為刪除前的狀態，對話與相關資料重新可存取。
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+      responses:
+        '200':
+          description: 任務還原成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 無權限還原此任務
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: 任務不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: 任務未處於已刪除狀態
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /tasks/{taskId}/conversation:
     parameters:
       - name: taskId
@@ -3822,9 +4440,7 @@ paths:
                   content: 附上 X 公司提供的 Logo 圖檔
                   lastSeenMessageId: 018e4a2c-0010-7000-8000-000000000005
                   attachments:
-                    - fileName: x-company-logo.png
-                      mimeType: image/png
-                      fileSize: 245760
+                    - 019409a2-c5f2-7000-8000-000000000901
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/SendMessageMultipartRequest'
@@ -3978,10 +4594,12 @@ paths:
         WebSocket 連線，提供任務對話的即時雙向同步。
 
         連線建立後支援 CRDT 即時同步與 Awareness 協定（presence / cursor tracking）。
+
+        **認證方式**：不使用 Authorization Header（瀏覽器原生 WebSocket API 不支援自定義 Header）。
+        認證完全依賴 query parameter `token`（一次性 token，透過 REST API `POST /tasks/{taskId}/conversation/ws-token` 取得）。
       tags:
         - Conversations
-      security:
-        - bearerAuth: []
+      security: []
       x-permissions:
         - project_owner
         - tag_admin
@@ -4000,10 +4618,21 @@ paths:
         protocol: conf-ops-conversation-v1
         x-websocket-frame-types:
           description: |
-            WebSocket 訊息使用兩種 frame type：
-            - **Text frame (JSON)**：所有事件訊息（message_created, suggestion_created, notification, awareness_update）
-            - **Binary frame**：CRDT 同步資料（yrs binary encoding）
-            客戶端需檢查 frame type 以決定解析方式。
+            WebSocket 訊息使用兩種 frame type，客戶端需檢查 frame type 以決定解析方式：
+
+            **Text frame (JSON)**：業務事件訊息，格式為 `{"event": "<type>", "data": {...}}`
+            - `message_created`：新訊息建立通知
+            - `suggestion_created`：AI 建議建立通知
+            - `notification`：即時通知（待辦指派、@mention 等）
+
+            **Binary frame**：CRDT 同步資料（yrs binary encoding），直接傳送 `yrs` 原生協定訊息。
+            Binary frame 的第一個 byte 為 message type tag：
+            - `0`：SyncStep1 — 客戶端發送 state vector，請求差異更新
+            - `1`：SyncStep2 — 伺服器/客戶端回傳 state vector 之後的差異更新
+            - `2`：Update — 增量更新
+            - `3`：AwarenessUpdate — presence 狀態（線上使用者、cursor 位置）
+
+            詳細協定定義請參考 `docs/system/03-crdt-implementation.md`
         description: |
           WebSocket 連線協定，基於 CRDT 同步機制。
 
@@ -4022,7 +4651,7 @@ paths:
                   type: string
                   const: message_created
                 data:
-                  $ref: '#/components/schemas/MessageResponse'
+                  $ref: ../schemas/responses.yaml#/MessageResponse
           suggestion_created:
             description: AI 建議建立通知
             payload:
@@ -4032,22 +4661,7 @@ paths:
                   type: string
                   const: suggestion_created
                 data:
-                  $ref: '#/components/schemas/SuggestionGroupResponse'
-          crdt_update:
-            description: CRDT 狀態更新
-            payload:
-              type: object
-              properties:
-                event:
-                  type: string
-                  const: crdt_update
-                data:
-                  type: object
-                  properties:
-                    update:
-                      type: string
-                      format: byte
-                      description: Base64 編碼的 CRDT 更新資料
+                  $ref: ../schemas/entities.yaml#/SuggestionGroupResponse
           notification:
             description: 即時通知（待辦指派、@mention 等）
             payload:
@@ -4057,7 +4671,7 @@ paths:
                   type: string
                   const: notification
                 data:
-                  $ref: '#/components/schemas/NotificationResponse'
+                  $ref: ../schemas/entities.yaml#/NotificationResponse
         clientEvents:
           send_message:
             description: 透過 WebSocket 發送訊息
@@ -4068,22 +4682,7 @@ paths:
                   type: string
                   const: send_message
                 data:
-                  $ref: '#/components/schemas/SendMessage'
-          crdt_update:
-            description: 客戶端 CRDT 狀態更新
-            payload:
-              type: object
-              properties:
-                event:
-                  type: string
-                  const: crdt_update
-                data:
-                  type: object
-                  properties:
-                    update:
-                      type: string
-                      format: byte
-                      description: Base64 編碼的 CRDT 更新資料
+                  $ref: ../schemas/requests.yaml#/SendMessageRequest
           subscribe:
             description: 訂閱特定事件類型
             payload:
@@ -4102,7 +4701,6 @@ paths:
                         enum:
                           - message_created
                           - suggestion_created
-                          - crdt_update
                           - notification
         awareness:
           description: |
@@ -4131,8 +4729,9 @@ paths:
                     type: string
                     description: 指定的顯示顏色
               cursor:
-                type: object
-                nullable: true
+                type:
+                  - object
+                  - 'null'
                 properties:
                   position:
                     type: integer
@@ -5072,7 +5671,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-  /projects/{projectId}/task-templates:
+  /external/projects/{projectId}/task-templates:
     parameters:
       - name: projectId
         in: path
@@ -5122,7 +5721,7 @@ paths:
                 list:
                   summary: 任務模板列表
                   value:
-                    data:
+                    items:
                       - id: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
                         name: 與贊助商保持聯絡
                         description: 負責聯絡贊助商的完整流程
@@ -5140,7 +5739,7 @@ paths:
                         name: 社群貼文發佈
                         description: 處理社群媒體貼文的發佈流程
                         dataSchemas: []
-                    pagination:
+                    meta:
                       hasMore: false
                       nextCursor: null
                       totalCount: 2
@@ -5164,7 +5763,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-  /projects/{projectId}/task-templates/{templateId}/data:
+  /external/projects/{projectId}/task-templates/{templateId}/data:
     parameters:
       - name: projectId
         in: path
@@ -5250,7 +5849,7 @@ paths:
                               contactEmail: contact@ysoft.tw
                               amount: 50000
                             updatedAt: '2026-02-08T11:00:00Z'
-                    pagination:
+                    meta:
                       hasMore: false
                       nextCursor: null
                       totalCount: 2
@@ -5266,7 +5865,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-  /projects/{projectId}/tasks:
+  /external/projects/{projectId}/tasks:
     parameters:
       - name: projectId
         in: path
@@ -5323,7 +5922,7 @@ paths:
                 list:
                   summary: 任務列表含狀態
                   value:
-                    data:
+                    items:
                       - id: 018e4a2c-0004-7000-8000-000000000001
                         name: 與 X 公司聯絡
                         status: in_progress
@@ -5348,7 +5947,7 @@ paths:
                           open: 4
                         createdAt: '2026-01-16T09:00:00Z'
                         updatedAt: '2026-02-08T11:00:00Z'
-                    pagination:
+                    meta:
                       hasMore: false
                       nextCursor: null
                       totalCount: 2
@@ -5358,7 +5957,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-  /projects/{projectId}/tasks/{taskId}/data:
+  /external/projects/{projectId}/tasks/{taskId}/data:
     parameters:
       - name: projectId
         in: path
@@ -5413,6 +6012,89 @@ paths:
                         updatedAt: '2026-02-10T14:30:00Z'
         '401':
           description: API Key 無效或缺失
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: 任務不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    put:
+      operationId: externalUpdateTaskData
+      summary: （外部）更新任務資料列
+      description: |
+        供外部系統更新特定任務的資料列。
+
+        更新成功後會觸發 `SourceDataChanged` DomainEvent，進而觸發 AI 建議。
+        需要具備 `write` scope 的 API Key。
+        傳入的 values 會根據對應的 DataSchema 進行欄位類型與約束驗證。
+      tags:
+        - ExternalData
+      security:
+        - apiKeyAuth: []
+      x-permissions:
+        - type: api_key
+          scope: project
+          access: read_write
+          description: 專案層級 API Key，讀寫存取
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - schemaId
+                - values
+              properties:
+                schemaId:
+                  $ref: '#/components/schemas/UUID'
+                  description: 資料表定義 ID
+                values:
+                  type: object
+                  additionalProperties: true
+                  description: 資料欄位值，key 對應 DataSchema 中的欄位 key
+            example:
+              schemaId: 018e4a2c-0003-7000-8000-000000000001
+              values:
+                companyName: X 科技股份有限公司
+                amount: 120000
+      responses:
+        '200':
+          description: 資料更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - taskId
+                  - schemaId
+                  - values
+                  - updatedAt
+                properties:
+                  taskId:
+                    $ref: '#/components/schemas/UUID'
+                  schemaId:
+                    $ref: '#/components/schemas/UUID'
+                  values:
+                    type: object
+                    additionalProperties: true
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: API Key 無效或缺失
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: API Key 無 write 權限
           content:
             application/json:
               schema:
@@ -6642,7 +7324,7 @@ paths:
                 unreadCount: 5
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /notifications/preferences:
+  /accounts/me/notification-preferences:
     get:
       operationId: getNotificationPreferences
       summary: 取得通知偏好設定
@@ -6662,36 +7344,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationPreferences'
               example:
-                email:
-                  enabled: true
-                  types:
-                    todo_assigned: true
-                    member_mentioned: true
-                    tag_mentioned: true
-                    task_completed: true
-                    linked_task_completed: true
-                    source_data_changed: false
-                    reminder: true
-                webPush:
-                  enabled: true
-                  types:
-                    todo_assigned: true
-                    member_mentioned: true
-                    tag_mentioned: false
-                    task_completed: false
-                    linked_task_completed: false
-                    source_data_changed: false
-                    reminder: true
-                inApp:
-                  enabled: true
-                  types:
-                    todo_assigned: true
-                    member_mentioned: true
-                    tag_mentioned: true
-                    task_completed: true
-                    linked_task_completed: true
-                    source_data_changed: true
-                    reminder: true
+                channels:
+                  email:
+                    enabled: true
+                    categories:
+                      taskUpdates: true
+                      todoAssignments: true
+                      aiSuggestions: true
+                      mentions: true
+                      systemAnnouncements: true
+                  webPush:
+                    enabled: true
+                    categories:
+                      taskUpdates: false
+                      todoAssignments: true
+                      aiSuggestions: false
+                      mentions: true
+                      systemAnnouncements: false
+                  inApp:
+                    enabled: true
+                    categories:
+                      taskUpdates: true
+                      todoAssignments: true
+                      aiSuggestions: true
+                      mentions: true
+                      systemAnnouncements: true
         '401':
           $ref: '#/components/responses/Unauthorized'
     put:
@@ -6713,11 +7390,12 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateNotificationPreferencesRequest'
             example:
-              email:
-                types:
-                  source_data_changed: true
-              webPush:
-                enabled: false
+              channels:
+                email:
+                  categories:
+                    aiSuggestions: false
+                webPush:
+                  enabled: false
       responses:
         '200':
           description: 偏好設定更新成功
@@ -6856,7 +7534,7 @@ paths:
                 suggestionGroups:
                   - id: 018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b
                     trigger: message_sent
-                    triggerMessageId: 018e4a2c-m010-7d8e-9a1b-2c3d4e5f6a7b
+                    triggerMessageId: 018e4a2c-b010-7d8e-9a1b-2c3d4e5f6a7b
                     suggestionsCount: 2
                     decidedCount: 1
                     createdAt: '2025-02-15T14:30:00Z'
@@ -6912,7 +7590,7 @@ paths:
                 id: 018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b
                 taskId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
                 trigger: message_sent
-                triggerMessageId: 018e4a2c-m010-7d8e-9a1b-2c3d4e5f6a7b
+                triggerMessageId: 018e4a2c-b010-7d8e-9a1b-2c3d4e5f6a7b
                 suggestions:
                   - id: 018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b
                     summary: 回覆贊助商確認信
@@ -7132,61 +7810,165 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-  /email/inbound:
+  /tasks/{taskId}/ai/resolve-placeholders:
     post:
-      operationId: receiveInboundEmail
-      summary: 接收外部來信
+      operationId: resolvePlaceholders
+      summary: 解析佔位符為實際資料值
       description: |
-        接收外部 Email 的 webhook 端點，供郵件伺服器（如 Postfix、SendGrid Inbound Parse）
-        將收到的信件轉送至系統。
+        將含有佔位符的文字解析為實際資料值。前端可用此端點預覽 AI 建議中的佔位符
+        （如 `{{data.companyName}}`、`{{profile.phone}}`）替換後的真實內容，
+        供人類在採納建議前審核。
 
-        處理流程：
-        1. 解析寄件者 `sender`、主旨 `subject`、內容 `body`、附件 `attachments`
-        2. 判斷來源身份：Member 來信、Contact 來信、或成員轉寄
-        3. 嘗試匹配任務：優先 Email Header 匹配、次要啟發式匹配
-        4. 匹配成功：在任務對話中新增訊息，觸發 AI 建議
-        5. 匹配失敗：歸入專案的未分類收件匣
-
-        此端點使用 `X-Webhook-Secret` header 驗證請求來源，不使用 Bearer Token。
+        此端點不修改任何資料，僅執行佔位符解析並回傳結果。
       tags:
-        - EmailInbound
-      security: []
+        - AISuggestions
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - task_participant
       parameters:
-        - name: X-Webhook-Secret
-          in: header
+        - name: taskId
+          in: path
           required: true
-          description: Webhook 密鑰，用於驗證請求來源
+          description: 任務 ID
           schema:
-            type: string
+            $ref: '#/components/schemas/UUID'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InboundEmailJson'
+              type: object
+              required:
+                - templateText
+              properties:
+                templateText:
+                  type: string
+                  description: 含佔位符的文字（如 `親愛的 {{data.contactName}} 您好`）
             example:
-              from:
-                name: Sponsor Contact
-                address: contact@sponsor.com
-              to:
-                - address: coscup-discuss@conf-ops.example.com
-              cc:
-                - address: alice@example.com
-              subject: 'Re: COSCUP 2026 贊助合作'
-              textBody: 您好，我們確認贊助金額為 NT$100,000...
-              htmlBody: <p>您好，我們確認贊助金額為 NT$100,000...</p>
-              headers:
-                message-id: <abc123@sponsor.com>
-                in-reply-to: <def456@conf-ops.example.com>
-                references: <def456@conf-ops.example.com> <ghi789@conf-ops.example.com>
-              attachments:
-                - filename: contract.pdf
-                  contentType: application/pdf
-                  size: 204800
-                  content: base64-encoded-content...
-          multipart/form-data:
+              templateText: 親愛的 {{data.contactName}} 您好，感謝 {{data.companyName}} 確認贊助。
+      responses:
+        '200':
+          description: 佔位符解析結果
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - resolvedText
+                  - placeholders
+                properties:
+                  resolvedText:
+                    type: string
+                    description: 解析後的文字（佔位符已替換為實際值）
+                  placeholders:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - placeholder
+                        - resolvedValue
+                      properties:
+                        placeholder:
+                          type: string
+                          description: 原始佔位符（如 `{{data.contactName}}`）
+                        resolvedValue:
+                          type:
+                            - string
+                            - 'null'
+                          description: 解析後的實際值（無對應值時為 null）
+                    description: 所有佔位符的解析結果列表
+              example:
+                resolvedText: 親愛的 王大明 您好，感謝 X 科技公司 確認贊助。
+                placeholders:
+                  - placeholder: '{{data.contactName}}'
+                    resolvedValue: 王大明
+                  - placeholder: '{{data.companyName}}'
+                    resolvedValue: X 科技公司
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /email/inbound:
+    post:
+      operationId: receiveInboundEmail
+      summary: 接收外部來信
+      description: |
+        接收外部 Email 的 webhook 端點，供收信轉發函式（AWS SES Lambda / Cloudflare Email Worker）
+        將收到的原始 MIME 郵件轉送至系統。
+
+        請求格式：
+        - Content-Type: `message/rfc822`（原始 RFC 5322 MIME 格式）
+        - Body: 原始郵件的二進位串流
+
+        處理流程：
+        1. 使用 `mail-parser` 解析原始 MIME：提取寄件者、主旨、內容、附件、標頭
+        2. 判斷來源身份：Member 來信、Contact 來信、或未知寄件者（自動建立 Contact）
+        3. 嘗試匹配任務：優先 Email Header 匹配（In-Reply-To / References）、次要啟發式匹配
+        4. 匹配成功：在任務對話中新增訊息，觸發 AI 建議
+        5. 匹配失敗：歸入專案的未分類收件匣
+
+        此端點使用 Bearer Token 驗證請求來源（`EMAIL_INBOUND_API_KEY`），不使用一般使用者 JWT。
+      tags:
+        - EmailInbound
+      security: []
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: 收信轉發函式的認證 token（格式：`Bearer {EMAIL_INBOUND_API_KEY}`）
+          schema:
+            type: string
+            example: Bearer inbound-secret-key
+        - name: X-SES-Message-Id
+          in: header
+          description: AWS SES Message ID（路線 A 提供，用於除錯與冪等處理）
+          schema:
+            type: string
+        - name: X-SES-Spam-Verdict
+          in: header
+          description: AWS SES 垃圾郵件檢查結果：PASS / FAIL（路線 A 提供）
+          schema:
+            type: string
+            enum:
+              - PASS
+              - FAIL
+        - name: X-SES-Virus-Verdict
+          in: header
+          description: AWS SES 病毒檢查結果：PASS / FAIL（路線 A 提供）
+          schema:
+            type: string
+            enum:
+              - PASS
+              - FAIL
+        - name: X-CF-Mail-From
+          in: header
+          description: Cloudflare Email Worker 提供的寄件者地址（路線 B 提供）
+          schema:
+            type: string
+            format: email
+        - name: X-CF-Mail-To
+          in: header
+          description: Cloudflare Email Worker 提供的收件者地址（路線 B 提供）
+          schema:
+            type: string
+            format: email
+        - name: X-CF-Raw-Size
+          in: header
+          description: Cloudflare Email Worker 提供的原始郵件大小（bytes）（路線 B 提供）
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        description: 原始 MIME 郵件（RFC 5322 格式），以二進位串流傳送
+        content:
+          message/rfc822:
             schema:
-              $ref: '#/components/schemas/InboundEmailMultipart'
+              type: string
+              format: binary
+              description: 原始 MIME 郵件二進位串流
       responses:
         '200':
           description: Email 處理完成
@@ -7200,7 +7982,7 @@ paths:
                   value:
                     status: matched
                     taskId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
-                    messageId: 018e4a2c-m012-7d8e-9a1b-2c3d4e5f6a7b
+                    messageId: 018e4a2c-a012-7d8e-9a1b-2c3d4e5f6a7b
                     threadId: 018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b
                 unmatched:
                   summary: 無法匹配，歸入未分類收件匣
@@ -7209,7 +7991,7 @@ paths:
                     emailId: 018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b
                     projectId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
         '400':
-          description: Email 格式錯誤或無法解析
+          description: MIME 格式錯誤或無法解析
           content:
             application/json:
               schema:
@@ -7218,9 +8000,9 @@ paths:
                 type: https://api.conf-ops.dev/errors/invalid-email
                 title: Invalid Email Format
                 status: 400
-                detail: 無法解析 Email 內容
+                detail: 無法解析 MIME 郵件內容
         '401':
-          description: Webhook 密鑰驗證失敗
+          description: Authorization token 驗證失敗
           content:
             application/json:
               schema:
@@ -7229,7 +8011,7 @@ paths:
                 type: https://api.conf-ops.dev/errors/unauthorized
                 title: Unauthorized
                 status: 401
-                detail: X-Webhook-Secret 驗證失敗
+                detail: Inbound API key 驗證失敗
   /projects/{projectId}/unassigned-inbox:
     get:
       operationId: listUnassignedEmails
@@ -7362,11 +8144,224 @@ paths:
                     $ref: '#/components/schemas/UUID'
                     description: 匹配或建立的 Email Thread ID
               example:
-                messageId: 018e4a2c-m013-7d8e-9a1b-2c3d4e5f6a7b
+                messageId: 018e4a2c-a013-7d8e-9a1b-2c3d4e5f6a7b
                 taskId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
                 threadId: 018e4a2c-b002-7d8e-9a1b-2c3d4e5f6a7b
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{taskId}/email-threads:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 任務 ID
+    get:
+      operationId: listEmailThreads
+      summary: 列出任務的 Email 對話串
+      description: |
+        取得指定任務下的所有 Email 對話串列表。
+        每個對話串包含主旨、參與者、最後訊息時間等摘要資訊。
+        使用游標分頁，依最後訊息時間由新到舊排列。
+      tags:
+        - Email
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - task_participant
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: 分頁游標
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 每頁數量
+      responses:
+        '200':
+          description: Email 對話串列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - threads
+                  - pagination
+                properties:
+                  threads:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EmailThreadResponse'
+                  pagination:
+                    $ref: '#/components/schemas/CursorPaginationMeta'
+              example:
+                threads:
+                  - id: 018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b
+                    taskId: 018e4a2c-0004-7000-8000-000000000001
+                    subject: 贊助方案討論
+                    participants:
+                      - alice@example.com
+                      - bob@example.com
+                    messageCount: 5
+                    lastMessageAt: '2026-02-18T14:30:00Z'
+                    createdAt: '2026-02-15T10:00:00Z'
+                    updatedAt: '2026-02-18T14:30:00Z'
+                pagination:
+                  hasMore: false
+                  nextCursor: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createEmailThread
+      summary: 手動建立 Email 對話串
+      description: |
+        在任務中手動建立一個新的 Email 對話串。
+        用於將外部 Email 通訊手動關聯至任務，或預先建立對話串以便追蹤。
+      tags:
+        - Email
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - task_participant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subject
+              properties:
+                subject:
+                  type: string
+                  description: Email 對話串主旨
+                participants:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: 參與者 Email 地址列表
+            example:
+              subject: 贊助方案討論
+              participants:
+                - sponsor@example.com
+                - team@coscup.org
+      responses:
+        '201':
+          description: Email 對話串建立成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailThreadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{taskId}/email-threads/{threadId}:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 任務 ID
+      - name: threadId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Email 對話串 ID
+    patch:
+      operationId: updateEmailThread
+      summary: 更新 Email 對話串資訊
+      description: |
+        更新 Email 對話串的主旨或參與者等資訊。
+      tags:
+        - Email
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - task_participant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                  description: Email 對話串主旨
+                participants:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: 參與者 Email 地址列表
+            example:
+              subject: 贊助方案討論（更新）
+              participants:
+                - sponsor@example.com
+                - team@coscup.org
+                - finance@coscup.org
+      responses:
+        '200':
+          description: Email 對話串更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailThreadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteEmailThread
+      summary: 刪除 Email 對話串
+      description: |
+        刪除指定的 Email 對話串。對話串中的訊息記錄將一併移除。
+      tags:
+        - Email
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - tag_admin
+        - task_participant
+      responses:
+        '204':
+          description: Email 對話串已刪除
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7555,11 +8550,11 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateWebhookRequest'
             example:
-              name: Slack 通知（含 AI 建議）
+              name: Slack 通知（含完成事件）
               events:
                 - task.completed
                 - todo.completed
-                - suggestion.created
+                - data_entry.updated
               enabled: true
       responses:
         '200':
@@ -7807,7 +8802,7 @@ paths:
               example:
                 received: true
                 taskId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
-                messageId: 018e4a2c-m014-7d8e-9a1b-2c3d4e5f6a7b
+                messageId: 018e4a2c-c014-7d8e-9a1b-2c3d4e5f6a7b
         '400':
           description: 請求格式錯誤
           content:
@@ -7836,6 +8831,550 @@ paths:
                 title: Endpoint Not Found
                 status: 404
                 detail: 找不到指定的 Inbound Webhook 端點
+  /projects/{projectId}/api-keys:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+    get:
+      operationId: listApiKeys
+      summary: 列出 API Keys
+      description: |
+        列出專案的所有 API Keys。
+        僅 project owner 或 org_owner 可操作。
+        回傳的 key 欄位為遮蔽格式（如 `sk_****abcd`），不顯示完整金鑰。
+      tags:
+        - ApiKeys
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - org_owner
+      responses:
+        '200':
+          description: API Key 列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - apiKeys
+                properties:
+                  apiKeys:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - keyPrefix
+                        - permissions
+                        - createdBy
+                        - createdAt
+                      properties:
+                        id:
+                          $ref: '#/components/schemas/UUID'
+                        name:
+                          type: string
+                          description: API Key 名稱
+                        keyPrefix:
+                          type: string
+                          description: 金鑰前綴（遮蔽格式，如 sk_****abcd）
+                        permissions:
+                          type: object
+                          description: 權限設定
+                          properties:
+                            scopes:
+                              type: array
+                              items:
+                                type: string
+                                enum:
+                                  - read
+                                  - write
+                            dataAccess:
+                              type: object
+                              properties:
+                                templateIds:
+                                  type: array
+                                  items:
+                                    $ref: '#/components/schemas/UUID'
+                                schemaIds:
+                                  type: array
+                                  items:
+                                    $ref: '#/components/schemas/UUID'
+                        createdBy:
+                          $ref: '#/components/schemas/UUID'
+                        lastUsedAt:
+                          type:
+                            - string
+                            - 'null'
+                          format: date-time
+                        createdAt:
+                          type: string
+                          format: date-time
+              example:
+                apiKeys:
+                  - id: 018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b
+                    name: 外部系統整合
+                    keyPrefix: sk_****a1b2
+                    permissions:
+                      scopes:
+                        - read
+                        - write
+                      dataAccess:
+                        templateIds: []
+                        schemaIds: []
+                    createdBy: 018e4a2c-0001-7000-8000-000000000001
+                    lastUsedAt: '2026-02-17T10:30:00Z'
+                    createdAt: '2026-01-10T08:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createApiKey
+      summary: 產生 API Key
+      description: |
+        產生新的 API Key。
+        完整金鑰僅在建立時回傳一次，之後無法再次取得。
+        僅 project owner 或 org_owner 可操作。
+      tags:
+        - ApiKeys
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - org_owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - permissions
+              properties:
+                name:
+                  type: string
+                  description: API Key 名稱（便於識別用途）
+                permissions:
+                  type: object
+                  required:
+                    - scopes
+                  properties:
+                    scopes:
+                      type: array
+                      items:
+                        type: string
+                        enum:
+                          - read
+                          - write
+                      description: 權限範圍
+                    dataAccess:
+                      type: object
+                      description: 資料表存取範圍限制（空陣列表示不限制）
+                      properties:
+                        templateIds:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/UUID'
+                        schemaIds:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/UUID'
+            example:
+              name: 外部系統整合
+              permissions:
+                scopes:
+                  - read
+                  - write
+                dataAccess:
+                  templateIds: []
+                  schemaIds: []
+      responses:
+        '201':
+          description: API Key 建立成功（完整金鑰僅此一次回傳）
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - key
+                  - permissions
+                  - createdAt
+                properties:
+                  id:
+                    $ref: '#/components/schemas/UUID'
+                  name:
+                    type: string
+                  key:
+                    type: string
+                    description: 完整 API Key（僅此一次回傳，請妥善保存）
+                  permissions:
+                    type: object
+                  createdAt:
+                    type: string
+                    format: date-time
+              example:
+                id: 018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b
+                name: 外部系統整合
+                key: sk_live_a1b2c3d4e5f6g7h8i9j0...
+                permissions:
+                  scopes:
+                    - read
+                    - write
+                  dataAccess:
+                    templateIds: []
+                    schemaIds: []
+                createdAt: '2026-02-18T08:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /projects/{projectId}/api-keys/{keyId}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+      - name: keyId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: API Key ID
+    delete:
+      operationId: revokeApiKey
+      summary: 撤銷 API Key
+      description: |
+        撤銷（軟刪除）指定的 API Key。
+        撤銷後該 Key 立即失效，無法再用於 API 認證。
+        僅 project owner 或 org_owner 可操作。
+      tags:
+        - ApiKeys
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - org_owner
+      responses:
+        '204':
+          description: API Key 已撤銷
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /organizations/{orgId}/audit-logs:
+    parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 組織 ID
+    get:
+      operationId: listOrganizationAuditLogs
+      summary: 查詢組織審計日誌
+      description: |
+        查詢組織層級的審計日誌，包含組織本身及其下所有專案的操作記錄。
+        支援按操作者、動作類型、時間範圍過濾。
+        僅 org_owner 或 org_admin 可存取。
+      tags:
+        - AuditLogs
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - org_owner
+        - org_admin
+      parameters:
+        - name: actorId
+          in: query
+          description: 依操作者帳號 ID 過濾
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: actorType
+          in: query
+          description: 依操作者類型過濾
+          schema:
+            type: string
+            enum:
+              - account
+              - system
+              - ai
+              - api_key
+        - name: action
+          in: query
+          description: 依動作類型過濾（如 create, update, delete）
+          schema:
+            type: string
+        - name: resourceType
+          in: query
+          description: 依資源類型過濾（如 organization, project, task）
+          schema:
+            type: string
+        - name: startTime
+          in: query
+          description: 起始時間（UTC）
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          description: 結束時間（UTC）
+          schema:
+            type: string
+            format: date-time
+        - name: cursor
+          in: query
+          description: 分頁游標
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: 每頁數量
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: 審計日誌列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - auditLogs
+                  - pagination
+                properties:
+                  auditLogs:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - actorType
+                        - action
+                        - resourceType
+                        - resourceId
+                        - createdAt
+                      properties:
+                        id:
+                          $ref: '#/components/schemas/UUID'
+                        actorType:
+                          type: string
+                          enum:
+                            - account
+                            - system
+                            - ai
+                            - api_key
+                        actorId:
+                          oneOf:
+                            - $ref: '#/components/schemas/UUID'
+                            - type: 'null'
+                        action:
+                          type: string
+                          description: 動作名稱
+                        resourceType:
+                          type: string
+                          description: 資源類型
+                        resourceId:
+                          $ref: '#/components/schemas/UUID'
+                        contextType:
+                          type:
+                            - string
+                            - 'null'
+                          description: 上下文類型（organization/project/task）
+                        contextId:
+                          oneOf:
+                            - $ref: '#/components/schemas/UUID'
+                            - type: 'null'
+                        details:
+                          type: object
+                          description: 變更詳情（含前後值）
+                        ipAddress:
+                          type:
+                            - string
+                            - 'null'
+                        createdAt:
+                          type: string
+                          format: date-time
+                  pagination:
+                    $ref: '#/components/schemas/CursorPaginationMeta'
+              example:
+                auditLogs:
+                  - id: 018e4a2c-al01-7d8e-9a1b-2c3d4e5f6a7b
+                    actorType: account
+                    actorId: 018e4a2c-0001-7000-8000-000000000001
+                    action: member.added
+                    resourceType: project
+                    resourceId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
+                    contextType: project
+                    contextId: 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
+                    details:
+                      memberId: 018e4a2c-m001-7d8e-9a1b-2c3d4e5f6a7b
+                      role: member
+                    ipAddress: 203.0.113.50
+                    createdAt: '2026-02-15T09:00:00Z'
+                pagination:
+                  hasMore: true
+                  nextCursor: eyJpZCI6IjAxOGU0YTJjLWFsMDEifQ
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /projects/{projectId}/audit-logs:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: 專案 ID
+    get:
+      operationId: listProjectAuditLogs
+      summary: 查詢專案審計日誌
+      description: |
+        查詢專案層級的審計日誌，包含專案內所有操作記錄。
+        支援按操作者、動作類型、時間範圍過濾。
+        僅 project owner 或 org_owner/org_admin 可存取。
+      tags:
+        - AuditLogs
+      security:
+        - bearerAuth: []
+      x-permissions:
+        - project_owner
+        - org_owner
+        - org_admin
+      parameters:
+        - name: actorId
+          in: query
+          description: 依操作者帳號 ID 過濾
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: actorType
+          in: query
+          description: 依操作者類型過濾
+          schema:
+            type: string
+            enum:
+              - account
+              - system
+              - ai
+              - api_key
+        - name: action
+          in: query
+          description: 依動作類型過濾
+          schema:
+            type: string
+        - name: resourceType
+          in: query
+          description: 依資源類型過濾
+          schema:
+            type: string
+        - name: startTime
+          in: query
+          description: 起始時間（UTC）
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          description: 結束時間（UTC）
+          schema:
+            type: string
+            format: date-time
+        - name: cursor
+          in: query
+          description: 分頁游標
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: 每頁數量
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: 審計日誌列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - auditLogs
+                  - pagination
+                properties:
+                  auditLogs:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - actorType
+                        - action
+                        - resourceType
+                        - resourceId
+                        - createdAt
+                      properties:
+                        id:
+                          $ref: '#/components/schemas/UUID'
+                        actorType:
+                          type: string
+                          enum:
+                            - account
+                            - system
+                            - ai
+                            - api_key
+                        actorId:
+                          oneOf:
+                            - $ref: '#/components/schemas/UUID'
+                            - type: 'null'
+                        action:
+                          type: string
+                        resourceType:
+                          type: string
+                        resourceId:
+                          $ref: '#/components/schemas/UUID'
+                        contextType:
+                          type:
+                            - string
+                            - 'null'
+                        contextId:
+                          oneOf:
+                            - $ref: '#/components/schemas/UUID'
+                            - type: 'null'
+                        details:
+                          type: object
+                        ipAddress:
+                          type:
+                            - string
+                            - 'null'
+                        createdAt:
+                          type: string
+                          format: date-time
+                  pagination:
+                    $ref: '#/components/schemas/CursorPaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /files/upload:
     post:
       operationId: uploadFile
@@ -8072,7 +9611,7 @@ components:
       in: header
       name: X-API-Key
       description: |
-        專案層級 API Key，用於外部資料 API 的唯讀存取。
+        專案層級 API Key，用於外部資料 API 的存取。
   schemas:
     CursorPaginationParams:
       type: object
@@ -8094,8 +9633,9 @@ components:
         - hasMore
       properties:
         nextCursor:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 下一頁的游標 token，若無更多資料則為 null
         hasMore:
           type: boolean
@@ -8253,11 +9793,13 @@ components:
         name:
           type: string
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         bio:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         profileData:
           type: object
           additionalProperties: true
@@ -8286,11 +9828,13 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         logoUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
     CreateProject:
       type: object
       description: 建立專案
@@ -8310,8 +9854,9 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         status:
           $ref: '#/components/schemas/ProjectStatus'
         permissionSettings:
@@ -8461,46 +10006,14 @@ components:
                     description: 被提及的成員 ID 或標籤 ID
         attachments:
           type: array
+          description: 附件檔案 ID 列表（先透過檔案上傳 API 取得 fileId，再於發送訊息時引用）
           items:
-            type: object
-            required:
-              - fileName
-              - mimeType
-              - fileSize
-              - storagePath
-            properties:
-              fileName:
-                type: string
-              mimeType:
-                type: string
-              fileSize:
-                type: integer
-              storagePath:
-                type: string
+            $ref: '#/components/schemas/UUID'
         lastSeenMessageId:
           $ref: '#/components/schemas/UUID'
           description: 客戶端已讀的最後一則訊息 ID（已讀保護機制）
     SuggestionDecision:
-      type: object
-      description: 對 AI 建議做出決策
-      required:
-        - decision
-        - lastSeenMessageId
-      properties:
-        decision:
-          type: string
-          enum:
-            - accept
-            - modify_and_accept
-            - reject
-            - re_suggest
-          description: 決策類型
-        modifiedParameters:
-          type: object
-          description: 修改後的參數（decision = modify_and_accept 時必填）
-        lastSeenMessageId:
-          $ref: '#/components/schemas/UUID'
-          description: 已讀保護：客戶端已讀的最後一則訊息 ID
+      $ref: '#/components/schemas/SuggestionDecisionRequest'
     ListResponse:
       type: object
       description: 列表回應，包含游標分頁中繼資訊與項目陣列
@@ -8515,10 +10028,11 @@ components:
           $ref: '#/components/schemas/CursorPaginationMeta'
     TokenPairResponse:
       type: object
-      description: 認證 Token 回應
+      description: 認證 Token 回應（與 auth.yaml#/TokenPair 一致，遵循 OAuth 2.0 慣例）
       required:
         - accessToken
-        - expiresAt
+        - expiresIn
+        - tokenType
       properties:
         accessToken:
           type: string
@@ -8526,45 +10040,15 @@ components:
         refreshToken:
           type: string
           description: Refresh Token（用於換發新 Access Token）
-        expiresAt:
-          type: string
-          format: date-time
-          description: Access Token 過期時間（UTC）
+        expiresIn:
+          type: integer
+          description: Access Token 有效時間（秒），遵循 OAuth 2.0 expires_in 慣例
+          examples:
+            - 900
         tokenType:
           type: string
           default: Bearer
           description: Token 類型
-    CrdtSyncResponse:
-      type: object
-      description: CRDT 同步回應
-      required:
-        - entityType
-        - entityId
-      properties:
-        entityType:
-          type: string
-          enum:
-            - message
-            - todo
-            - data_entry
-            - memory
-            - library_document
-          description: 實體類型
-        entityId:
-          $ref: '#/components/schemas/UUID'
-        stateVector:
-          type: string
-          format: byte
-          description: 伺服器端的狀態向量（Base64 編碼）
-        updates:
-          type: array
-          items:
-            type: string
-            format: byte
-          description: 伺服器端的差異更新列表（Base64 編碼的 yrs 二進位格式）
-        materializedState:
-          type: object
-          description: 物化後的最新狀態（選用，供客戶端快速渲染）
     HealthResponse:
       type: object
       description: 系統健康檢查回應
@@ -8938,12 +10422,14 @@ components:
           format: email
           description: Email，系統唯一識別
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 頭像 URL
         bio:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 公開的自我介紹文字
         locale:
           type: string
@@ -8966,12 +10452,14 @@ components:
           type: string
           description: 使用者名稱
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 頭像 URL，設為 null 可移除
         bio:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 公開的自我介紹文字，設為 null 可移除
         locale:
           type: string
@@ -8996,17 +10484,7 @@ components:
           description: 欄位用途說明
         type:
           type: string
-          enum:
-            - text
-            - number
-            - email
-            - url
-            - date
-            - select
-            - multi_select
-            - checkbox
-            - file
-          description: 欄位類型，前端據此渲染對應的輸入元件
+          description: 欄位類型，前端據此渲染對應的輸入元件。建議值：text, number, email, url, date, select, multi_select, checkbox, file
     ProfileResponse:
       type: object
       description: 個人資料表回應，包含私人結構化資料與欄位結構描述（僅帳號本人可存取）
@@ -9022,7 +10500,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProfileSchemaField'
-          description: 個人欄位結構描述，系統自動維護
+          description: 個人欄位結構描述，可由使用者手動定義或系統自動維護
     UpdateProfileRequest:
       type: object
       description: 更新個人資料表，以 merge 方式更新 — 僅覆蓋傳入的欄位，設為 null 可刪除該欄位
@@ -9033,6 +10511,11 @@ components:
           type: object
           additionalProperties: true
           description: 要更新的欄位 key-value，未傳入的欄位保持不變
+        profileSchema:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileSchemaField'
+          description: 可選 — 新增或更新欄位的結構定義（key, label, type, description）
     TodoStatus:
       type: string
       enum:
@@ -9063,9 +10546,10 @@ components:
         type:
           $ref: '#/components/schemas/TodoType'
         dueDate:
-          type: string
-          format: date
-          nullable: true
+          type:
+            - string
+            - 'null'
+          format: date-time
           description: 截止日期
         taskId:
           $ref: '#/components/schemas/UUID'
@@ -9166,11 +10650,13 @@ components:
               name:
                 type: string
               description:
-                type: string
-                nullable: true
+                type:
+                  - string
+                  - 'null'
               logoUrl:
-                type: string
-                nullable: true
+                type:
+                  - string
+                  - 'null'
               role:
                 $ref: '#/components/schemas/OrgRole'
                 description: 當前使用者在該組織中的角色
@@ -9210,12 +10696,14 @@ components:
           type: string
           description: 組織名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 組織描述
         logoUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 組織 Logo URL
         createdBy:
           $ref: '#/components/schemas/UUID'
@@ -9241,12 +10729,14 @@ components:
           type: string
           description: 組織名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 組織描述
         logoUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 組織 Logo URL
         createdBy:
           $ref: '#/components/schemas/UUID'
@@ -9269,11 +10759,13 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         logoUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
     OrgMemberResponse:
       type: object
       description: 組織成員回應
@@ -9295,8 +10787,9 @@ components:
           format: email
           description: 成員 Email（來自帳號）
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 成員頭像 URL
         role:
           $ref: '#/components/schemas/OrgRole'
@@ -9362,20 +10855,6 @@ components:
         role:
           $ref: '#/components/schemas/OrgRole'
           description: 新的組織角色
-    CreateContactRequest:
-      type: object
-      description: 建立外部聯絡人
-      required:
-        - name
-        - email
-      properties:
-        name:
-          type: string
-          description: 聯絡人名稱
-        email:
-          type: string
-          format: email
-          description: 聯絡人 Email
     ContactResponse:
       type: object
       description: 外部聯絡人完整回應
@@ -9399,8 +10878,9 @@ components:
           format: email
           description: 聯絡人 Email
         mergedIntoId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 合併目標 Contact ID，null 表示未被合併
         createdAt:
           type: string
@@ -9408,6 +10888,20 @@ components:
         updatedAt:
           type: string
           format: date-time
+    CreateContactRequest:
+      type: object
+      description: 建立外部聯絡人
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          description: 聯絡人名稱
+        email:
+          type: string
+          format: email
+          description: 聯絡人 Email
     ContactTagAssignment:
       type: object
       description: 聯絡人在某專案中的標籤指派資訊
@@ -9457,8 +10951,9 @@ components:
           format: email
           description: 聯絡人 Email
         mergedIntoId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 合併目標 Contact ID，null 表示未被合併
         tagAssignments:
           type: array
@@ -9589,12 +11084,14 @@ components:
           type: string
           description: 工具識別名稱（如 'smtp/sendEmail'）
         displayName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 顯示名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 工具說明
         enabled:
           type: boolean
@@ -9604,8 +11101,9 @@ components:
           additionalProperties: true
           description: 工具設定（敏感欄位以遮罩形式呈現）
         mcpServerConfig:
-          $ref: '#/components/schemas/McpServerConfig'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/McpServerConfig'
+            - type: 'null'
           description: 外部工具的 MCP Server 連線設定（僅 tool_type = external 時有值）
         createdAt:
           type: string
@@ -9645,8 +11143,9 @@ components:
               name:
                 type: string
               description:
-                type: string
-                nullable: true
+                type:
+                  - string
+                  - 'null'
               status:
                 $ref: '#/components/schemas/ProjectStatus'
               memberCount:
@@ -9689,14 +11188,16 @@ components:
           type: string
           description: 專案名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 專案描述
         status:
           $ref: '#/components/schemas/ProjectStatus'
         sourceProjectId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 來源專案 ID（若為複製建立）
         createdBy:
           $ref: '#/components/schemas/UUID'
@@ -9742,14 +11243,16 @@ components:
           type: string
           description: 專案名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 專案描述
         status:
           $ref: '#/components/schemas/ProjectStatus'
         sourceProjectId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 來源專案 ID（若為複製建立）
         createdBy:
           $ref: '#/components/schemas/UUID'
@@ -9772,8 +11275,9 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
     UpdateProjectStatusRequest:
       type: object
       description: 更新專案狀態請求
@@ -9851,6 +11355,56 @@ components:
           items:
             $ref: '#/components/schemas/PermissionRule'
           description: 資料存取設定
+    ReminderResponse:
+      type: object
+      description: 提醒回應
+      required:
+        - id
+        - todoId
+        - type
+        - triggerAt
+        - fired
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        todoId:
+          $ref: '#/components/schemas/UUID'
+        type:
+          type: string
+          enum:
+            - due_date_approaching
+            - due_date_overdue
+            - todo_stale
+          description: 提醒類型
+        triggerAt:
+          type: string
+          format: date-time
+          description: 預定觸發時間
+        fired:
+          type: boolean
+          description: 是否已觸發
+        firedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        notificationId:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        config:
+          type:
+            - object
+            - 'null'
+          description: 提醒設定參數
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     MemberRole:
       type: string
       enum:
@@ -9879,12 +11433,14 @@ components:
           format: email
           description: 成員 Email（來自帳號）
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 成員頭像 URL
         bio:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 公開的自我介紹文字
         role:
           $ref: '#/components/schemas/MemberRole'
@@ -9960,12 +11516,14 @@ components:
           format: email
           description: 成員 Email（來自帳號）
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 成員頭像 URL
         bio:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 公開的自我介紹文字
         role:
           $ref: '#/components/schemas/MemberRole'
@@ -9982,8 +11540,9 @@ components:
               name:
                 type: string
               description:
-                type: string
-                nullable: true
+                type:
+                  - string
+                  - 'null'
           description: 成員所屬的成員標籤（含描述）
         todoStats:
           type: object
@@ -10027,8 +11586,9 @@ components:
           type: string
           description: 標籤名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 標籤描述
         memberCount:
           type: integer
@@ -10106,8 +11666,9 @@ components:
           type: string
           description: 標籤名稱（如「贊助組」、「資訊組」）
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 標籤描述
         externalTaskCreation:
           type: array
@@ -10204,8 +11765,9 @@ components:
           type: string
           description: 標籤名稱（如「贊助組」、「資訊組」）
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 標籤描述
         externalTaskCreation:
           type: array
@@ -10236,8 +11798,9 @@ components:
           type: string
           description: 標籤名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 標籤描述
     AssignTagRequest:
       type: object
@@ -10269,12 +11832,14 @@ components:
         tagId:
           $ref: '#/components/schemas/UUID'
         memberId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 被指派的成員 ID（與 contactId 二擇一）
         contactId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 被指派的聯絡人 ID（與 memberId 二擇一）
         projectId:
           $ref: '#/components/schemas/UUID'
@@ -10304,8 +11869,9 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
     TaskTemplateListResponse:
       allOf:
         - $ref: '#/components/schemas/ListResponse'
@@ -10359,15 +11925,17 @@ components:
         taskTemplateId:
           $ref: '#/components/schemas/UUID'
         parentId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 父待辦模板 ID，null 表示頂層
         name:
           type: string
           description: 待辦模板名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         sortOrder:
           type: integer
           description: 排序順序
@@ -10505,8 +12073,9 @@ components:
           type: string
           description: 模板名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 模板描述
         createdBy:
           $ref: '#/components/schemas/UUID'
@@ -10546,8 +12115,9 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         tagIds:
           type: array
           items:
@@ -10578,8 +12148,9 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         sortOrder:
           type: integer
     CreateDataSchema:
@@ -10655,8 +12226,9 @@ components:
           additionalProperties: true
           description: 欄位值，key 對應 DataSchema 的 field key
         sourceLinks:
-          type: array
-          nullable: true
+          type:
+            - array
+            - 'null'
           items:
             $ref: '#/components/schemas/SourceLink'
           description: 跨任務資料分享的來源關聯
@@ -10764,8 +12336,9 @@ components:
           type: string
           description: 任務名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 任務描述
         status:
           $ref: '#/components/schemas/TaskStatus'
@@ -10792,12 +12365,18 @@ components:
     UpdateTaskRequest:
       type: object
       description: 更新任務資料
+      required:
+        - lastSeenMessageId
       properties:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
+        lastSeenMessageId:
+          $ref: '#/components/schemas/UUID'
+          description: 客戶端已讀的最後一則訊息 ID（已讀保護機制）
     UpdateTaskStatus:
       type: object
       description: 更新任務狀態
@@ -10817,6 +12396,7 @@ components:
         - ai_suggestion
         - tool_execution
         - system
+        - email_inbound
       description: 訊息來源類型
     MemberMessageContent:
       type: object
@@ -10881,8 +12461,9 @@ components:
         summary:
           type: string
         result:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
     SystemMessageContent:
       type: object
       required:
@@ -10898,15 +12479,59 @@ components:
           description: 系統事件類型，如 member_joined, task_status_changed
         text:
           type: string
+    EmailInboundMessageContent:
+      type: object
+      description: Email 來信訊息內容
+      required:
+        - type
+        - emailThreadId
+        - emailMessageId
+        - from
+        - subject
+      properties:
+        type:
+          type: string
+          enum:
+            - email_inbound
+        emailThreadId:
+          $ref: '#/components/schemas/UUID'
+          description: 所屬信件串 ID
+        emailMessageId:
+          $ref: '#/components/schemas/UUID'
+          description: 對應的 email_messages 記錄 ID
+        from:
+          type: string
+          description: 寄件人 Email 地址
+        subject:
+          type: string
+          description: 信件主旨
+        bodyPreview:
+          type: string
+          description: 信件內文摘要（前 200 字元）
+        senderType:
+          type: string
+          enum:
+            - member
+            - contact
+            - unknown
+          description: 寄件人身份類型
+        senderId:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+          description: 解析後的寄件人 ID（member_id 或 contact_id），未知時為 null
     Attachment:
       type: object
-      description: 訊息附件
+      description: 訊息附件（回應中包含完整檔案資訊，由伺服器根據 fileId 關聯）
       required:
+        - fileId
         - fileName
         - mimeType
         - fileSize
-        - storagePath
       properties:
+        fileId:
+          $ref: '#/components/schemas/UUID'
+          description: 關聯至 files 表的檔案 ID
         fileName:
           type: string
           description: 原始檔案名稱
@@ -10916,9 +12541,6 @@ components:
         fileSize:
           type: integer
           description: 檔案大小（bytes）
-        storagePath:
-          type: string
-          description: 系統儲存路徑
     MessageResponse:
       type: object
       description: 訊息回應（不可變記錄）
@@ -10936,8 +12558,9 @@ components:
         sourceType:
           $ref: '#/components/schemas/MessageSourceType'
         sourceId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 來源者 ID（source_type = member 時為 members.id）
         content:
           oneOf:
@@ -10945,6 +12568,7 @@ components:
             - $ref: '#/components/schemas/AiSuggestionMessageContent'
             - $ref: '#/components/schemas/ToolExecutionMessageContent'
             - $ref: '#/components/schemas/SystemMessageContent'
+            - $ref: '#/components/schemas/EmailInboundMessageContent'
           discriminator:
             propertyName: type
             mapping:
@@ -10952,18 +12576,22 @@ components:
               ai_suggestion: '#/components/schemas/AiSuggestionMessageContent'
               tool_execution: '#/components/schemas/ToolExecutionMessageContent'
               system: '#/components/schemas/SystemMessageContent'
+              email_inbound: '#/components/schemas/EmailInboundMessageContent'
         attachments:
-          type: array
-          nullable: true
+          type:
+            - array
+            - 'null'
           items:
             $ref: '#/components/schemas/Attachment'
         actionResult:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
           description: AI 建議的決策與執行結果
         lastSeenMessageId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 寫入時客戶端附帶的已讀訊息 ID
         createdAt:
           type: string
@@ -10986,17 +12614,38 @@ components:
       description: Multipart form 訊息傳送（含附件）
     StaleConversationErrorResponse:
       type: object
-      description: 對話已過時錯誤回應（已讀保護機制觸發時回傳）
+      description: 對話已過時錯誤回應（RFC 7807 Problem Details，已讀保護機制觸發時回傳）
       required:
-        - error
+        - type
+        - title
+        - status
+        - detail
         - latestMessageId
       properties:
-        error:
+        type:
           type: string
-          description: 錯誤訊息
+          format: uri
+          description: 問題類型 URI
+          examples:
+            - https://conf-ops.dev/problems/stale-conversation
+        title:
+          type: string
+          description: 問題的簡短摘要
+          examples:
+            - Stale Conversation
+        status:
+          type: integer
+          description: HTTP 狀態碼
+          examples:
+            - 409
+        detail:
+          type: string
+          description: 問題的詳細說明
+          examples:
+            - 對話已有新訊息，請重新整理後再操作
         latestMessageId:
           $ref: '#/components/schemas/UUID'
-          description: 伺服器端最新的訊息 ID
+          description: 伺服器端最新的訊息 ID（RFC 7807 擴充欄位）
     TodoSummary:
       type: object
       description: 待辦事項摘要
@@ -11015,9 +12664,10 @@ components:
         type:
           $ref: '#/components/schemas/TodoType'
         dueDate:
-          type: string
-          format: date
-          nullable: true
+          type:
+            - string
+            - 'null'
+          format: date-time
     responses_TodoListResponse:
       allOf:
         - $ref: '#/components/schemas/ListResponse'
@@ -11044,7 +12694,7 @@ components:
           type: string
         dueDate:
           type: string
-          format: date
+          format: date-time
           description: 截止日期
         sortOrder:
           type: integer
@@ -11073,8 +12723,9 @@ components:
           type: string
           format: email
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
     MemberSummary:
       type: object
       description: 專案成員摘要
@@ -11109,42 +12760,49 @@ components:
         taskId:
           $ref: '#/components/schemas/UUID'
         parentId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 父待辦 ID，null 表示頂層
         title:
           type: string
           description: 待辦標題
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         status:
           $ref: '#/components/schemas/TodoStatus'
         type:
           $ref: '#/components/schemas/TodoType'
         sourceTemplateId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 來源待辦模板 ID
         dueDate:
-          type: string
-          format: date
-          nullable: true
+          type:
+            - string
+            - 'null'
+          format: date-time
           description: 截止日期
         sortOrder:
           type: integer
           description: 排序順序
         linkedTaskId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 跨組協作的關聯任務 ID
         completedAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
         completedBy:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
         assignees:
           type: array
           items:
@@ -11172,20 +12830,27 @@ components:
     UpdateTodo:
       type: object
       description: 更新待辦事項
+      required:
+        - lastSeenMessageId
       properties:
         title:
           type: string
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
         dueDate:
-          type: string
-          format: date
-          nullable: true
+          type:
+            - string
+            - 'null'
+          format: date-time
         sortOrder:
           type: integer
         status:
           $ref: '#/components/schemas/TodoStatus'
+        lastSeenMessageId:
+          $ref: '#/components/schemas/UUID'
+          description: 客戶端已讀的最後一則訊息 ID（已讀保護機制）
     UpdateTodoStatusRequest:
       type: object
       description: 更新待辦事項狀態
@@ -11246,16 +12911,30 @@ components:
       description: 分享資料至其他任務
       required:
         - targetTaskId
-        - fieldKeys
+        - targetSchemaId
+        - fieldMappings
       properties:
         targetTaskId:
           $ref: '#/components/schemas/UUID'
           description: 目標任務 ID
-        fieldKeys:
+        targetSchemaId:
+          $ref: '#/components/schemas/UUID'
+          description: 目標資料表定義 ID
+        fieldMappings:
           type: array
           items:
-            type: string
-          description: 要分享的欄位 key 列表
+            type: object
+            required:
+              - sourceField
+              - targetField
+            properties:
+              sourceField:
+                type: string
+                description: 來源欄位 key
+              targetField:
+                type: string
+                description: 目標欄位 key
+          description: 欄位對應關係列表
     ShareDataResponse:
       type: object
       description: 資料分享結果回應
@@ -11346,8 +13025,9 @@ components:
           type: string
           description: 工具識別名稱
         displayName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 工具顯示名稱
         category:
           type: string
@@ -11377,8 +13057,9 @@ components:
           type: string
           description: 工具識別名稱（如 'createTask'、'smtp/sendEmail'）
         displayName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 工具顯示名稱
         category:
           type: string
@@ -11493,12 +13174,14 @@ components:
       description: 更新工具設定
       properties:
         displayName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 顯示名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 工具說明
         enabled:
           type: boolean
@@ -11508,8 +13191,9 @@ components:
           additionalProperties: true
           description: 工具設定
         mcpServerConfig:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
           description: MCP Server 連線設定
           properties:
             transport:
@@ -11562,8 +13246,9 @@ components:
         source:
           $ref: '#/components/schemas/MemorySource'
         libraryRef:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 關聯的記憶庫文件 ID
         createdAt:
           type: string
@@ -11589,8 +13274,9 @@ components:
           type: string
           description: 記憶摘要內容
         libraryRef:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 關聯的記憶庫文件 ID
     memories_Memory:
       type: object
@@ -11615,8 +13301,9 @@ components:
           type: string
           description: 記憶摘要內容（保持簡短扼要）
         libraryRef:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 關聯的記憶庫文件 ID
         source:
           $ref: '#/components/schemas/MemorySource'
@@ -11638,8 +13325,9 @@ components:
           type: string
           description: 更新後的記憶內容
         libraryRef:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 關聯的記憶庫文件 ID（設為 null 可移除關聯）
     MemoryVersion:
       type: object
@@ -11762,8 +13450,9 @@ components:
           type: integer
           description: 版本號（降冪排列，最新版本號最大）
         title:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 該版本的文件標題（null 表示該版本未變更標題）
         content:
           type: string
@@ -11835,44 +13524,52 @@ components:
           type: string
           description: 通知標題
         body:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 通知內文
         referenceType:
-          type: string
+          type:
+            - string
+            - 'null'
           enum:
             - task
             - todo
             - message
-          nullable: true
           description: 參照資源類型
         referenceId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 參照資源 ID
         projectId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 所屬專案 ID（系統級通知無專案）
         projectName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 所屬專案名稱
         taskId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 相關任務 ID
         taskName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 相關任務名稱
         isRead:
           type: boolean
           description: 是否已讀
         readAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
           description: 已讀時間（UTC）
         deliveredChannels:
           type: array
@@ -11890,45 +13587,48 @@ components:
     ChannelPreference:
       type: object
       description: 單一通知頻道的偏好設定
+      required:
+        - enabled
+        - categories
       properties:
         enabled:
           type: boolean
           description: 此頻道是否啟用
-        types:
+        categories:
           type: object
-          description: 各通知類型的啟用狀態
+          description: 各通知類別的啟用狀態
           properties:
-            todo_assigned:
+            taskUpdates:
               type: boolean
-              description: 待辦事項被指派
-            member_mentioned:
+              description: 任務更新通知
+            todoAssignments:
               type: boolean
-              description: 被成員 @ 提及
-            tag_mentioned:
+              description: 待辦指派通知
+            aiSuggestions:
               type: boolean
-              description: 所屬標籤被 @ 提及
-            task_completed:
+              description: AI 建議通知
+            mentions:
               type: boolean
-              description: 參與的任務已完成
-            linked_task_completed:
+              description: 成員提及通知
+            systemAnnouncements:
               type: boolean
-              description: 關聯的子任務已完成
-            source_data_changed:
-              type: boolean
-              description: 來源資料表資料異動
-            reminder:
-              type: boolean
-              description: 排程提醒
+              description: 系統公告通知
     NotificationPreferences:
       type: object
-      description: 通知偏好設定，各頻道可獨立設定啟用與通知類型
+      description: 通知偏好設定，以 channels 包裝各頻道的啟用與通知類別
+      required:
+        - channels
       properties:
-        email:
-          $ref: '#/components/schemas/ChannelPreference'
-        webPush:
-          $ref: '#/components/schemas/ChannelPreference'
-        inApp:
-          $ref: '#/components/schemas/ChannelPreference'
+        channels:
+          type: object
+          description: 各通知頻道設定
+          properties:
+            email:
+              $ref: '#/components/schemas/ChannelPreference'
+            webPush:
+              $ref: '#/components/schemas/ChannelPreference'
+            inApp:
+              $ref: '#/components/schemas/ChannelPreference'
     ChannelPreferenceUpdate:
       type: object
       description: 單一通知頻道的偏好更新（部分更新）
@@ -11936,34 +13636,34 @@ components:
         enabled:
           type: boolean
           description: 此頻道是否啟用
-        types:
+        categories:
           type: object
-          description: 各通知類型的啟用狀態（僅傳入要修改的類型）
+          description: 各通知類別的啟用狀態（僅傳入要修改的類別）
           properties:
-            todo_assigned:
+            taskUpdates:
               type: boolean
-            member_mentioned:
+            todoAssignments:
               type: boolean
-            tag_mentioned:
+            aiSuggestions:
               type: boolean
-            task_completed:
+            mentions:
               type: boolean
-            linked_task_completed:
-              type: boolean
-            source_data_changed:
-              type: boolean
-            reminder:
+            systemAnnouncements:
               type: boolean
     UpdateNotificationPreferencesRequest:
       type: object
       description: 更新通知偏好設定請求。僅需傳入要修改的部分，未傳入的設定維持不變。
       properties:
-        email:
-          $ref: '#/components/schemas/ChannelPreferenceUpdate'
-        webPush:
-          $ref: '#/components/schemas/ChannelPreferenceUpdate'
-        inApp:
-          $ref: '#/components/schemas/ChannelPreferenceUpdate'
+        channels:
+          type: object
+          description: 各通知頻道設定（僅傳入要修改的頻道）
+          properties:
+            email:
+              $ref: '#/components/schemas/ChannelPreferenceUpdate'
+            webPush:
+              $ref: '#/components/schemas/ChannelPreferenceUpdate'
+            inApp:
+              $ref: '#/components/schemas/ChannelPreferenceUpdate'
     WebPushSubscribeRequest:
       type: object
       description: Web Push 訂閱請求，將瀏覽器的 push subscription 物件送至伺服器
@@ -11995,8 +13695,9 @@ components:
                   type: string
                   description: 認證密鑰（Base64 URL 編碼）
         deviceName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 裝置名稱（用於使用者辨識不同訂閱）
           examples:
             - Chrome on MacBook
@@ -12024,8 +13725,9 @@ components:
             - manual_request
           description: 觸發此建議的事件類型
         triggerMessageId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 觸發事件的訊息 ID
         suggestionsCount:
           type: integer
@@ -12092,21 +13794,25 @@ components:
         decision:
           $ref: '#/components/schemas/SuggestionDecisionType'
         decidedBy:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 做出決策的成員帳號 ID
         decidedAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
           description: 決策時間（UTC）
         modifiedParameters:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
           description: 修改後的參數（decision = modify_and_accept 時有值）
         executionResult:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
           description: 工具執行結果（accept / modify_and_accept 後有值）
     ai-suggestions_SuggestionGroup:
       type: object
@@ -12134,8 +13840,9 @@ components:
             - manual_request
           description: 觸發此建議群組的事件類型
         triggerMessageId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 觸發事件的訊息 ID（trigger = message_sent 時有值）
         suggestions:
           type: array
@@ -12221,8 +13928,9 @@ components:
               format: date-time
               description: 決策時間（UTC）
         executionResult:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
           description: 工具執行結果（accept / modify_and_accept 時有值）
           properties:
             success:
@@ -12232,12 +13940,14 @@ components:
               type: object
               description: 工具回傳的結果資料
             error:
-              type: string
-              nullable: true
+              type:
+                - string
+                - 'null'
               description: 執行錯誤訊息（success = false 時有值）
         messageId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 決策結果產生的對話訊息 ID
     RequestSuggestionsBody:
       type: object
@@ -12249,134 +13959,6 @@ components:
         lastSeenMessageId:
           $ref: '#/components/schemas/UUID'
           description: 已讀保護：客戶端已讀的最後一則訊息 ID
-    InboundEmailAttachment:
-      type: object
-      description: Inbound Email 附件
-      required:
-        - filename
-        - contentType
-        - size
-        - content
-      properties:
-        filename:
-          type: string
-          description: 附件檔案名稱
-        contentType:
-          type: string
-          description: 附件 MIME 類型
-        size:
-          type: integer
-          description: 附件大小（bytes）
-        content:
-          type: string
-          format: byte
-          description: 附件內容（Base64 編碼）
-    InboundEmailJson:
-      type: object
-      description: JSON 格式的 Inbound Email Webhook 請求主體，由郵件伺服器轉送
-      required:
-        - from
-        - to
-        - subject
-      properties:
-        from:
-          type: object
-          description: 寄件者資訊
-          required:
-            - address
-          properties:
-            name:
-              type: string
-              description: 寄件者顯示名稱
-            address:
-              type: string
-              format: email
-              description: 寄件者 Email 地址
-        to:
-          type: array
-          items:
-            type: object
-            required:
-              - address
-            properties:
-              name:
-                type: string
-                description: 收件者顯示名稱
-              address:
-                type: string
-                format: email
-                description: 收件者 Email 地址
-          minItems: 1
-          description: 收件者列表
-        cc:
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-              address:
-                type: string
-                format: email
-          description: 副本收件者列表
-        subject:
-          type: string
-          description: Email 主旨
-        textBody:
-          type: string
-          description: Email 純文字內容
-        htmlBody:
-          type: string
-          description: Email HTML 內容
-        headers:
-          type: object
-          description: Email 標頭鍵值對，包含 message-id、in-reply-to、references 等
-          additionalProperties:
-            type: string
-        attachments:
-          type: array
-          items:
-            $ref: '#/components/schemas/InboundEmailAttachment'
-          description: 附件列表
-    InboundEmailMultipart:
-      type: object
-      description: multipart/form-data 格式的 Inbound Email Webhook 請求，適用於 SendGrid Inbound Parse 等服務
-      required:
-        - from
-        - to
-        - subject
-      properties:
-        from:
-          type: string
-          description: 寄件者（格式如 'Name <address@example.com>'）
-        to:
-          type: string
-          description: 收件者（逗號分隔）
-        cc:
-          type: string
-          description: 副本收件者（逗號分隔）
-        subject:
-          type: string
-          description: Email 主旨
-        text:
-          type: string
-          description: Email 純文字內容
-        html:
-          type: string
-          description: Email HTML 內容
-        headers:
-          type: string
-          description: 原始 Email 標頭（完整的標頭文字）
-        envelope:
-          type: string
-          description: SMTP envelope JSON 字串（包含 from 與 to）
-        attachments:
-          type: integer
-          description: 附件數量
-        attachment1:
-          type: string
-          format: binary
-          description: 第一個附件檔案（依序遞增：attachment1, attachment2, ...）
     InboundEmailResponse:
       type: object
       description: Inbound Email 處理結果回應
@@ -12393,24 +13975,29 @@ components:
             - matched：成功匹配到任務，信件已加入任務對話
             - unmatched：無法匹配，已歸入專案的未分類收件匣
         taskId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 匹配到的任務 ID（status = matched 時有值）
         messageId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 新增至任務對話的訊息 ID（status = matched 時有值）
         threadId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 匹配或建立的 Email Thread ID（status = matched 時有值）
         emailId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 未分類信件 ID（status = unmatched 時有值）
         projectId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 歸入的專案 ID（status = unmatched 時有值）
     UnassignedEmail:
       type: object
@@ -12430,8 +14017,9 @@ components:
             - address
           properties:
             name:
-              type: string
-              nullable: true
+              type:
+                - string
+                - 'null'
               description: 寄件者顯示名稱
             address:
               type: string
@@ -12450,6 +14038,116 @@ components:
         hasAttachments:
           type: boolean
           description: 是否包含附件
+    EmailMessageResponse:
+      type: object
+      description: Email 訊息記錄
+      required:
+        - id
+        - threadId
+        - messageId
+        - fromAddress
+        - toAddresses
+        - subject
+        - direction
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        threadId:
+          $ref: '#/components/schemas/UUID'
+        messageId:
+          type: string
+          description: Email Message-ID 標頭值
+        inReplyTo:
+          type:
+            - string
+            - 'null'
+        referencesHeader:
+          type:
+            - string
+            - 'null'
+        fromAddress:
+          type: string
+          format: email
+        toAddresses:
+          type: array
+          items:
+            type: string
+            format: email
+        ccAddresses:
+          type: array
+          items:
+            type: string
+            format: email
+        subject:
+          type: string
+        direction:
+          type: string
+          enum:
+            - inbound
+            - outbound
+          description: 方向：inbound（收到）或 outbound（發出）
+        rawHeaders:
+          type:
+            - object
+            - 'null'
+          description: 原始郵件標頭（JSONB），僅在需要除錯時使用
+          additionalProperties:
+            type: string
+        conversationMessageId:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+          description: 對應的任務對話訊息 ID
+        createdAt:
+          type: string
+          format: date-time
+    EmailThreadResponse:
+      type: object
+      description: Email 對話串回應
+      required:
+        - id
+        - taskId
+        - subject
+        - participants
+        - messageIds
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        taskId:
+          $ref: '#/components/schemas/UUID'
+        subject:
+          type: string
+          description: Email 主旨
+        participants:
+          type: array
+          items:
+            type: string
+            format: email
+          description: 參與者 Email 地址列表
+        messageIds:
+          type: array
+          items:
+            type: string
+          description: 此對話串中所有 Email 的 Message-ID 列表
+        lastMessageAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        emailMessages:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmailMessageResponse'
+          description: 對話串中的 Email 訊息
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     webhooks_Webhook:
       type: object
       description: Webhook 設定完整回應。Secret 欄位以遮蔽形式回傳（如 'whsec_****'），不顯示明文
@@ -12616,15 +14314,17 @@ components:
           type: integer
           description: 回應時間（毫秒）
         responseBody:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 目標端點的回應內容（截斷至 10KB）
         logId:
           $ref: '#/components/schemas/UUID'
           description: 此次測試推送的事件日誌 ID，可用於查詢詳細紀錄
         error:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 錯誤訊息（連線失敗、逾時等）
     WebhookEventStatus:
       type: string
@@ -12658,16 +14358,19 @@ components:
           $ref: '#/components/schemas/WebhookEventStatus'
           description: 推送狀態：pending（等待/重試中）、success（成功）、failed（失敗）
         statusCode:
-          type: integer
-          nullable: true
+          type:
+            - integer
+            - 'null'
           description: 目標端點的 HTTP 回應狀態碼
         responseBody:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 目標端點的 HTTP 回應內容（截斷至 10KB）
         responseTime:
-          type: integer
-          nullable: true
+          type:
+            - integer
+            - 'null'
           description: 回應時間（毫秒）
         attempts:
           type: integer
@@ -12676,9 +14379,10 @@ components:
           type: integer
           description: 最大嘗試次數
         nextRetryAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
           description: 下次重試時間（UTC）
         isTest:
           type: boolean
@@ -12688,9 +14392,10 @@ components:
           format: date-time
           description: 建立時間（UTC）
         completedAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
           description: 最終完成時間（成功或放棄重試）
     ChannelConfig:
       type: object
@@ -12722,6 +14427,8 @@ components:
               $ref: '#/components/schemas/ChannelConfig'
             webPush:
               $ref: '#/components/schemas/ChannelConfig'
+            inApp:
+              $ref: '#/components/schemas/ChannelConfig'
     entities_AccountResponse:
       type: object
       description: 帳號完整回應
@@ -12743,12 +14450,14 @@ components:
           format: email
           description: Email，系統唯一識別
         avatarUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 頭像 URL
         bio:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 公開的自我介紹文字
         profileData:
           type: object
@@ -12788,12 +14497,14 @@ components:
           type: string
           description: 組織名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 組織描述
         logoUrl:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 組織 Logo URL
         createdBy:
           $ref: '#/components/schemas/UUID'
@@ -12870,14 +14581,16 @@ components:
           type: string
           description: 專案名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 專案描述
         status:
           $ref: '#/components/schemas/ProjectStatus'
         sourceProjectId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 來源專案 ID（若為複製建立）
         permissionSettings:
           $ref: '#/components/schemas/PermissionSettings'
@@ -12916,6 +14629,23 @@ components:
         updatedAt:
           type: string
           format: date-time
+    entities_SuggestionContextRef:
+      type: object
+      description: 建議生成時參考的記憶引用
+      required:
+        - scopeType
+        - memoryId
+        - content
+      properties:
+        scopeType:
+          type: string
+          description: 記憶範圍類型
+        memoryId:
+          $ref: '#/components/schemas/UUID'
+          description: 記憶 ID
+        content:
+          type: string
+          description: 記憶內容摘要
     SuggestionResponse:
       type: object
       description: 單一 AI 建議
@@ -12944,24 +14674,28 @@ components:
         contextUsed:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/entities_SuggestionContextRef'
           description: 建議生成時參考的記憶引用
         decision:
           $ref: '#/components/schemas/SuggestionDecisionType'
         decidedBy:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
         decidedAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
         modifiedParameters:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
           description: 修改後的參數（decision = modify_and_accept 時）
         executionResult:
-          type: object
-          nullable: true
+          type:
+            - object
+            - 'null'
           description: 工具執行結果
     SuggestionGroupResponse:
       type: object
@@ -12982,6 +14716,7 @@ components:
             - message_sent
             - tool_error
             - source_data_changed
+            - manual_request
           description: 觸發此建議的事件類型
         suggestions:
           type: array
@@ -13020,12 +14755,14 @@ components:
           type: string
           description: 工具識別名稱（如 'smtp/sendEmail'）
         displayName:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 顯示名稱
         description:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 工具說明
         enabled:
           type: boolean
@@ -13035,8 +14772,9 @@ components:
           additionalProperties: true
           description: 工具設定（敏感欄位以遮罩形式呈現）
         mcpServerConfig:
-          $ref: '#/components/schemas/McpServerConfig'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/McpServerConfig'
+            - type: 'null'
           description: 外部工具的 MCP Server 連線設定（僅 tool_type = external 時有值）
         createdAt:
           type: string
@@ -13067,8 +14805,9 @@ components:
           type: string
           description: 記憶摘要內容
         libraryRef:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 關聯的記憶庫文件 ID
         source:
           $ref: '#/components/schemas/MemorySource'
@@ -13135,8 +14874,9 @@ components:
             - ai
           description: 操作者類型
         actorId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
           description: 操作者帳號 ID（actorType = account 時有值）
         action:
           type: string
@@ -13147,29 +14887,32 @@ components:
         resourceId:
           $ref: '#/components/schemas/UUID'
         contextType:
-          type: string
+          type:
+            - string
+            - 'null'
           enum:
             - organization
             - project
             - task
-          nullable: true
           description: 操作上下文類型
         contextId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
         details:
           type: object
           additionalProperties: true
           description: 操作細節（變更前後值、參數等）
         ipAddress:
-          type: string
-          format: ipv4
-          nullable: true
-          description: 操作者 IP 位址（可能為 IPv4 或 IPv6）
+          type:
+            - string
+            - 'null'
+          description: 操作者 IP 位址（IPv4 或 IPv6，對應資料庫 INET 型別）
           example: 192.168.1.1
         userAgent:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 操作者 User-Agent
         createdAt:
           type: string
@@ -13195,29 +14938,34 @@ components:
           type: string
           description: 通知標題
         body:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: 通知內文
         referenceType:
-          type: string
+          type:
+            - string
+            - 'null'
           enum:
             - task
             - todo
             - message
-          nullable: true
           description: 參照資源類型
         referenceId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
         projectId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
         isRead:
           type: boolean
         readAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
         deliveredChannels:
           type: array
           items:
@@ -13227,158 +14975,6 @@ components:
               - web_push
               - email
         createdAt:
-          type: string
-          format: date-time
-    ReminderResponse:
-      type: object
-      description: 提醒回應
-      required:
-        - id
-        - todoId
-        - type
-        - triggerAt
-        - fired
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        todoId:
-          $ref: '#/components/schemas/UUID'
-        type:
-          type: string
-          enum:
-            - due_date_approaching
-            - due_date_overdue
-            - todo_stale
-          description: 提醒類型
-        triggerAt:
-          type: string
-          format: date-time
-          description: 預定觸發時間
-        fired:
-          type: boolean
-          description: 是否已觸發
-        firedAt:
-          type: string
-          format: date-time
-          nullable: true
-        notificationId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
-        config:
-          type: object
-          nullable: true
-          description: 提醒設定參數
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    EmailMessageResponse:
-      type: object
-      description: Email 訊息記錄
-      required:
-        - id
-        - threadId
-        - messageId
-        - fromAddress
-        - toAddresses
-        - subject
-        - direction
-        - createdAt
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        threadId:
-          $ref: '#/components/schemas/UUID'
-        messageId:
-          type: string
-          description: Email Message-ID 標頭值
-        inReplyTo:
-          type: string
-          nullable: true
-        referencesHeader:
-          type: string
-          nullable: true
-        fromAddress:
-          type: string
-          format: email
-        toAddresses:
-          type: array
-          items:
-            type: string
-            format: email
-        ccAddresses:
-          type: array
-          items:
-            type: string
-            format: email
-        subject:
-          type: string
-        direction:
-          type: string
-          enum:
-            - inbound
-            - outbound
-          description: 方向：inbound（收到）或 outbound（發出）
-        rawHeaders:
-          type: object
-          nullable: true
-          description: 原始郵件標頭（JSONB），僅在需要除錯時使用
-          additionalProperties:
-            type: string
-        conversationMessageId:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
-          description: 對應的任務對話訊息 ID
-        createdAt:
-          type: string
-          format: date-time
-    EmailThreadResponse:
-      type: object
-      description: Email 對話串回應
-      required:
-        - id
-        - taskId
-        - subject
-        - participants
-        - messageIds
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        taskId:
-          $ref: '#/components/schemas/UUID'
-        subject:
-          type: string
-          description: Email 主旨
-        participants:
-          type: array
-          items:
-            type: string
-            format: email
-          description: 參與者 Email 地址列表
-        messageIds:
-          type: array
-          items:
-            type: string
-          description: 此對話串中所有 Email 的 Message-ID 列表
-        lastMessageAt:
-          type: string
-          format: date-time
-          nullable: true
-        emailMessages:
-          type: array
-          items:
-            $ref: '#/components/schemas/EmailMessageResponse'
-          description: 對話串中的 Email 訊息
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
           type: string
           format: date-time
     WebhookResponse:
@@ -13450,12 +15046,14 @@ components:
         status:
           $ref: '#/components/schemas/WebhookEventStatus'
         responseStatus:
-          type: integer
-          nullable: true
+          type:
+            - integer
+            - 'null'
           description: HTTP 回應狀態碼
         responseBody:
-          type: string
-          nullable: true
+          type:
+            - string
+            - 'null'
           description: HTTP 回應內容（截斷至 10KB）
         attempts:
           type: integer
@@ -13464,16 +15062,18 @@ components:
           type: integer
           description: 最大嘗試次數
         nextRetryAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
         createdAt:
           type: string
           format: date-time
         completedAt:
-          type: string
+          type:
+            - string
+            - 'null'
           format: date-time
-          nullable: true
     HealthCheck:
       type: object
       description: 子系統健康檢查
@@ -13520,17 +15120,6 @@ components:
               - field: name
                 message: 名稱為必填欄位
                 code: required
-    Forbidden:
-      description: 403 Forbidden — 無權限執行此操作
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ProblemDetails'
-          example:
-            type: https://api.conf-ops.dev/errors/forbidden
-            title: Forbidden
-            status: 403
-            detail: 您無權限執行此操作
     NotFound:
       description: 404 Not Found — 請求的資源不存在
       content:
@@ -13542,3 +15131,14 @@ components:
             title: Not Found
             status: 404
             detail: 請求的資源不存在
+    Forbidden:
+      description: 403 Forbidden — 無權限執行此操作
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://api.conf-ops.dev/errors/forbidden
+            title: Forbidden
+            status: 403
+            detail: 您無權限執行此操作

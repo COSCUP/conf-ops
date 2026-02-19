@@ -81,9 +81,10 @@
                       createdBy:
                         $ref: "../schemas/common.yaml#/UUID"
                       lastUsedAt:
-                        type: string
+                        type:
+                          - string
+                          - "null"
                         format: date-time
-                        nullable: true
                       createdAt:
                         type: string
                         format: date-time

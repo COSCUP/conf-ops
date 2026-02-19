@@ -81,12 +81,14 @@ AccountResponse:
       format: email
       description: "Email，系統唯一識別"
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "頭像 URL"
     bio:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "公開的自我介紹文字"
     profileData:
       type: object
@@ -127,8 +129,9 @@ AccountSummary:
       type: string
       format: email
     avatarUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
 
 ProfileSchemaField:
   type: object
@@ -206,12 +209,14 @@ OrganizationResponse:
       type: string
       description: "組織名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "組織描述"
     logoUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "組織 Logo URL"
     createdBy:
       $ref: "./common.yaml#/UUID"
@@ -234,8 +239,9 @@ OrganizationSummary:
     name:
       type: string
     logoUrl:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
 
 # =============================================================================
 # OrganizationMember（組織成員）
@@ -293,14 +299,16 @@ ProjectResponse:
       type: string
       description: "專案名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "專案描述"
     status:
       $ref: "./common.yaml#/ProjectStatus"
     sourceProjectId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "來源專案 ID（若為複製建立）"
     permissionSettings:
       $ref: "#/PermissionSettings"
@@ -331,8 +339,9 @@ ProjectSummary:
     status:
       $ref: "./common.yaml#/ProjectStatus"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
 
 PermissionSettings:
   type: object
@@ -453,8 +462,9 @@ ContactResponse:
       format: email
       description: "聯絡人 Email"
     mergedIntoId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "合併目標 Contact ID，null 表示未被合併"
     createdAt:
       type: string
@@ -502,8 +512,9 @@ MemberTagResponse:
       type: string
       description: "標籤名稱（如「贊助組」、「資訊組」）"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "標籤描述"
     externalTaskCreation:
       type: array
@@ -566,12 +577,14 @@ MemberTagAssignmentResponse:
     tagId:
       $ref: "./common.yaml#/UUID"
     memberId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "被指派的成員 ID（與 contactId 二擇一）"
     contactId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "被指派的聯絡人 ID（與 memberId 二擇一）"
     projectId:
       $ref: "./common.yaml#/UUID"
@@ -599,8 +612,9 @@ TaskTemplateResponse:
       type: string
       description: "模板名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "模板描述"
     createdBy:
       $ref: "./common.yaml#/UUID"
@@ -638,8 +652,9 @@ TaskTemplateSummary:
     name:
       type: string
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
 
 # =============================================================================
 # TodoTemplate（待辦事項模板）
@@ -661,15 +676,17 @@ TodoTemplateResponse:
     taskTemplateId:
       $ref: "./common.yaml#/UUID"
     parentId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "父待辦模板 ID，null 表示頂層"
     name:
       type: string
       description: "待辦模板名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     sortOrder:
       type: integer
       description: "排序順序"
@@ -829,8 +846,9 @@ TaskResponse:
       type: string
       description: "任務名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "任務描述"
     status:
       $ref: "./common.yaml#/TaskStatus"
@@ -891,8 +909,9 @@ MessageResponse:
     sourceType:
       $ref: "./common.yaml#/MessageSourceType"
     sourceId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "來源者 ID（source_type = member 時為 members.id）"
     content:
       oneOf:
@@ -910,17 +929,20 @@ MessageResponse:
           system: '#/SystemMessageContent'
           email_inbound: '#/EmailInboundMessageContent'
     attachments:
-      type: array
-      nullable: true
+      type:
+        - array
+        - "null"
       items:
         $ref: "#/Attachment"
     actionResult:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "AI 建議的決策與執行結果"
     lastSeenMessageId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "寫入時客戶端附帶的已讀訊息 ID"
     createdAt:
       type: string
@@ -977,8 +999,9 @@ ToolExecutionMessageContent:
     summary:
       type: string
     result:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
 
 SystemMessageContent:
   type: object
@@ -1021,8 +1044,9 @@ EmailInboundMessageContent:
       enum: [member, contact, unknown]
       description: "寄件人身份類型"
     senderId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "解析後的寄件人 ID（member_id 或 contact_id），未知時為 null"
 
 Attachment:
@@ -1113,19 +1137,23 @@ SuggestionResponse:
     decision:
       $ref: "./common.yaml#/SuggestionDecisionType"
     decidedBy:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
     decidedAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
     modifiedParameters:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "修改後的參數（decision = modify_and_accept 時）"
     executionResult:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "工具執行結果"
 
 SuggestionContextRef:
@@ -1168,42 +1196,49 @@ TodoResponse:
     taskId:
       $ref: "./common.yaml#/UUID"
     parentId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "父待辦 ID，null 表示頂層"
     title:
       type: string
       description: "待辦標題"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     status:
       $ref: "./common.yaml#/TodoStatus"
     type:
       $ref: "./common.yaml#/TodoType"
     sourceTemplateId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "來源待辦模板 ID"
     dueDate:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
       description: "截止日期"
     sortOrder:
       type: integer
       description: "排序順序"
     linkedTaskId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "跨組協作的關聯任務 ID"
     completedAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
     completedBy:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
     assignees:
       type: array
       items:
@@ -1239,9 +1274,10 @@ TodoSummary:
     type:
       $ref: "./common.yaml#/TodoType"
     dueDate:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
 
 # =============================================================================
 # DataEntry（資料列）
@@ -1269,8 +1305,9 @@ DataEntryResponse:
       additionalProperties: true
       description: "欄位值，key 對應 DataSchema 的 field key"
     sourceLinks:
-      type: array
-      nullable: true
+      type:
+        - array
+        - "null"
       items:
         $ref: "#/SourceLink"
       description: "跨任務資料分享的來源關聯"
@@ -1340,12 +1377,14 @@ ToolConfigResponse:
       type: string
       description: "工具識別名稱（如 'smtp/sendEmail'）"
     displayName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "顯示名稱"
     description:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "工具說明"
     enabled:
       type: boolean
@@ -1355,8 +1394,9 @@ ToolConfigResponse:
       additionalProperties: true
       description: "工具設定（敏感欄位以遮罩形式呈現）"
     mcpServerConfig:
-      $ref: "#/McpServerConfig"
-      nullable: true
+      oneOf:
+        - $ref: "#/McpServerConfig"
+        - type: "null"
       description: "外部工具的 MCP Server 連線設定（僅 tool_type = external 時有值）"
     createdAt:
       type: string
@@ -1378,8 +1418,9 @@ ToolConfigSummary:
     toolName:
       type: string
     displayName:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     enabled:
       type: boolean
     toolType:
@@ -1440,8 +1481,9 @@ MemoryResponse:
       type: string
       description: "記憶摘要內容"
     libraryRef:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "關聯的記憶庫文件 ID"
     source:
       $ref: "./common.yaml#/MemorySource"
@@ -1552,8 +1594,9 @@ AuditLogResponse:
         - ai
       description: "操作者類型"
     actorId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "操作者帳號 ID（actorType = account 時有值）"
     action:
       type: string
@@ -1564,28 +1607,32 @@ AuditLogResponse:
     resourceId:
       $ref: "./common.yaml#/UUID"
     contextType:
-      type: string
+      type:
+        - string
+        - "null"
       enum:
         - organization
         - project
         - task
-      nullable: true
       description: "操作上下文類型"
     contextId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
     details:
       type: object
       additionalProperties: true
       description: "操作細節（變更前後值、參數等）"
     ipAddress:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "操作者 IP 位址（IPv4 或 IPv6，對應資料庫 INET 型別）"
       example: "192.168.1.1"
     userAgent:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "操作者 User-Agent"
     createdAt:
       type: string
@@ -1644,29 +1691,34 @@ NotificationResponse:
       type: string
       description: "通知標題"
     body:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "通知內文"
     referenceType:
-      type: string
+      type:
+        - string
+        - "null"
       enum:
         - task
         - todo
         - message
-      nullable: true
       description: "參照資源類型"
     referenceId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
     projectId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
     isRead:
       type: boolean
     readAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
     deliveredChannels:
       type: array
       items:
@@ -1736,15 +1788,18 @@ ReminderResponse:
       type: boolean
       description: "是否已觸發"
     firedAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
     notificationId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
     config:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "提醒設定參數"
     createdAt:
       type: string
@@ -1788,9 +1843,10 @@ EmailThreadResponse:
         type: string
       description: "此對話串中所有 Email 的 Message-ID 列表"
     lastMessageAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
     emailMessages:
       type: array
       items:
@@ -1817,9 +1873,10 @@ EmailThreadSummary:
     participantCount:
       type: integer
     lastMessageAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
 
 EmailMessageResponse:
   type: object
@@ -1842,11 +1899,13 @@ EmailMessageResponse:
       type: string
       description: "Email Message-ID 標頭值"
     inReplyTo:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     referencesHeader:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
     fromAddress:
       type: string
       format: email
@@ -1869,14 +1928,16 @@ EmailMessageResponse:
         - outbound
       description: "方向：inbound（收到）或 outbound（發出）"
     rawHeaders:
-      type: object
-      nullable: true
+      type:
+        - object
+        - "null"
       description: "原始郵件標頭（JSONB），僅在需要除錯時使用"
       additionalProperties:
         type: string
     conversationMessageId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "對應的任務對話訊息 ID"
     createdAt:
       type: string
@@ -1979,12 +2040,14 @@ WebhookEventLogResponse:
     status:
       $ref: "./common.yaml#/WebhookEventStatus"
     responseStatus:
-      type: integer
-      nullable: true
+      type:
+        - integer
+        - "null"
       description: "HTTP 回應狀態碼"
     responseBody:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "HTTP 回應內容（截斷至 10KB）"
     attempts:
       type: integer
@@ -1993,16 +2056,18 @@ WebhookEventLogResponse:
       type: integer
       description: "最大嘗試次數"
     nextRetryAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
     createdAt:
       type: string
       format: date-time
     completedAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
 
 WebhookEventLogSummary:
   type: object
@@ -2020,8 +2085,9 @@ WebhookEventLogSummary:
     status:
       $ref: "./common.yaml#/WebhookEventStatus"
     responseStatus:
-      type: integer
-      nullable: true
+      type:
+        - integer
+        - "null"
     createdAt:
       type: string
       format: date-time

@@ -104,8 +104,9 @@
                         type: string
                         enum: ["account", "system", "ai", "api_key"]
                       actorId:
-                        $ref: "../schemas/common.yaml#/UUID"
-                        nullable: true
+                        oneOf:
+                          - $ref: "../schemas/common.yaml#/UUID"
+                          - type: "null"
                       action:
                         type: string
                         description: "動作名稱"
@@ -115,18 +116,21 @@
                       resourceId:
                         $ref: "../schemas/common.yaml#/UUID"
                       contextType:
-                        type: string
-                        nullable: true
+                        type:
+                          - string
+                          - "null"
                         description: "上下文類型（organization/project/task）"
                       contextId:
-                        $ref: "../schemas/common.yaml#/UUID"
-                        nullable: true
+                        oneOf:
+                          - $ref: "../schemas/common.yaml#/UUID"
+                          - type: "null"
                       details:
                         type: object
                         description: "變更詳情（含前後值）"
                       ipAddress:
-                        type: string
-                        nullable: true
+                        type:
+                          - string
+                          - "null"
                       createdAt:
                         type: string
                         format: date-time
@@ -259,8 +263,9 @@
                         type: string
                         enum: ["account", "system", "ai", "api_key"]
                       actorId:
-                        $ref: "../schemas/common.yaml#/UUID"
-                        nullable: true
+                        oneOf:
+                          - $ref: "../schemas/common.yaml#/UUID"
+                          - type: "null"
                       action:
                         type: string
                       resourceType:
@@ -268,16 +273,19 @@
                       resourceId:
                         $ref: "../schemas/common.yaml#/UUID"
                       contextType:
-                        type: string
-                        nullable: true
+                        type:
+                          - string
+                          - "null"
                       contextId:
-                        $ref: "../schemas/common.yaml#/UUID"
-                        nullable: true
+                        oneOf:
+                          - $ref: "../schemas/common.yaml#/UUID"
+                          - type: "null"
                       details:
                         type: object
                       ipAddress:
-                        type: string
-                        nullable: true
+                        type:
+                          - string
+                          - "null"
                       createdAt:
                         type: string
                         format: date-time

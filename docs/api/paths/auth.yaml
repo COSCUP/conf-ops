@@ -381,9 +381,10 @@
                         format: date-time
                         description: "註冊時間"
                       lastUsedAt:
-                        type: string
+                        type:
+                          - string
+                          - "null"
                         format: date-time
-                        nullable: true
                         description: "最後使用時間"
             example:
               passkeys:

@@ -28,8 +28,9 @@ ContactResponse:
       format: email
       description: "聯絡人 Email"
     mergedIntoId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "合併目標 Contact ID，null 表示未被合併"
     createdAt:
       type: string
@@ -61,8 +62,9 @@ ContactDetailResponse:
       format: email
       description: "聯絡人 Email"
     mergedIntoId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "合併目標 Contact ID，null 表示未被合併"
     tagAssignments:
       type: array

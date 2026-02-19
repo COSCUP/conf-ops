@@ -406,8 +406,9 @@
                         type: string
                         description: "原始佔位符（如 `{{data.contactName}}`）"
                       resolvedValue:
-                        type: string
-                        nullable: true
+                        type:
+                          - string
+                          - "null"
                         description: "解析後的實際值（無對應值時為 null）"
                   description: "所有佔位符的解析結果列表"
             example:

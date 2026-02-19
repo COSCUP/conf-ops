@@ -24,8 +24,9 @@ CursorPaginationMeta:
     - hasMore
   properties:
     nextCursor:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "下一頁的游標 token，若無更多資料則為 null"
     hasMore:
       type: boolean
@@ -123,9 +124,10 @@ TimestampsWithSoftDelete:
       format: date-time
       description: "最後更新時間（UTC）"
     deletedAt:
-      type: string
+      type:
+        - string
+        - "null"
       format: date-time
-      nullable: true
       description: "軟刪除時間（UTC），null 表示未刪除"
 
 # --- UUID ---

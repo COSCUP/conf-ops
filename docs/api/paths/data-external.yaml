@@ -5,10 +5,10 @@
 # 參照 responses.yaml 中的 ExternalTaskTemplateListResponse、ExternalTaskListResponse 定義。
 
 # ===========================================================
-# /projects/{projectId}/task-templates
+# /external/projects/{projectId}/task-templates
 # ===========================================================
 
-/projects/{projectId}/task-templates:
+/external/projects/{projectId}/task-templates:
   parameters:
     - name: projectId
       in: path
@@ -103,10 +103,10 @@
               $ref: "../schemas/common.yaml#/ProblemDetails"
 
 # ===========================================================
-# /projects/{projectId}/task-templates/{templateId}/data
+# /external/projects/{projectId}/task-templates/{templateId}/data
 # ===========================================================
 
-/projects/{projectId}/task-templates/{templateId}/data:
+/external/projects/{projectId}/task-templates/{templateId}/data:
   parameters:
     - name: projectId
       in: path
@@ -211,10 +211,10 @@
               $ref: "../schemas/common.yaml#/ProblemDetails"
 
 # ===========================================================
-# /projects/{projectId}/tasks
+# /external/projects/{projectId}/tasks
 # ===========================================================
 
-/projects/{projectId}/tasks:
+/external/projects/{projectId}/tasks:
   parameters:
     - name: projectId
       in: path
@@ -309,10 +309,10 @@
               $ref: "../schemas/common.yaml#/ProblemDetails"
 
 # ===========================================================
-# /projects/{projectId}/tasks/{taskId}/data
+# /external/projects/{projectId}/tasks/{taskId}/data
 # ===========================================================
 
-/projects/{projectId}/tasks/{taskId}/data:
+/external/projects/{projectId}/tasks/{taskId}/data:
   parameters:
     - name: projectId
       in: path

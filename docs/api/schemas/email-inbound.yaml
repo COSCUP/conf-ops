@@ -21,24 +21,29 @@ InboundEmailResponse:
         - matched：成功匹配到任務，信件已加入任務對話
         - unmatched：無法匹配，已歸入專案的未分類收件匣
     taskId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "匹配到的任務 ID（status = matched 時有值）"
     messageId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "新增至任務對話的訊息 ID（status = matched 時有值）"
     threadId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "匹配或建立的 Email Thread ID（status = matched 時有值）"
     emailId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "未分類信件 ID（status = unmatched 時有值）"
     projectId:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "歸入的專案 ID（status = unmatched 時有值）"
 
 # =============================================================================
@@ -63,8 +68,9 @@ UnassignedEmail:
         - address
       properties:
         name:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           description: "寄件者顯示名稱"
         address:
           type: string

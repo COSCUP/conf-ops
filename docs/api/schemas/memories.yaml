@@ -28,8 +28,9 @@ Memory:
       type: string
       description: "記憶摘要內容（保持簡短扼要）"
     libraryRef:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "關聯的記憶庫文件 ID"
     source:
       $ref: "./common.yaml#/MemorySource"
@@ -62,8 +63,9 @@ MemorySummary:
     source:
       $ref: "./common.yaml#/MemorySource"
     libraryRef:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "關聯的記憶庫文件 ID"
     createdAt:
       type: string
@@ -213,8 +215,9 @@ LibraryDocumentVersion:
       type: integer
       description: "版本號（降冪排列，最新版本號最大）"
     title:
-      type: string
-      nullable: true
+      type:
+        - string
+        - "null"
       description: "該版本的文件標題（null 表示該版本未變更標題）"
     content:
       type: string
@@ -249,8 +252,9 @@ CreateMemoryRequest:
       type: string
       description: "記憶摘要內容"
     libraryRef:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "關聯的記憶庫文件 ID"
 
 UpdateMemoryRequest:
@@ -263,8 +267,9 @@ UpdateMemoryRequest:
       type: string
       description: "更新後的記憶內容"
     libraryRef:
-      $ref: "./common.yaml#/UUID"
-      nullable: true
+      oneOf:
+        - $ref: "./common.yaml#/UUID"
+        - type: "null"
       description: "關聯的記憶庫文件 ID（設為 null 可移除關聯）"
 
 CreateLibraryDocumentRequest:
