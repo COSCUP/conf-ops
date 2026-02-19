@@ -1,6 +1,9 @@
-# Phase 0：專案腳手架與基礎設施
+# Phase 0：專案腳手架與基礎設施 ✅ COMPLETED
 
 **階段目標：** 建立完整的 Rust 後端與 Vue 前端專案骨架，含 CI、Docker Compose 開發環境、共用基礎模組，使後續所有階段能直接在此基礎上開發。
+
+**完成日期：** 2026-02-19
+**實作 commits：** `4f0c23d` (feat: scaffold Phase 0 project infrastructure)
 
 ---
 
@@ -52,12 +55,12 @@
 - `cargo fmt -- --check` 通過
 
 **驗收標準：**
-- [ ] Workspace 結構完整，9 個模組空殼可編譯
-- [ ] Clippy 配置為 strict（all deny + pedantic warn + nursery warn）
-- [ ] 環境變數配置檔案完整
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] Workspace 結構完整，9 個模組空殼可編譯
+- [x] Clippy 配置為 strict（all deny + pedantic warn + nursery warn）
+- [x] 環境變數配置檔案完整
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -86,13 +89,13 @@
 - `npm run test` 通過（含一個 smoke test）
 
 **驗收標準：**
-- [ ] TypeScript strict mode 完整啟用
-- [ ] ESLint 零警告
-- [ ] openapi-typescript 型別生成腳本可執行
-- [ ] 基礎目錄結構與 API 客戶端骨架就緒
-- [ ] `npm run lint -- --max-warnings 0` 零警告
-- [ ] `npm run typecheck` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] TypeScript strict mode 完整啟用
+- [x] ESLint 零警告
+- [x] openapi-typescript 型別生成腳本可執行
+- [x] 基礎目錄結構與 API 客戶端骨架就緒
+- [x] `npm run lint -- --max-warnings 0` 零警告
+- [x] `npm run typecheck` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -123,10 +126,10 @@
 - PostgreSQL 可連線並查詢
 
 **驗收標準：**
-- [ ] `make dev-up` 一鍵啟動所有開發依賴
-- [ ] PostgreSQL 16 可存取
-- [ ] MailHog Web UI 可開啟
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] `make dev-up` 一鍵啟動所有開發依賴
+- [x] PostgreSQL 16 可存取
+- [x] MailHog Web UI 可開啟
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -148,11 +151,11 @@
 - CI 在空白專案上全綠
 
 **驗收標準：**
-- [ ] Push / PR 自動觸發 CI
-- [ ] 後端 clippy + fmt + test 全部檢查
-- [ ] 前端 lint + typecheck + test 全部檢查
-- [ ] OpenAPI spec 格式驗證
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] Push / PR 自動觸發 CI
+- [x] 後端 clippy + fmt + test 全部檢查
+- [x] 前端 lint + typecheck + test 全部檢查
+- [x] OpenAPI spec 格式驗證
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -184,13 +187,13 @@
 - Migration 可成功執行
 
 **驗收標準：**
-- [ ] sqlx 連線池正常運作
-- [ ] Migration 可成功執行
-- [ ] TestContext 可用於測試，每次測試使用獨立資料庫
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] sqlx 連線池正常運作
+- [x] Migration 可成功執行
+- [x] TestContext 可用於測試，每次測試使用獨立資料庫
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -219,12 +222,12 @@
 - 單元測試：RFC 7807 錯誤格式正確
 
 **驗收標準：**
-- [ ] `cargo run` 啟動 HTTP server
-- [ ] `/healthz` 與 `/readyz` 正常回應
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] `cargo run` 啟動 HTTP server
+- [x] `/healthz` 與 `/readyz` 正常回應
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -250,13 +253,13 @@
 - 單元測試：多個訂閱者可同時接收同一事件
 
 **驗收標準：**
-- [ ] EventBus 可發布和訂閱事件
-- [ ] 事件傳遞非阻塞
-- [ ] DomainEvent 枚舉可方便擴展
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] EventBus 可發布和訂閱事件
+- [x] 事件傳遞非阻塞
+- [x] DomainEvent 枚舉可方便擴展
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -286,12 +289,12 @@
 - 單元測試：路由守衛在未認證時重導向至 `/login`
 
 **驗收標準：**
-- [ ] 基礎 Layout 渲染正確
-- [ ] 路由切換正常
-- [ ] 認證守衛框架就緒（骨架）
-- [ ] `npm run lint -- --max-warnings 0` 零警告
-- [ ] `npm run typecheck` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 基礎 Layout 渲染正確
+- [x] 路由切換正常
+- [x] 認證守衛框架就緒（骨架）
+- [x] `npm run lint -- --max-warnings 0` 零警告
+- [x] `npm run typecheck` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
