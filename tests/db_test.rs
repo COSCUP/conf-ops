@@ -15,13 +15,13 @@ async fn test_database_connection_and_migration() {
 }
 
 #[tokio::test]
-async fn test_uuid_extension_available() {
+async fn test_pgcrypto_extension_available() {
     let ctx = TestContext::new().await;
 
-    let row: (uuid::Uuid,) = sqlx::query_as("SELECT uuid_generate_v4()")
+    let row: (uuid::Uuid,) = sqlx::query_as("SELECT gen_random_uuid()")
         .fetch_one(&ctx.pool)
         .await
-        .expect("uuid-ossp extension should be available");
+        .expect("pgcrypto extension should be available");
 
     assert_eq!(row.0.get_version_num(), 4);
 }
