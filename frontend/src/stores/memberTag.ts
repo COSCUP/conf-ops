@@ -161,7 +161,7 @@ export const useMemberTagStore = defineStore('memberTag', () => {
   async function updateExternalTaskCreation(
     projectId: string,
     tagId: string,
-    settings: Record<string, unknown>,
+    settings: Record<string, never>,
   ) {
     loading.value = true
     error.value = ''

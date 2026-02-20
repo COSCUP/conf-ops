@@ -32,7 +32,7 @@ pub struct UpdateOrganizationRequest {
 
 #[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct InviteMemberRequest {
+pub struct InviteOrgMemberRequest {
     pub email: String,
     pub role: OrgRole,
 }
@@ -333,6 +333,7 @@ pub async fn delete_organization(
 #[utoipa::path(
     get,
     path = "/api/v1/organizations/{orgId}/members",
+    operation_id = "list_org_members",
     tag = "organizations",
     security(("bearer_auth" = [])),
     params(("orgId" = Uuid, Path, description = "Organization ID")),
@@ -385,10 +386,11 @@ pub async fn list_members(
 #[utoipa::path(
     post,
     path = "/api/v1/organizations/{orgId}/members/invite",
+    operation_id = "invite_org_member",
     tag = "organizations",
     security(("bearer_auth" = [])),
     params(("orgId" = Uuid, Path, description = "Organization ID")),
-    request_body = InviteMemberRequest,
+    request_body = InviteOrgMemberRequest,
     responses(
         (status = 201, description = "Member invited", body = InviteMemberResponse),
         (status = 401, description = "Unauthorized", body = ProblemDetails),
@@ -400,7 +402,7 @@ pub async fn invite_member(
     State(state): State<AppState>,
     user: AuthUser,
     Path(org_id): Path<Uuid>,
-    Json(body): Json<InviteMemberRequest>,
+    Json(body): Json<InviteOrgMemberRequest>,
 ) -> Result<(StatusCode, Json<InviteMemberResponse>), ProblemDetails> {
     require_permission(
         &state,

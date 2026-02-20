@@ -36,7 +36,7 @@ async function handleCreateTag() {
   }
 }
 
-function startEditTag(tag: { id: string; name: string; description: string | null }) {
+function startEditTag(tag: { id: string; name: string; description?: string | null }) {
   editingTagId.value = tag.id
   editTagName.value = tag.name
   editTagDescription.value = tag.description ?? ''

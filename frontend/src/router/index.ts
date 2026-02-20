@@ -79,6 +79,16 @@ const router = createRouter({
           component: () => import('@/views/projects/ProjectContactsView.vue'),
         },
         {
+          path: 'projects/:projectId/task-templates',
+          name: 'project-task-templates',
+          component: () => import('@/views/projects/TaskTemplatesView.vue'),
+        },
+        {
+          path: 'projects/:projectId/task-templates/:templateId',
+          name: 'task-template-editor',
+          component: () => import('@/views/projects/TaskTemplateEditorView.vue'),
+        },
+        {
           path: 'organizations/:orgId/contacts',
           name: 'org-contacts',
           component: () => import('@/views/organizations/ContactsView.vue'),

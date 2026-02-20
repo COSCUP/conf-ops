@@ -31,6 +31,56 @@ components:
       - createdAt
       - updatedAt
       type: object
+    AssignTagRequest:
+      properties:
+        contactId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        memberId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      type: object
+    AssignTodoRequest:
+      properties:
+        memberId:
+          format: uuid
+          type: string
+      required:
+      - memberId
+      type: object
+    AssignmentResponse:
+      properties:
+        contactId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+        id:
+          format: uuid
+          type: string
+        memberId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        projectId:
+          format: uuid
+          type: string
+        tagId:
+          format: uuid
+          type: string
+      required:
+      - id
+      - tagId
+      - projectId
+      - createdAt
+      type: object
     AuthTokenResponse:
       properties:
         accessToken:
@@ -61,6 +111,44 @@ components:
       - enabled
       - categories
       type: object
+    ContactListResponse:
+      properties:
+        contacts:
+          items:
+            $ref: '#/components/schemas/ContactResponse'
+          type: array
+      required:
+      - contacts
+      type: object
+    ContactResponse:
+      properties:
+        createdAt:
+          type: string
+        email:
+          type: string
+        id:
+          format: uuid
+          type: string
+        mergedIntoId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        organizationId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - organizationId
+      - name
+      - email
+      - createdAt
+      - updatedAt
+      type: object
     CopyProjectRequest:
       properties:
         description:
@@ -75,6 +163,28 @@ components:
       required:
       - sourceProjectId
       - name
+      type: object
+    CreateContactRequest:
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+      required:
+      - name
+      - email
+      type: object
+    CreateDataSchemaRequest:
+      properties:
+        fields:
+          items:
+            $ref: '#/components/schemas/DataSchemaField'
+          type: array
+        name:
+          type: string
+      required:
+      - name
+      - fields
       type: object
     CreateOrganizationRequest:
       properties:
@@ -102,6 +212,243 @@ components:
       required:
       - name
       type: object
+    CreateTagRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+      required:
+      - name
+      type: object
+    CreateTaskRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        ownerTagId:
+          format: uuid
+          type: string
+        taskTemplateId:
+          format: uuid
+          type: string
+      required:
+      - taskTemplateId
+      - ownerTagId
+      - name
+      type: object
+    CreateTaskTemplateRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+      required:
+      - name
+      type: object
+    CreateTodoRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        parentId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        title:
+          type: string
+      required:
+      - title
+      type: object
+    CreateTodoTemplateRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        parentId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        sortOrder:
+          format: int32
+          type: integer
+      required:
+      - name
+      - sortOrder
+      type: object
+    DataEntryListResponse:
+      properties:
+        entries:
+          items:
+            $ref: '#/components/schemas/DataEntryResponse'
+          type: array
+      required:
+      - entries
+      type: object
+    DataEntryResponse:
+      properties:
+        createdAt:
+          type: string
+        dataSchemaId:
+          format: uuid
+          type: string
+        id:
+          format: uuid
+          type: string
+        sourceLinks: {}
+        taskId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+        values: {}
+      required:
+      - id
+      - taskId
+      - dataSchemaId
+      - values
+      - createdAt
+      - updatedAt
+      type: object
+    DataSchemaField:
+      properties:
+        constraints:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/FieldConstraints'
+        description:
+          type: string
+        key:
+          type: string
+        label:
+          type: string
+        required:
+          type: boolean
+        type:
+          $ref: '#/components/schemas/FieldType'
+      required:
+      - key
+      - label
+      - description
+      - type
+      - required
+      type: object
+    DataSchemaListResponse:
+      properties:
+        dataSchemas:
+          items:
+            $ref: '#/components/schemas/DataSchemaResponse'
+          type: array
+      required:
+      - dataSchemas
+      type: object
+    DataSchemaResponse:
+      properties:
+        createdAt:
+          type: string
+        fields:
+          items:
+            $ref: '#/components/schemas/DataSchemaField'
+          type: array
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        taskTemplateId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - taskTemplateId
+      - name
+      - fields
+      - createdAt
+      - updatedAt
+      type: object
+    FieldConstraints:
+      properties:
+        accept:
+          items:
+            type: string
+          type:
+          - array
+          - 'null'
+        decimal:
+          type:
+          - boolean
+          - 'null'
+        max:
+          format: double
+          type:
+          - number
+          - 'null'
+        maxDate:
+          type:
+          - string
+          - 'null'
+        maxFileSize:
+          format: int64
+          minimum: 0
+          type:
+          - integer
+          - 'null'
+        maxLength:
+          format: int32
+          minimum: 0
+          type:
+          - integer
+          - 'null'
+        maxLines:
+          format: int32
+          minimum: 0
+          type:
+          - integer
+          - 'null'
+        min:
+          format: double
+          type:
+          - number
+          - 'null'
+        minDate:
+          type:
+          - string
+          - 'null'
+        options:
+          items:
+            type: string
+          type:
+          - array
+          - 'null'
+      type: object
+    FieldType:
+      enum:
+      - single_line_text
+      - multi_line_text
+      - number
+      - date
+      - email
+      - url
+      - select
+      - boolean
+      - image
+      - file
+      type: string
     HealthResponse:
       properties:
         status:
@@ -111,12 +458,20 @@ components:
       type: object
     InviteMemberRequest:
       properties:
-        email:
+        accountId:
+          format: uuid
           type: string
         role:
-          $ref: '#/components/schemas/OrgRole'
+          $ref: '#/components/schemas/MemberRole'
+        tagIds:
+          items:
+            format: uuid
+            type: string
+          type:
+          - array
+          - 'null'
       required:
-      - email
+      - accountId
       - role
       type: object
     InviteMemberResponse:
@@ -126,6 +481,24 @@ components:
           type: string
       required:
       - memberId
+      type: object
+    InviteOrgMemberRequest:
+      properties:
+        email:
+          type: string
+        role:
+          $ref: '#/components/schemas/OrgRole'
+      required:
+      - email
+      - role
+      type: object
+    LinkTagRequest:
+      properties:
+        memberTagId:
+          format: uuid
+          type: string
+      required:
+      - memberTagId
       type: object
     MagicLinkRequest:
       properties:
@@ -140,6 +513,190 @@ components:
           type: string
       required:
       - message
+      type: object
+    MemberDetailResponse:
+      properties:
+        accountId:
+          format: uuid
+          type: string
+        avatarUrl:
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+        email:
+          type: string
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        role:
+          $ref: '#/components/schemas/MemberRole'
+        updatedAt:
+          type: string
+      required:
+      - id
+      - projectId
+      - accountId
+      - role
+      - name
+      - email
+      - createdAt
+      - updatedAt
+      type: object
+    MemberListResponse:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/MemberDetailResponse'
+          type: array
+      required:
+      - members
+      type: object
+    MemberResponse:
+      properties:
+        accountId:
+          format: uuid
+          type: string
+        createdAt:
+          type: string
+        id:
+          format: uuid
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        role:
+          $ref: '#/components/schemas/MemberRole'
+        updatedAt:
+          type: string
+      required:
+      - id
+      - projectId
+      - accountId
+      - role
+      - createdAt
+      - updatedAt
+      type: object
+    MemberRole:
+      enum:
+      - owner
+      - tag_admin
+      - member
+      type: string
+    MemberTagDetailResponse:
+      properties:
+        contacts:
+          items:
+            $ref: '#/components/schemas/TagAssignedContactResponse'
+          type: array
+        members:
+          items:
+            $ref: '#/components/schemas/TagAssignedMemberResponse'
+          type: array
+        tag:
+          $ref: '#/components/schemas/MemberTagResponse'
+      required:
+      - tag
+      - members
+      - contacts
+      type: object
+    MemberTagListItemResponse:
+      properties:
+        contactCount:
+          format: int64
+          type: integer
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        memberCount:
+          format: int64
+          type: integer
+        name:
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - projectId
+      - name
+      - memberCount
+      - contactCount
+      - createdAt
+      - updatedAt
+      type: object
+    MemberTagListResponse:
+      properties:
+        tags:
+          items:
+            $ref: '#/components/schemas/MemberTagListItemResponse'
+          type: array
+      required:
+      - tags
+      type: object
+    MemberTagResponse:
+      properties:
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        externalTaskCreation:
+          type: object
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - projectId
+      - name
+      - externalTaskCreation
+      - createdAt
+      - updatedAt
+      type: object
+    MergeContactsRequest:
+      properties:
+        sourceIds:
+          items:
+            format: uuid
+            type: string
+          type: array
+        targetId:
+          format: uuid
+          type: string
+      required:
+      - sourceIds
+      - targetId
+      type: object
+    MergeContactsResponse:
+      properties:
+        mergedCount:
+          minimum: 0
+          type: integer
+      required:
+      - mergedCount
       type: object
     NotificationChannels:
       properties:
@@ -471,6 +1028,337 @@ components:
       - status
       - checks
       type: object
+    ReorderItem:
+      properties:
+        id:
+          format: uuid
+          type: string
+        sortOrder:
+          format: int32
+          type: integer
+      required:
+      - id
+      - sortOrder
+      type: object
+    ReorderTodoTemplatesRequest:
+      properties:
+        orders:
+          items:
+            $ref: '#/components/schemas/ReorderItem'
+          type: array
+      required:
+      - orders
+      type: object
+    TagAssignedContactResponse:
+      properties:
+        assignmentId:
+          format: uuid
+          type: string
+        contactId:
+          format: uuid
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+      required:
+      - assignmentId
+      - contactId
+      - name
+      - email
+      type: object
+    TagAssignedMemberResponse:
+      properties:
+        accountId:
+          format: uuid
+          type: string
+        assignmentId:
+          format: uuid
+          type: string
+        avatarUrl:
+          type:
+          - string
+          - 'null'
+        email:
+          type: string
+        memberId:
+          format: uuid
+          type: string
+        name:
+          type: string
+      required:
+      - assignmentId
+      - memberId
+      - accountId
+      - name
+      - email
+      type: object
+    TaskListResponse:
+      properties:
+        tasks:
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+          type: array
+      required:
+      - tasks
+      type: object
+    TaskResponse:
+      properties:
+        createdAt:
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        ownerTagId:
+          format: uuid
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        taskTemplateId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - projectId
+      - taskTemplateId
+      - ownerTagId
+      - name
+      - status
+      - createdBy
+      - createdAt
+      - updatedAt
+      type: object
+    TaskStatus:
+      enum:
+      - pending
+      - in_progress
+      - completed
+      - cancelled
+      type: string
+    TaskTemplateListResponse:
+      properties:
+        templates:
+          items:
+            $ref: '#/components/schemas/TaskTemplateResponse'
+          type: array
+      required:
+      - templates
+      type: object
+    TaskTemplateResponse:
+      properties:
+        createdAt:
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - projectId
+      - name
+      - createdBy
+      - createdAt
+      - updatedAt
+      type: object
+    TaskTemplateTagListResponse:
+      properties:
+        tags:
+          items:
+            $ref: '#/components/schemas/TaskTemplateTagResponse'
+          type: array
+      required:
+      - tags
+      type: object
+    TaskTemplateTagResponse:
+      properties:
+        createdAt:
+          type: string
+        id:
+          format: uuid
+          type: string
+        memberTagId:
+          format: uuid
+          type: string
+        taskTemplateId:
+          format: uuid
+          type: string
+      required:
+      - id
+      - taskTemplateId
+      - memberTagId
+      - createdAt
+      type: object
+    TodoAssigneeResponse:
+      properties:
+        createdAt:
+          type: string
+        id:
+          format: uuid
+          type: string
+        memberId:
+          format: uuid
+          type: string
+        todoId:
+          format: uuid
+          type: string
+      required:
+      - id
+      - todoId
+      - memberId
+      - createdAt
+      type: object
+    TodoListResponse:
+      properties:
+        todos:
+          items:
+            $ref: '#/components/schemas/TodoResponse'
+          type: array
+      required:
+      - todos
+      type: object
+    TodoResponse:
+      properties:
+        completedAt:
+          type:
+          - string
+          - 'null'
+        completedBy:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        dueDate:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        linkedTaskId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        parentId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        sortOrder:
+          format: int32
+          type: integer
+        sourceTemplateId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        status:
+          $ref: '#/components/schemas/TodoStatus'
+        taskId:
+          format: uuid
+          type: string
+        title:
+          type: string
+        todoType:
+          $ref: '#/components/schemas/TodoType'
+        updatedAt:
+          type: string
+      required:
+      - id
+      - taskId
+      - title
+      - status
+      - todoType
+      - sortOrder
+      - createdAt
+      - updatedAt
+      type: object
+    TodoStatus:
+      enum:
+      - open
+      - completed
+      type: string
+    TodoTemplateListResponse:
+      properties:
+        todoTemplates:
+          items:
+            $ref: '#/components/schemas/TodoTemplateResponse'
+          type: array
+      required:
+      - todoTemplates
+      type: object
+    TodoTemplateResponse:
+      properties:
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        parentId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        sortOrder:
+          format: int32
+          type: integer
+        taskTemplateId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - taskTemplateId
+      - name
+      - sortOrder
+      - createdAt
+      - updatedAt
+      type: object
+    TodoType:
+      enum:
+      - template
+      - ad_hoc
+      type: string
     UpdateAccountRequest:
       properties:
         avatarUrl:
@@ -489,6 +1377,44 @@ components:
           type:
           - string
           - 'null'
+      type: object
+    UpdateContactRequest:
+      properties:
+        email:
+          type:
+          - string
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateDataSchemaRequest:
+      properties:
+        fields:
+          items:
+            $ref: '#/components/schemas/DataSchemaField'
+          type:
+          - array
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateExternalTaskCreationRequest:
+      properties:
+        settings:
+          type: object
+      required:
+      - settings
+      type: object
+    UpdateMemberRoleRequest:
+      properties:
+        role:
+          $ref: '#/components/schemas/MemberRole'
+      required:
+      - role
       type: object
     UpdateNotificationPreferencesRequest:
       properties:
@@ -554,6 +1480,85 @@ components:
           $ref: '#/components/schemas/ProjectStatus'
       required:
       - status
+      type: object
+    UpdateTagRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateTaskRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateTaskStatusRequest:
+      properties:
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+      required:
+      - status
+      type: object
+    UpdateTaskTemplateRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateTodoRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        dueDate:
+          type:
+          - string
+          - 'null'
+        title:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateTodoStatusRequest:
+      properties:
+        status:
+          $ref: '#/components/schemas/TodoStatus'
+      required:
+      - status
+      type: object
+    UpdateTodoTemplateRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpsertDataEntryRequest:
+      properties:
+        values: {}
+      required:
+      - values
       type: object
     ValidationError:
       description: A single field validation error.
@@ -1207,13 +2212,314 @@ paths:
       summary: Update an existing organization.
       tags:
       - organizations
+  /api/v1/organizations/{orgId}/contacts:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_contacts
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: search
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactListResponse'
+          description: Contact list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List contacts for an organization.
+      tags:
+      - contacts
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: create_contact
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContactRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+          description: Contact created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Create a new contact within an organization.
+      tags:
+      - contacts
+  /api/v1/organizations/{orgId}/contacts/merge:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: merge_contacts
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeContactsRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MergeContactsResponse'
+          description: Contacts merged
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Invalid merge request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Conflict
+      security:
+      - bearer_auth: []
+      summary: Merge multiple contacts into one target contact.
+      tags:
+      - contacts
+  /api/v1/organizations/{orgId}/contacts/{contactId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_contact
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Contact ID
+        in: path
+        name: contactId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Contact deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Delete a contact (soft delete).
+      tags:
+      - contacts
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_contact
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Contact ID
+        in: path
+        name: contactId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+          description: Contact details
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get contact details by ID.
+      tags:
+      - contacts
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_contact
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Contact ID
+        in: path
+        name: contactId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContactRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+          description: Contact updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update an existing contact.
+      tags:
+      - contacts
   /api/v1/organizations/{orgId}/members:
     get:
       description: |-
         # Errors
 
         Returns `ProblemDetails` on failure.
-      operationId: list_members
+      operationId: list_org_members
       parameters:
       - description: Organization ID
         in: path
@@ -1252,7 +2558,7 @@ paths:
         # Errors
 
         Returns `ProblemDetails` on failure.
-      operationId: invite_member
+      operationId: invite_org_member
       parameters:
       - description: Organization ID
         in: path
@@ -1265,7 +2571,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InviteMemberRequest'
+              $ref: '#/components/schemas/InviteOrgMemberRequest'
         required: true
       responses:
         '201':
@@ -1672,6 +2978,691 @@ paths:
       summary: Update an existing project.
       tags:
       - projects
+  /api/v1/projects/{projectId}/member-tags:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_tags
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberTagListResponse'
+          description: Tag list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List member tags for a project.
+      tags:
+      - member-tags
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: create_tag
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberTagResponse'
+          description: Tag created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Create a new member tag.
+      tags:
+      - member-tags
+  /api/v1/projects/{projectId}/member-tags/{tagId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_tag
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tag ID
+        in: path
+        name: tagId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Tag deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Delete a member tag.
+      tags:
+      - member-tags
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_tag
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tag ID
+        in: path
+        name: tagId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberTagDetailResponse'
+          description: Tag detail
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get a member tag detail (with assigned members and contacts).
+      tags:
+      - member-tags
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_tag
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tag ID
+        in: path
+        name: tagId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTagRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberTagResponse'
+          description: Tag updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update a member tag.
+      tags:
+      - member-tags
+  /api/v1/projects/{projectId}/member-tags/{tagId}/assign:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: assign_tag
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tag ID
+        in: path
+        name: tagId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignTagRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentResponse'
+          description: Assignment created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Invalid assignment
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Assignment already exists
+      security:
+      - bearer_auth: []
+      summary: Assign a tag to a member or contact.
+      tags:
+      - member-tags
+  /api/v1/projects/{projectId}/member-tags/{tagId}/assignments/{assignmentId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: remove_assignment
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tag ID
+        in: path
+        name: tagId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Assignment ID
+        in: path
+        name: assignmentId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Assignment removed
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Assignment not found
+      security:
+      - bearer_auth: []
+      summary: Remove a tag assignment.
+      tags:
+      - member-tags
+  /api/v1/projects/{projectId}/member-tags/{tagId}/external-task-creation:
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_external_task_creation
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tag ID
+        in: path
+        name: tagId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExternalTaskCreationRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberTagResponse'
+          description: Settings updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update external task creation settings for a tag.
+      tags:
+      - member-tags
+  /api/v1/projects/{projectId}/members:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_members
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: role
+        required: false
+        schema:
+          $ref: '#/components/schemas/MemberRole'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberListResponse'
+          description: Member list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List members of a project.
+      tags:
+      - members
+  /api/v1/projects/{projectId}/members/invite:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: invite_member
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteMemberRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+          description: Member invited
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not an organization member
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Member already exists
+      security:
+      - bearer_auth: []
+      summary: Invite a member to a project.
+      tags:
+      - members
+  /api/v1/projects/{projectId}/members/{memberId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_member
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Member removed
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Last owner removal
+      security:
+      - bearer_auth: []
+      summary: Remove a member from a project.
+      tags:
+      - members
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_member
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+          description: Member details
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get a project member by ID.
+      tags:
+      - members
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_member
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberRoleRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+          description: Member updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Last owner removal
+      security:
+      - bearer_auth: []
+      summary: Update a project member's role.
+      tags:
+      - members
   /api/v1/projects/{projectId}/permission-settings:
     get:
       description: |-
@@ -1806,6 +3797,1778 @@ paths:
       summary: Update the status of a project.
       tags:
       - projects
+  /api/v1/projects/{projectId}/task-templates:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_templates
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTemplateListResponse'
+          description: Template list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List task templates for a project.
+      tags:
+      - task-templates
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: create_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskTemplateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTemplateResponse'
+          description: Template created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Create a new task template.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Template deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Delete a task template.
+      tags:
+      - task-templates
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTemplateResponse'
+          description: Template detail
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get a task template by ID.
+      tags:
+      - task-templates
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskTemplateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTemplateResponse'
+          description: Template updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update a task template.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}/data-schemas:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_data_schemas
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSchemaListResponse'
+          description: Data schema list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List data schemas for a task template.
+      tags:
+      - task-templates
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: create_data_schema
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDataSchemaRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSchemaResponse'
+          description: Data schema created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Create a data schema.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}/data-schemas/{schemaId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_data_schema
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Data Schema ID
+        in: path
+        name: schemaId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Data schema deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Delete a data schema.
+      tags:
+      - task-templates
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_data_schema
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Data Schema ID
+        in: path
+        name: schemaId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSchemaResponse'
+          description: Data schema detail
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get a data schema by ID.
+      tags:
+      - task-templates
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_data_schema
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Data Schema ID
+        in: path
+        name: schemaId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDataSchemaRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSchemaResponse'
+          description: Data schema updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update a data schema.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}/data-sheets/{schemaId}:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure.
+      operationId: get_aggregated_sheet
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: schemaId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEntryListResponse'
+          description: ''
+      summary: Get aggregated data sheet for a template's schema.
+      tags:
+      - data-entries
+  /api/v1/projects/{projectId}/task-templates/{templateId}/tags:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_template_tags
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTemplateTagListResponse'
+          description: Tag list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List tags linked to a task template.
+      tags:
+      - task-templates
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: link_tag
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkTagRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTemplateTagResponse'
+          description: Tag linked
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Tag already linked
+      security:
+      - bearer_auth: []
+      summary: Link a tag to a task template.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}/tags/{memberTagId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: unlink_tag
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Member Tag ID
+        in: path
+        name: memberTagId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Tag unlinked
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Tag link not found
+      security:
+      - bearer_auth: []
+      summary: Unlink a tag from a task template.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}/todo-templates:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_todo_templates
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoTemplateListResponse'
+          description: Todo template list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List todo templates for a task template.
+      tags:
+      - task-templates
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: create_todo_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoTemplateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoTemplateResponse'
+          description: Todo template created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Nesting limit exceeded
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Create a todo template.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}/todo-templates/reorder:
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: reorder_todo_templates
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderTodoTemplatesRequest'
+        required: true
+      responses:
+        '204':
+          description: Reordered
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Reorder todo templates.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/task-templates/{templateId}/todo-templates/{todoTemplateId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_todo_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Todo Template ID
+        in: path
+        name: todoTemplateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Todo template deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Delete a todo template.
+      tags:
+      - task-templates
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_todo_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Todo Template ID
+        in: path
+        name: todoTemplateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoTemplateResponse'
+          description: Todo template detail
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get a todo template by ID.
+      tags:
+      - task-templates
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_todo_template
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Todo Template ID
+        in: path
+        name: todoTemplateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoTemplateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoTemplateResponse'
+          description: Todo template updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update a todo template.
+      tags:
+      - task-templates
+  /api/v1/projects/{projectId}/tasks:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure.
+      operationId: list_tasks
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: status
+        required: false
+        schema:
+          $ref: '#/components/schemas/TaskStatus'
+      - in: query
+        name: tagId
+        required: false
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+          description: ''
+      summary: List tasks for a project.
+      tags:
+      - tasks
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on validation or permission failure.
+      operationId: create_task
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Create a new task from a template.
+      tags:
+      - tasks
+  /api/v1/projects/{projectId}/tasks/{taskId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: delete_task
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Delete a task (soft-delete).
+      tags:
+      - tasks
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: get_task
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get a task by ID.
+      tags:
+      - tasks
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: update_task
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update a task's name and/or description.
+      tags:
+      - tasks
+  /api/v1/projects/{projectId}/tasks/{taskId}/data-entries:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure.
+      operationId: list_entries
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEntryListResponse'
+          description: ''
+      summary: List data entries for a task.
+      tags:
+      - data-entries
+  /api/v1/projects/{projectId}/tasks/{taskId}/data-entries/{schemaId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: delete_entry
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: schemaId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Delete a data entry (soft-delete).
+      tags:
+      - data-entries
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: get_entry
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: schemaId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEntryResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get a data entry by schema ID.
+      tags:
+      - data-entries
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on validation or permission failure.
+      operationId: upsert_entry
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: schemaId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertDataEntryRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEntryResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get or upsert a data entry by schema ID.
+      tags:
+      - data-entries
+  /api/v1/projects/{projectId}/tasks/{taskId}/status:
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on invalid transition or permission failure.
+      operationId: update_task_status
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskStatusRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update a task's status.
+      tags:
+      - tasks
+  /api/v1/projects/{projectId}/tasks/{taskId}/todos:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure.
+      operationId: list_todos
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoListResponse'
+          description: ''
+      summary: List todos for a task.
+      tags:
+      - todos
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on validation or permission failure.
+      operationId: create_todo
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Create a new ad-hoc todo.
+      tags:
+      - todos
+  /api/v1/projects/{projectId}/tasks/{taskId}/todos/{todoId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: delete_todo
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: todoId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Delete a todo (soft-delete).
+      tags:
+      - todos
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: get_todo
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: todoId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get a todo by ID.
+      tags:
+      - todos
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: update_todo
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: todoId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update a todo.
+      tags:
+      - todos
+  /api/v1/projects/{projectId}/tasks/{taskId}/todos/{todoId}/assignees:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on conflict or permission failure.
+      operationId: add_assignee
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: todoId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignTodoRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoAssigneeResponse'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Add an assignee to a todo.
+      tags:
+      - todos
+  /api/v1/projects/{projectId}/tasks/{taskId}/todos/{todoId}/assignees/{memberId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or permission failure.
+      operationId: remove_assignee
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: todoId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: memberId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Remove an assignee from a todo.
+      tags:
+      - todos
+  /api/v1/projects/{projectId}/tasks/{taskId}/todos/{todoId}/status:
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on conflict or permission failure.
+      operationId: update_todo_status
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: todoId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoStatusRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update a todo's status.
+      tags:
+      - todos
   /healthz:
     get:
       operationId: healthz
@@ -1847,3 +5610,17 @@ tags:
   name: organizations
 - description: Project management endpoints
   name: projects
+- description: Project member management endpoints
+  name: members
+- description: Contact management endpoints
+  name: contacts
+- description: Member tag management endpoints
+  name: member-tags
+- description: Task template management endpoints
+  name: task-templates
+- description: Task management endpoints
+  name: tasks
+- description: Todo management endpoints
+  name: todos
+- description: Data entry management endpoints
+  name: data-entries
