@@ -30,6 +30,9 @@ pub struct AppConfig {
 
     // Frontend URL (for magic link redirect)
     pub frontend_url: String,
+
+    // Authorization cache TTL in seconds
+    pub authz_cache_ttl_secs: u64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -90,6 +93,8 @@ impl AppConfig {
         let frontend_url =
             lookup("FRONTEND_URL").unwrap_or_else(|| "http://localhost:3000".to_string());
 
+        let authz_cache_ttl_secs = parse_or(&lookup, "AUTHZ_CACHE_TTL_SECS", 300)?;
+
         Ok(Self {
             database_url,
             database_max_connections,
@@ -111,6 +116,7 @@ impl AppConfig {
             smtp_password,
             smtp_from,
             frontend_url,
+            authz_cache_ttl_secs,
         })
     }
 }

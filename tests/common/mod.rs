@@ -10,6 +10,13 @@ use conf_ops::modules::auth::jwt::{issue_access_token, JwtConfig};
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::repository::AccountRepository;
 use conf_ops::modules::auth::service::AuthService;
+use conf_ops::modules::core::contact::repository::ContactRepository;
+use conf_ops::modules::core::contact::service::ContactService;
+use conf_ops::modules::core::member::models::MemberRole;
+use conf_ops::modules::core::member::repository::MemberRepository;
+use conf_ops::modules::core::member::service::MemberService;
+use conf_ops::modules::core::member_tag::repository::MemberTagRepository;
+use conf_ops::modules::core::member_tag::service::MemberTagService;
 use conf_ops::modules::core::organization::models::OrgRole;
 use conf_ops::modules::core::organization::repository::{
     OrgMemberRepository, OrganizationRepository,
@@ -147,7 +154,15 @@ impl TestContext {
 
         let project_service = Arc::new(ProjectService::new(self.pool.clone(), event_bus.clone()));
 
-        let permission_service = Arc::new(PermissionService::new(self.pool.clone()));
+        let member_service = Arc::new(MemberService::new(self.pool.clone(), event_bus.clone()));
+
+        let member_tag_service =
+            Arc::new(MemberTagService::new(self.pool.clone(), event_bus.clone()));
+
+        let contact_service = Arc::new(ContactService::new(self.pool.clone(), event_bus.clone()));
+
+        let permission_service =
+            Arc::new(PermissionService::new(self.pool.clone(), &event_bus, 300));
 
         AppState {
             pool: self.pool.clone(),
@@ -156,6 +171,9 @@ impl TestContext {
             app_base_url: "http://localhost:8080".to_string(),
             auth_service,
             org_service,
+            member_service,
+            member_tag_service,
+            contact_service,
             project_service,
             permission_service,
         }
@@ -211,5 +229,74 @@ impl TestContext {
         .expect("should create test project");
 
         project_id
+    }
+
+    pub async fn create_test_contact(&self, org_id: Uuid, name: &str, email: &str) -> Uuid {
+        let contact_id = generate_id();
+        ContactRepository::create(&self.pool, contact_id, org_id, name, email)
+            .await
+            .expect("should create test contact");
+        contact_id
+    }
+
+    pub async fn create_test_member(
+        &self,
+        project_id: Uuid,
+        account_id: Uuid,
+        role: MemberRole,
+    ) -> Uuid {
+        let member_id = generate_id();
+        MemberRepository::create(&self.pool, member_id, project_id, account_id, role)
+            .await
+            .expect("should create test member");
+        member_id
+    }
+
+    pub async fn create_test_tag(&self, project_id: Uuid, name: &str) -> Uuid {
+        let tag_id = generate_id();
+        MemberTagRepository::create(&self.pool, tag_id, project_id, name, None)
+            .await
+            .expect("should create test tag");
+        tag_id
+    }
+
+    pub async fn assign_tag_to_member(
+        &self,
+        tag_id: Uuid,
+        member_id: Uuid,
+        project_id: Uuid,
+    ) -> Uuid {
+        let assignment_id = generate_id();
+        MemberTagRepository::create_assignment(
+            &self.pool,
+            assignment_id,
+            tag_id,
+            Some(member_id),
+            None,
+            project_id,
+        )
+        .await
+        .expect("should assign tag to member");
+        assignment_id
+    }
+
+    pub async fn assign_tag_to_contact(
+        &self,
+        tag_id: Uuid,
+        contact_id: Uuid,
+        project_id: Uuid,
+    ) -> Uuid {
+        let assignment_id = generate_id();
+        MemberTagRepository::create_assignment(
+            &self.pool,
+            assignment_id,
+            tag_id,
+            None,
+            Some(contact_id),
+            project_id,
+        )
+        .await
+        .expect("should assign tag to contact");
+        assignment_id
     }
 }

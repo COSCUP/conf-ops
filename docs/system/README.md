@@ -111,7 +111,7 @@ graph TB
 | **前端框架** | Vue.js | Single Page Application (SPA) |
 | **關聯式資料庫** | PostgreSQL | 搭配 JSONB 儲存半結構化資料（記憶繼承鏈、工具參數等） |
 | **In-Memory 快取** | moka | TTL/LRU 快取（權限計算、記憶繼承鏈），單節點使用 |
-| **即時事件廣播** | PostgreSQL LISTEN/NOTIFY | 單節點 WebSocket 廣播、跨模組事件通知 |
+| **即時事件廣播** | Tokio broadcast (EventBus) | 單節點 WebSocket 廣播、跨模組事件通知 |
 | **即時協作 (CRDT)** | yrs | Yjs 的 Rust 移植版，實現 conflict-free 多人共同編輯 |
 | **檔案儲存** | 本地檔案系統 | 附件檔案儲存，透過應用程式代理存取（未來可擴展至 S3） |
 | **寄信** | lettre | Rust SMTP 客戶端，負責所有外寄郵件 |

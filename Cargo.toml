@@ -42,6 +42,7 @@ dashmap = "6"
 url = "2"
 time = "0.3.41"
 utoipa = { version = "5", features = ["chrono", "uuid"] }
+moka = { version = "0.12", features = ["future"] }
 
 [dev-dependencies]
 http-body-util = "0.1.3"

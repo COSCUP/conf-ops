@@ -7,7 +7,9 @@ use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
 use conf_ops::api::middleware::auth::auth_middleware;
-use conf_ops::api::routes::{accounts, auth, health, organizations, projects};
+use conf_ops::api::routes::{
+    accounts, auth, contacts, health, member_tags, members, organizations, projects,
+};
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
 use conf_ops::db;
@@ -15,6 +17,9 @@ use conf_ops::events::EventBus;
 use conf_ops::modules::auth::jwt::JwtConfig;
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::service::AuthService;
+use conf_ops::modules::core::contact::service::ContactService;
+use conf_ops::modules::core::member::service::MemberService;
+use conf_ops::modules::core::member_tag::service::MemberTagService;
 use conf_ops::modules::core::organization::service::OrganizationService;
 use conf_ops::modules::core::permission::service::PermissionService;
 use conf_ops::modules::core::project::service::ProjectService;
@@ -52,7 +57,17 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
 
     let project_service = Arc::new(ProjectService::new(pool.clone(), event_bus.clone()));
 
-    let permission_service = Arc::new(PermissionService::new(pool.clone()));
+    let member_service = Arc::new(MemberService::new(pool.clone(), event_bus.clone()));
+
+    let member_tag_service = Arc::new(MemberTagService::new(pool.clone(), event_bus.clone()));
+
+    let contact_service = Arc::new(ContactService::new(pool.clone(), event_bus.clone()));
+
+    let permission_service = Arc::new(PermissionService::new(
+        pool.clone(),
+        &event_bus,
+        config.authz_cache_ttl_secs,
+    ));
 
     AppState {
         pool,
@@ -61,13 +76,16 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         app_base_url: config.app_base_url.clone(),
         auth_service,
         org_service,
+        member_service,
+        member_tag_service,
+        contact_service,
         project_service,
         permission_service,
     }
 }
 
-fn build_router(state: AppState) -> Router {
-    let auth_routes = Router::new()
+fn auth_routes() -> Router<AppState> {
+    Router::new()
         .route("/magic-link/request", post(auth::request_magic_link))
         .route("/magic-link/verify", get(auth::verify_magic_link))
         .route("/refresh", post(auth::refresh))
@@ -86,21 +104,24 @@ fn build_router(state: AppState) -> Router {
             post(auth::passkey_login_complete),
         )
         .route("/passkeys", get(accounts::list_passkeys))
-        .route("/passkeys/{id}", delete(accounts::delete_passkey));
+        .route("/passkeys/{id}", delete(accounts::delete_passkey))
+}
 
-    let account_routes = Router::new()
-        .route("/me", get(accounts::get_me).patch(accounts::update_me))
+fn org_routes() -> Router<AppState> {
+    let contact_routes = Router::new()
         .route(
-            "/me/profile",
-            get(accounts::get_profile).put(accounts::update_profile),
+            "/",
+            post(contacts::create_contact).get(contacts::list_contacts),
         )
+        .route("/merge", post(contacts::merge_contacts))
         .route(
-            "/me/notification-preferences",
-            get(accounts::get_notification_preferences)
-                .put(accounts::update_notification_preferences),
+            "/{contactId}",
+            get(contacts::get_contact)
+                .put(contacts::update_contact)
+                .delete(contacts::delete_contact),
         );
 
-    let org_routes = Router::new()
+    Router::new()
         .route(
             "/",
             post(organizations::create_organization).get(organizations::list_organizations),
@@ -119,16 +140,52 @@ fn build_router(state: AppState) -> Router {
         .route(
             "/{orgId}/members/{memberId}",
             put(organizations::update_member_role).delete(organizations::remove_member),
+        )
+        .nest(
+            "/{orgId}/projects",
+            Router::new()
+                .route(
+                    "/",
+                    post(projects::create_project).get(projects::list_projects),
+                )
+                .route("/copy", post(projects::copy_project)),
+        )
+        .nest("/{orgId}/contacts", contact_routes)
+}
+
+fn project_routes() -> Router<AppState> {
+    let member_routes = Router::new()
+        .route("/", get(members::list_members))
+        .route("/invite", post(members::invite_member))
+        .route(
+            "/{memberId}",
+            get(members::get_member)
+                .put(members::update_member)
+                .delete(members::delete_member),
         );
 
-    let project_nested = Router::new()
+    let member_tag_routes = Router::new()
         .route(
             "/",
-            post(projects::create_project).get(projects::list_projects),
+            get(member_tags::list_tags).post(member_tags::create_tag),
         )
-        .route("/copy", post(projects::copy_project));
+        .route(
+            "/{tagId}",
+            get(member_tags::get_tag)
+                .put(member_tags::update_tag)
+                .delete(member_tags::delete_tag),
+        )
+        .route("/{tagId}/assign", post(member_tags::assign_tag))
+        .route(
+            "/{tagId}/assignments/{assignmentId}",
+            delete(member_tags::remove_assignment),
+        )
+        .route(
+            "/{tagId}/external-task-creation",
+            put(member_tags::update_external_task_creation),
+        );
 
-    let project_top = Router::new()
+    Router::new()
         .route(
             "/{projectId}",
             get(projects::get_project)
@@ -139,14 +196,29 @@ fn build_router(state: AppState) -> Router {
         .route(
             "/{projectId}/permission-settings",
             get(projects::get_permission_settings).put(projects::update_permission_settings),
+        )
+        .nest("/{projectId}/members", member_routes)
+        .nest("/{projectId}/member-tags", member_tag_routes)
+}
+
+fn build_router(state: AppState) -> Router {
+    let account_routes = Router::new()
+        .route("/me", get(accounts::get_me).patch(accounts::update_me))
+        .route(
+            "/me/profile",
+            get(accounts::get_profile).put(accounts::update_profile),
+        )
+        .route(
+            "/me/notification-preferences",
+            get(accounts::get_notification_preferences)
+                .put(accounts::update_notification_preferences),
         );
 
     let api_v1 = Router::new()
-        .nest("/auth", auth_routes)
+        .nest("/auth", auth_routes())
         .nest("/accounts", account_routes)
-        .nest("/organizations", org_routes)
-        .nest("/organizations/{orgId}/projects", project_nested)
-        .nest("/projects", project_top);
+        .nest("/organizations", org_routes())
+        .nest("/projects", project_routes());
 
     Router::new()
         .route("/healthz", get(health::healthz))

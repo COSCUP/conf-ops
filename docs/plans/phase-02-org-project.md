@@ -1,4 +1,4 @@
-# Phase 2：組織與專案管理
+# Phase 2：組織與專案管理 ✅ COMPLETED
 
 **階段目標：** 實作組織與專案的完整 CRUD，含組織角色管理（org_owner / org_admin / org_member）、組織成員邀請、專案建立（空白 + 複製），建立基礎 RBAC 權限框架。
 
@@ -137,7 +137,7 @@
    - org_admin：可管理專案、邀請成員
    - org_member：唯讀
 4. 建立 Axum permission middleware / extractor：在 handler 中方便檢查權限
-5. 權限快取延後至 Phase 3 再實作（Phase 2 先建立基礎權限檢查邏輯），屆時使用 moka in-memory cache + PostgreSQL LISTEN/NOTIFY 失效機制
+5. 權限快取延後至 Phase 3 再實作（Phase 2 先建立基礎權限檢查邏輯），屆時使用 moka in-memory cache + EventBus 事件驅動失效機制
 
 **涉及檔案：**
 - `src/modules/core/permission/mod.rs`, `permission/service.rs`
