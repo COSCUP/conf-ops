@@ -61,12 +61,71 @@ components:
       - enabled
       - categories
       type: object
+    CopyProjectRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        sourceProjectId:
+          format: uuid
+          type: string
+      required:
+      - sourceProjectId
+      - name
+      type: object
+    CreateOrganizationRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        logoUrl:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+      required:
+      - name
+      type: object
+    CreateProjectRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+      required:
+      - name
+      type: object
     HealthResponse:
       properties:
         status:
           type: string
       required:
       - status
+      type: object
+    InviteMemberRequest:
+      properties:
+        email:
+          type: string
+        role:
+          $ref: '#/components/schemas/OrgRole'
+      required:
+      - email
+      - role
+      type: object
+    InviteMemberResponse:
+      properties:
+        memberId:
+          format: uuid
+          type: string
+      required:
+      - memberId
       type: object
     MagicLinkRequest:
       properties:
@@ -101,6 +160,112 @@ components:
           $ref: '#/components/schemas/NotificationChannels'
       required:
       - channels
+      type: object
+    OrgMemberListResponse:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/OrgMemberResponse'
+          type: array
+      required:
+      - members
+      type: object
+    OrgMemberResponse:
+      properties:
+        accountId:
+          format: uuid
+          type: string
+        avatarUrl:
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+        email:
+          type: string
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        role:
+          $ref: '#/components/schemas/OrgRole'
+      required:
+      - id
+      - accountId
+      - role
+      - name
+      - email
+      - createdAt
+      type: object
+    OrgRole:
+      enum:
+      - org_owner
+      - org_admin
+      - org_member
+      type: string
+    OrganizationListItem:
+      properties:
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        logoUrl:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        role:
+          $ref: '#/components/schemas/OrgRole'
+      required:
+      - id
+      - name
+      - createdAt
+      - role
+      type: object
+    OrganizationListResponse:
+      properties:
+        organizations:
+          items:
+            $ref: '#/components/schemas/OrganizationListItem'
+          type: array
+      required:
+      - organizations
+      type: object
+    OrganizationResponse:
+      properties:
+        createdAt:
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        logoUrl:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - name
+      - createdBy
+      - createdAt
+      - updatedAt
       type: object
     PasskeyListResponse:
       properties:
@@ -159,6 +324,13 @@ components:
       - name
       - createdAt
       type: object
+    PermissionSettingsResponse:
+      properties:
+        settings:
+          type: object
+      required:
+      - settings
+      type: object
     ProblemDetails:
       description: RFC 7807 Problem Details error response.
       properties:
@@ -205,6 +377,83 @@ components:
       - profileData
       - profileSchema
       type: object
+    ProjectListItemResponse:
+      properties:
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        updatedAt:
+          type: string
+      required:
+      - id
+      - name
+      - status
+      - createdAt
+      - updatedAt
+      type: object
+    ProjectListResponse:
+      properties:
+        projects:
+          items:
+            $ref: '#/components/schemas/ProjectListItemResponse'
+          type: array
+      required:
+      - projects
+      type: object
+    ProjectResponse:
+      properties:
+        createdAt:
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        organizationId:
+          format: uuid
+          type: string
+        sourceProjectId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        updatedAt:
+          type: string
+      required:
+      - id
+      - organizationId
+      - name
+      - status
+      - createdBy
+      - createdAt
+      - updatedAt
+      type: object
+    ProjectStatus:
+      enum:
+      - preparing
+      - active
+      - completed
+      - archived
+      type: string
     ReadyChecks:
       properties:
         database:
@@ -248,6 +497,35 @@ components:
       required:
       - channels
       type: object
+    UpdateOrgMemberRequest:
+      properties:
+        role:
+          $ref: '#/components/schemas/OrgRole'
+      required:
+      - role
+      type: object
+    UpdateOrganizationRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        logoUrl:
+          type:
+          - string
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdatePermissionSettingsRequest:
+      properties:
+        settings:
+          type: object
+      required:
+      - settings
+      type: object
     UpdateProfileRequest:
       properties:
         profileData:
@@ -258,6 +536,24 @@ components:
           - 'null'
       required:
       - profileData
+      type: object
+    UpdateProjectRequest:
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateProjectStatusRequest:
+      properties:
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+      required:
+      - status
       type: object
     ValidationError:
       description: A single field validation error.
@@ -721,6 +1017,795 @@ paths:
       summary: Rotate the refresh token and return new tokens.
       tags:
       - auth
+  /api/v1/organizations:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_organizations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+          description: List of user's organizations
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+      security:
+      - bearer_auth: []
+      summary: List organizations the current user belongs to.
+      tags:
+      - organizations
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: create_organization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+          description: Organization created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+      security:
+      - bearer_auth: []
+      summary: Create a new organization.
+      tags:
+      - organizations
+  /api/v1/organizations/{orgId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Organization deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Has active projects
+      security:
+      - bearer_auth: []
+      summary: Delete an organization (soft delete).
+      tags:
+      - organizations
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+          description: Organization details
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get organization details by ID.
+      tags:
+      - organizations
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+          description: Organization updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update an existing organization.
+      tags:
+      - organizations
+  /api/v1/organizations/{orgId}/members:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_members
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgMemberListResponse'
+          description: Member list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List members of an organization.
+      tags:
+      - organizations
+  /api/v1/organizations/{orgId}/members/invite:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: invite_member
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteMemberRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteMemberResponse'
+          description: Member invited
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Already a member
+      security:
+      - bearer_auth: []
+      summary: Invite a new member to an organization by email.
+      tags:
+      - organizations
+  /api/v1/organizations/{orgId}/members/{memberId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: remove_member
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Member removed
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Last owner removal
+      security:
+      - bearer_auth: []
+      summary: Remove a member from an organization.
+      tags:
+      - organizations
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_member_role
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrgMemberRequest'
+        required: true
+      responses:
+        '204':
+          description: Member role updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Last owner removal
+      security:
+      - bearer_auth: []
+      summary: Update a member's role within an organization.
+      tags:
+      - organizations
+  /api/v1/organizations/{orgId}/projects:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: list_projects
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: status
+        required: false
+        schema:
+          $ref: '#/components/schemas/ProjectStatus'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+          description: Project list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: List projects belonging to an organization.
+      tags:
+      - projects
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: create_project
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+          description: Project created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Create a new project within an organization.
+      tags:
+      - projects
+  /api/v1/organizations/{orgId}/projects/copy:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: copy_project
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopyProjectRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+          description: Project copied
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Source project not found
+      security:
+      - bearer_auth: []
+      summary: Copy an existing project into a new project.
+      tags:
+      - projects
+  /api/v1/projects/{projectId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: delete_project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Project deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Delete a project (soft delete).
+      tags:
+      - projects
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+          description: Project details
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Get project details by ID.
+      tags:
+      - projects
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+          description: Project updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not found
+      security:
+      - bearer_auth: []
+      summary: Update an existing project.
+      tags:
+      - projects
+  /api/v1/projects/{projectId}/permission-settings:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: get_permission_settings
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionSettingsResponse'
+          description: Permission settings
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Get permission settings for a project.
+      tags:
+      - projects
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_permission_settings
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePermissionSettingsRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionSettingsResponse'
+          description: Permission settings updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+      security:
+      - bearer_auth: []
+      summary: Update permission settings for a project.
+      tags:
+      - projects
+  /api/v1/projects/{projectId}/status:
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: update_project_status
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectStatusRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+          description: Status updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Invalid status transition
+      security:
+      - bearer_auth: []
+      summary: Update the status of a project.
+      tags:
+      - projects
   /healthz:
     get:
       operationId: healthz
@@ -758,3 +1843,7 @@ tags:
   name: auth
 - description: Account management endpoints
   name: accounts
+- description: Organization management endpoints
+  name: organizations
+- description: Project management endpoints
+  name: projects

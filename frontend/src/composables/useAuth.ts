@@ -12,13 +12,13 @@ export function useAuth() {
   }
 
   async function requestMagicLink(email: string): Promise<void> {
-    await client.POST('/auth/magic-link/request', {
+    await client.POST('/api/v1/auth/magic-link/request', {
       body: { email },
     })
   }
 
   async function verifyMagicLink(token: string): Promise<boolean> {
-    const { data } = await client.GET('/auth/magic-link/verify', {
+    const { data } = await client.GET('/api/v1/auth/magic-link/verify', {
       params: { query: { token } },
     })
 
@@ -31,16 +31,16 @@ export function useAuth() {
   }
 
   async function loginWithPasskey(): Promise<boolean> {
-    const { data: beginData } = await client.POST('/auth/passkey/login/begin')
+    const { data: beginData } = await client.POST('/api/v1/auth/passkey/login/begin')
 
     if (!beginData) return false
 
     const credential = await startAuthentication({
-      optionsJSON: beginData as Parameters<typeof startAuthentication>[0]['optionsJSON'],
+      optionsJSON: beginData as unknown as Parameters<typeof startAuthentication>[0]['optionsJSON'],
     })
 
-    const { data: completeData } = await client.POST('/auth/passkey/login/complete', {
-      body: credential,
+    const { data: completeData } = await client.POST('/api/v1/auth/passkey/login/complete', {
+      body: { challenge_id: beginData.challenge_id, credential: credential as never },
     })
 
     if (completeData) {

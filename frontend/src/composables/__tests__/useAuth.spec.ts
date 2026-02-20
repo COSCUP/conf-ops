@@ -27,11 +27,11 @@ describe('useAuth', () => {
   it('requestMagicLink calls correct endpoint', async () => {
     vi.mocked(client.POST).mockResolvedValue({ data: { message: 'sent' } } as never)
 
-    await client.POST('/auth/magic-link/request', {
+    await client.POST('/api/v1/auth/magic-link/request', {
       body: { email: 'test@example.com' },
     })
 
-    expect(client.POST).toHaveBeenCalledWith('/auth/magic-link/request', {
+    expect(client.POST).toHaveBeenCalledWith('/api/v1/auth/magic-link/request', {
       body: { email: 'test@example.com' },
     })
   })
@@ -54,7 +54,7 @@ describe('useAuth', () => {
 
     const store = useAuthStore()
 
-    const { data } = await client.GET('/auth/magic-link/verify', {
+    const { data } = await client.GET('/api/v1/auth/magic-link/verify', {
       params: { query: { token: 'test-token' } },
     })
 
@@ -91,16 +91,16 @@ describe('useAuth', () => {
 
     const store = useAuthStore()
 
-    const { data: beginData } = await client.POST('/auth/passkey/login/begin')
+    const { data: beginData } = await client.POST('/api/v1/auth/passkey/login/begin')
 
     expect(beginData).toBeTruthy()
 
     const credential = await startAuthentication({
-      optionsJSON: beginData as Parameters<typeof startAuthentication>[0]['optionsJSON'],
+      optionsJSON: beginData as unknown as Parameters<typeof startAuthentication>[0]['optionsJSON'],
     })
 
-    const { data: completeData } = await client.POST('/auth/passkey/login/complete', {
-      body: credential,
+    const { data: completeData } = await client.POST('/api/v1/auth/passkey/login/complete', {
+      body: { challenge_id: (beginData as { challenge_id: string }).challenge_id, credential: credential as never },
     })
 
     if (completeData) {

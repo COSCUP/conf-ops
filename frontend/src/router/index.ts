@@ -39,9 +39,29 @@ const router = createRouter({
           component: () => import('@/views/DashboardView.vue'),
         },
         {
-          path: 'projects',
-          name: 'projects',
-          component: () => import('@/views/DashboardView.vue'),
+          path: 'organizations',
+          name: 'organizations',
+          component: () => import('@/views/organizations/OrganizationListView.vue'),
+        },
+        {
+          path: 'organizations/:orgId/settings',
+          name: 'org-settings',
+          component: () => import('@/views/organizations/OrganizationSettingsView.vue'),
+        },
+        {
+          path: 'organizations/:orgId/projects',
+          name: 'org-projects',
+          component: () => import('@/views/projects/ProjectListView.vue'),
+        },
+        {
+          path: 'projects/:projectId',
+          name: 'project-dashboard',
+          component: () => import('@/views/projects/ProjectDashboardView.vue'),
+        },
+        {
+          path: 'projects/:projectId/settings',
+          name: 'project-settings',
+          component: () => import('@/views/projects/ProjectSettingsView.vue'),
         },
         {
           path: 'settings',

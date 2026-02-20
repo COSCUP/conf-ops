@@ -22,7 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchCurrentUser() {
     if (!accessToken.value) return
 
-    const { data } = await client.GET('/accounts/me')
+    const { data } = await client.GET('/api/v1/accounts/me')
 
     if (data) {
       currentUser.value = data
@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function refreshToken(): Promise<boolean> {
     try {
-      const { data } = await client.POST('/auth/refresh')
+      const { data } = await client.POST('/api/v1/auth/refresh')
 
       if (data) {
         accessToken.value = data.accessToken
@@ -48,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       if (accessToken.value) {
-        await client.POST('/auth/logout')
+        await client.POST('/api/v1/auth/logout')
       }
     } finally {
       clearAuth()

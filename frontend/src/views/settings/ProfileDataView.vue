@@ -53,7 +53,7 @@ async function handleSave() {
               :model-value="String(profileData[field.key] ?? '')"
               :label="field.label"
               :type="field.type === 'number' ? 'number' : field.type"
-              :placeholder="field.description"
+              :placeholder="field.description ?? ''"
               @update:model-value="profileData[field.key] = $event"
             />
           </template>

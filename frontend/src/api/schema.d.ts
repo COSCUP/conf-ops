@@ -4,7 +4,91 @@
  */
 
 export interface paths {
-    "/auth/passkey/register/begin": {
+    "/api/v1/accounts/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current authenticated user's account.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` if account not found.
+         */
+        get: operations["get_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the current user's account.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        patch: operations["update_me"];
+        trace?: never;
+    };
+    "/api/v1/accounts/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get notification preferences.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        get: operations["get_notification_preferences"];
+        /**
+         * Update notification preferences.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        put: operations["update_notification_preferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current user's profile data.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` if account not found.
+         */
+        get: operations["get_profile"];
+        /**
+         * Update the current user's profile data.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        put: operations["update_profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -14,19 +98,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 開始 Passkey 註冊
-         * @description 啟動 WebAuthn 註冊流程，回傳 `PublicKeyCredentialCreationOptions`，
-         *     前端據此呼叫 `navigator.credentials.create()` 產生憑證。
-         *     需要已登入的使用者才能新增 Passkey。
+         * Logout: revoke all refresh tokens and clear cookie.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
          */
-        post: operations["passkeyRegisterBegin"];
+        post: operations["logout"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/passkey/register/complete": {
+    "/api/v1/auth/magic-link/request": {
         parameters: {
             query?: never;
             header?: never;
@@ -36,18 +120,41 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 完成 Passkey 註冊
-         * @description 接收前端呼叫 `navigator.credentials.create()` 的回傳結果，
-         *     驗證並儲存新的 Passkey 憑證。
+         * Request a magic link email.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["passkeyRegisterComplete"];
+        post: operations["request_magic_link"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/passkey/login/begin": {
+    "/api/v1/auth/magic-link/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify a magic link token and return access/refresh tokens.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on invalid or expired token.
+         */
+        get: operations["verify_magic_link"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/login/begin": {
         parameters: {
             query?: never;
             header?: never;
@@ -57,19 +164,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 開始 Passkey 登入
-         * @description 啟動 WebAuthn 認證流程，回傳 `PublicKeyCredentialRequestOptions`，
-         *     前端據此呼叫 `navigator.credentials.get()` 進行驗證。
-         *     不需要預先登入。
+         * Begin passkey login (public, no auth required).
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on `WebAuthn` failure.
          */
-        post: operations["passkeyLoginBegin"];
+        post: operations["passkey_login_begin"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/passkey/login/complete": {
+    "/api/v1/auth/passkey/login/complete": {
         parameters: {
             query?: never;
             header?: never;
@@ -79,19 +186,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 完成 Passkey 登入
-         * @description 接收前端呼叫 `navigator.credentials.get()` 的回傳結果，
-         *     驗證後發放 JWT Token Pair（access token + refresh token）。
-         *     Refresh token 同時以 HTTP-only cookie 設定。
+         * Complete passkey login and return tokens.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on `WebAuthn` verification or credential failure.
          */
-        post: operations["passkeyLoginComplete"];
+        post: operations["passkey_login_complete"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/magic-link/request": {
+    "/api/v1/auth/passkey/register/begin": {
         parameters: {
             query?: never;
             header?: never;
@@ -101,43 +208,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 請求 Magic Link 登入連結
-         * @description 輸入 Email 地址，系統寄送一次性登入連結到該信箱。
-         *     不論帳號是否存在，皆回傳相同成功訊息，防止帳號列舉攻擊。若帳號不存在，系統會自動建立新帳號並寄送 Magic Link。
-         *     為防止濫用，同一 Email 有頻率限制。
-         */
-        post: operations["magicLinkRequest"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/magic-link/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 驗證 Magic Link Token
-         * @description 驗證 Magic Link 中的一次性 token，成功後發放 JWT Token Pair。
-         *     Token 僅能使用一次，使用後即失效。
-         *     Refresh token 同時以 HTTP-only cookie 設定。
+         * Begin passkey registration (requires authentication).
+         * @description # Errors
          *
-         *     注意：Email 中的 Magic Link 應指向前端應用 URL（如 `https://app.conf-ops.io/auth/magic-link?token=xxx`），由前端應用擷取 token 後呼叫此 API 端點取得 Token Pair，而非直接將使用者導向此 API URL。
+         *     Returns `ProblemDetails` on `WebAuthn` or database failure.
          */
-        get: operations["magicLinkVerify"];
-        put?: never;
-        post?: never;
+        post: operations["passkey_register_begin"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/refresh": {
+    "/api/v1/auth/passkey/register/complete": {
         parameters: {
             query?: never;
             header?: never;
@@ -147,19 +230,63 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 重新整理 Access Token
-         * @description 使用 HTTP-only cookie 中的 refresh token 取得新的 access token。
-         *     實作 refresh token rotation — 每次使用後舊的 refresh token 失效，
-         *     同時發放新的 refresh token。
+         * Complete passkey registration.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on `WebAuthn` verification failure.
          */
-        post: operations["authRefresh"];
+        post: operations["passkey_register_complete"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/logout": {
+    "/api/v1/auth/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the current user's passkeys.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        get: operations["list_passkeys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a passkey credential.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` if credential not found.
+         */
+        delete: operations["delete_passkey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
         parameters: {
             query?: never;
             header?: never;
@@ -169,18 +296,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 登出
-         * @description 撤銷當前的 refresh token，使其無法再用於取得新的 access token。
-         *     同時清除 HTTP-only cookie 中的 refresh token。
+         * Rotate the refresh token and return new tokens.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` if no refresh token cookie or token is invalid.
          */
-        post: operations["authLogout"];
+        post: operations["refresh"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/passkeys": {
+    "/api/v1/organizations": {
         parameters: {
             query?: never;
             header?: never;
@@ -188,45 +316,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 列出已註冊的 Passkeys
-         * @description 取得目前帳號已註冊的所有 Passkey 裝置列表。
-         *     用於帳號設定頁面中的 Passkey 管理。
+         * List organizations the current user belongs to.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
          */
-        get: operations["listPasskeys"];
+        get: operations["list_organizations"];
         put?: never;
-        post?: never;
+        /**
+         * Create a new organization.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        post: operations["create_organization"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/passkeys/{passkeyId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Passkey 識別碼 */
-                passkeyId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 刪除 Passkey
-         * @description 刪除指定的 Passkey 裝置。
-         *     帳號至少需保留一種認證方式（至少一個 Passkey 或 Magic Link），
-         *     若此為最後一個 Passkey 且帳號無其他認證方式，回傳 409 Conflict。
-         */
-        delete: operations["deletePasskey"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounts/me": {
+    "/api/v1/organizations/{orgId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -234,25 +344,33 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 取得當前帳號資訊
-         * @description 回傳當前登入帳號的公開資訊，包含名稱、Email、頭像、自我介紹、語系等。
-         *     不包含私人資料（`profileData`）。
+         * Get organization details by ID.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
          */
-        get: operations["getCurrentAccount"];
-        put?: never;
+        get: operations["get_organization"];
+        /**
+         * Update an existing organization.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        put: operations["update_organization"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete an organization (soft delete).
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        delete: operations["delete_organization"];
         options?: never;
         head?: never;
-        /**
-         * 更新當前帳號資訊
-         * @description 部分更新當前登入帳號的公開資訊。僅傳入需要更新的欄位。
-         *     可更新：名稱 `name`、自我介紹 `bio`、頭像 `avatarUrl`、語系 `locale`。
-         */
-        patch: operations["updateCurrentAccount"];
+        patch?: never;
         trace?: never;
     };
-    "/accounts/me/profile": {
+    "/api/v1/organizations/{orgId}/members": {
         parameters: {
             query?: never;
             header?: never;
@@ -260,344 +378,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 取得個人資料表
-         * @description 回傳當前帳號的私人結構化資料（`profileData`）與欄位結構（`profileSchema`）。
-         *     僅帳號本人可存取，不對外公開，也不傳送給 AI。
-         */
-        get: operations["getCurrentAccountProfile"];
-        /**
-         * 更新個人資料表
-         * @description 更新當前帳號的私人結構化資料。以 merge 方式更新 — 僅覆蓋傳入的欄位，
-         *     未傳入的欄位保持不變。設定欄位值為 `null` 可刪除該欄位。
-         *     可選傳入 `profileSchema` 手動定義欄位結構；若未傳入，系統自動維護。
-         */
-        put: operations["updateCurrentAccountProfile"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounts/me/todos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得個人所有待辦事項
-         * @description 取得當前帳號在所有專案中被指派的待辦事項，支援 cursor 分頁。
-         *     可依專案、狀態、截止日期篩選。
-         */
-        get: operations["getCurrentAccountTodos"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounts/me/notifications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得通知列表
-         * @description 取得當前帳號的通知列表，依建立時間倒序排列。
-         *     支援 cursor 分頁，可依已讀狀態與專案篩選。
-         */
-        get: operations["getCurrentAccountNotifications"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 列出使用者的組織
-         * @description 列出當前帳號所屬的所有組織。回傳組織基本資訊與使用者在各組織中的角色。
-         */
-        get: operations["listOrganizations"];
-        put?: never;
-        /**
-         * 建立組織
-         * @description 建立新的組織。建立者自動成為組織擁有者（`org_owner`），
-         *     同時在 `organization_members` 中新增對應記錄。
-         */
-        post: operations["createOrganization"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得組織詳細資訊
-         * @description 取得指定組織的詳細資訊。使用者必須是該組織的成員。
-         */
-        get: operations["getOrganization"];
-        /**
-         * 更新組織資訊
-         * @description 更新組織的基本資訊（名稱、描述、Logo）。
-         *     僅組織擁有者（`org_owner`）與組織管理者（`org_admin`）可操作。
-         */
-        put: operations["updateOrganization"];
-        post?: never;
-        /**
-         * 刪除組織（軟刪除）
-         * @description 軟刪除組織。刪除前應確認無進行中的專案。
-         *     僅組織擁有者（`org_owner`）可操作。
-         */
-        delete: operations["deleteOrganization"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出組織成員
-         * @description 列出指定組織的所有成員，包含各成員的角色。
-         *     使用者必須是該組織的成員。
-         */
-        get: operations["listOrganizationMembers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/members/invite": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 邀請成員加入組織
-         * @description 透過 Email 邀請成員加入組織。若該 Email 已有帳號，直接加入組織；
-         *     若尚無帳號，寄送邀請信，註冊後自動加入。
-         *     僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
-         */
-        post: operations["inviteOrganizationMember"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/members/{memberId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-                /** @description 組織成員 ID */
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 更新組織成員角色
-         * @description 更新組織成員的角色。僅組織擁有者（`org_owner`）可操作。
-         *     不可將最後一位擁有者降級。
-         */
-        put: operations["updateOrganizationMember"];
-        post?: never;
-        /**
-         * 移除組織成員
-         * @description 從組織中移除成員（直接刪除 `organization_members` 記錄）。
-         *     僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
-         *     不可移除最後一位擁有者。
-         */
-        delete: operations["removeOrganizationMember"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 還原已刪除的組織
-         * @description 還原軟刪除的組織，清除 `deletedAt` 時間戳。
-         *     僅組織擁有者（`org_owner`）可操作。
-         */
-        post: operations["restoreOrganization"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/contacts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出組織聯絡人
-         * @description 列出指定組織下的所有聯絡人，支援分頁與搜尋。
-         *     使用者必須是該組織的成員。
-         */
-        get: operations["listContacts"];
-        put?: never;
-        /**
-         * 建立外部聯絡人
-         * @description 在指定組織下建立新的外部聯絡人。
-         *     Contact 屬於組織層級，同一組織內的所有專案共用。
-         *     使用者必須是該組織的成員。
-         */
-        post: operations["createContact"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/contacts/{contactId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-                /** @description 聯絡人 ID */
-                contactId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得聯絡人詳細資訊
-         * @description 取得指定聯絡人的詳細資訊，包含在各專案中被指派的成員標籤。
-         *     使用者必須是該組織的成員。
-         */
-        get: operations["getContact"];
-        /**
-         * 更新聯絡人資訊
-         * @description 更新聯絡人的基本資訊（名稱、Email）。
-         *     使用者必須是該組織的成員。
-         */
-        put: operations["updateContact"];
-        post?: never;
-        /**
-         * 刪除聯絡人（軟刪除）
-         * @description 軟刪除聯絡人。已合併的聯絡人不使用此操作（透過 `mergedIntoId` 追蹤）。
-         *     僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
-         */
-        delete: operations["deleteContact"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/contacts/merge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 合併聯絡人
-         * @description 將多個聯絡人合併為一個主要聯絡人。合併操作：
-         *     1. 保留 `targetId` 作為主要聯絡人
-         *     2. 將 `sourceIds` 中各聯絡人的 `mergedIntoId` 設定為 `targetId`
-         *     3. 歸併所有對話記錄、成員標籤指派到主要聯絡人
+         * List members of an organization.
+         * @description # Errors
          *
-         *     合併在組織層級操作，影響該組織內所有專案。
-         *     被合併的聯絡人不會被軟刪除，透過 `mergedIntoId` 追蹤。
-         *
-         *     僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["mergeContacts"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/contacts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出專案相關聯絡人
-         * @description 列出與指定專案相關的聯絡人（透過成員標籤指派關聯至該專案的 Contact）。
-         *     可選擇是否包含各 Contact 在該專案中的標籤指派資訊。
-         *     使用者必須是該專案的成員。
-         */
-        get: operations["listProjectContacts"];
+        get: operations["list_members"];
         put?: never;
         post?: never;
         delete?: never;
@@ -606,1515 +392,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{orgId}/tool-configs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 列出組織工具設定
-         * @description 列出該組織的所有工具設定。組織層級的工具設定可被旗下專案繼承或覆寫。
-         *     僅組織擁有者可存取。
-         */
-        get: operations["listOrgToolConfigs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出組織專案
-         * @description 列出指定組織下的所有專案。使用者必須是該組織的成員。
-         *     可依專案狀態篩選。
-         */
-        get: operations["listOrganizationProjects"];
-        put?: never;
-        /**
-         * 建立專案
-         * @description 在指定組織下建立新專案。建立者自動成為專案擁有者（`owner`）。
-         *     僅組織擁有者（`org_owner`）與管理者（`org_admin`）可操作。
-         */
-        post: operations["createProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/projects/copy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 複製專案
-         * @description 從同組織內的現有專案複製建立新專案。僅該專案的現有成員可操作。
-         *     複製時操作者自動成為新專案的擁有者（`owner`）。
-         *
-         *     Phase 2 僅複製專案基本資料（name, description, status 重設為 preparing）。完整複製（member_tags, task_templates, memories, tool_configs, permission_settings）於 Phase 12 實作。
-         *     不複製項目：成員、任務實例、聯絡人標籤指派、資料表資料。
-         */
-        post: operations["copyProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得專案詳細資訊
-         * @description 取得指定專案的詳細資訊。使用者必須是該專案的成員。
-         */
-        get: operations["getProject"];
-        /**
-         * 更新專案資訊
-         * @description 更新專案的基本資訊（名稱、描述）。
-         *     僅專案擁有者（`owner`）可操作。
-         */
-        put: operations["updateProject"];
-        post?: never;
-        /**
-         * 刪除專案（軟刪除）
-         * @description 軟刪除專案。僅專案擁有者（`owner`）可操作。
-         */
-        delete: operations["deleteProject"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 更新專案狀態
-         * @description 更新專案狀態。狀態轉換規則：
-         *     - `preparing` → `active`
-         *     - `active` → `completed` 或 `archived`
-         *     - `completed` → `archived`
-         *     - `archived` 為終態，不可再變更
-         *
-         *     僅專案擁有者（`owner`）可操作。
-         */
-        put: operations["updateProjectStatus"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/permission-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得專案權限設定
-         * @description 取得專案的權限設定，包含任務可見性、工具權限、記憶可見性、資料存取等設定。
-         *     僅專案擁有者（`owner`）可操作。
-         */
-        get: operations["getProjectPermissionSettings"];
-        /**
-         * 更新專案權限設定
-         * @description 更新專案的權限設定。以完整取代方式更新 — 傳入完整的權限設定物件。
-         *     僅專案擁有者（`owner`）可操作。
-         */
-        put: operations["updateProjectPermissionSettings"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得專案統計資料
-         * @description 取得專案的統計儀表板資料，包含任務數量、待辦事項完成率、
-         *     成員數量、最近活動等摘要資訊。
-         */
-        get: operations["getProjectStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/reminders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出專案排程提醒
-         * @description 取得專案下所有已排程的提醒列表，包含待辦事項到期提醒、
-         *     逾期提醒等。支援依狀態篩選（已觸發/未觸發）。
-         */
-        get: operations["listProjectReminders"];
-        put?: never;
-        /**
-         * 建立專案提醒
-         * @description 在專案中建立新的排程提醒，可關聯到特定待辦事項。
-         *     支援到期提醒、逾期提醒等類型。
-         */
-        post: operations["createProjectReminder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/reminders/{reminderId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 提醒 ID */
-                reminderId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 刪除專案提醒
-         * @description 刪除指定的排程提醒。已觸發的提醒也可刪除（僅移除排程記錄）。
-         */
-        delete: operations["deleteProjectReminder"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 還原已刪除的專案
-         * @description 還原軟刪除的專案，清除 `deletedAt` 時間戳。
-         *     僅專案擁有者（`owner`）或組織擁有者（`org_owner`）可操作。
-         */
-        post: operations["restoreProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/members/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 自行退出專案
-         * @description 目前登入的成員自行退出指定專案。
-         *
-         *     限制：
-         *     - 專案擁有者（owner）無法自行退出，需先轉移擁有權
-         *     - 退出後將無法存取該專案的任何資源
-         */
-        delete: operations["leaveProject"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出專案成員
-         * @description 列出指定專案的所有成員，包含各成員的角色與成員標籤。
-         *     使用者必須是該專案的成員。
-         */
-        get: operations["listProjectMembers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/members/invite": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 邀請成員加入專案
-         * @description 邀請組織成員加入專案。被邀請者必須已是該組織的成員。
-         *     僅專案擁有者（`owner`）與標籤管理者（`tag_admin`）可操作。
-         *     可同時指定初始角色與成員標籤。
-         */
-        post: operations["inviteProjectMember"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/members/{memberId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 專案成員 ID */
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得專案成員詳細資訊
-         * @description 取得指定專案成員的詳細資訊，包含角色、成員標籤、公開資料等。
-         *     使用者必須是該專案的成員。
-         */
-        get: operations["getProjectMember"];
-        /**
-         * 更新專案成員角色
-         * @description 更新專案成員的角色。僅專案擁有者（`owner`）可操作。
-         *     不可將最後一位專案擁有者降級。
-         */
-        put: operations["updateProjectMember"];
-        post?: never;
-        /**
-         * 移除專案成員（軟刪除）
-         * @description 從專案中移除成員（軟刪除）。移除後帳號可重新加入專案。
-         *     僅專案擁有者（`owner`）可操作。不可移除最後一位擁有者。
-         */
-        delete: operations["removeProjectMember"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/member-tags": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出成員標籤
-         * @description 列出指定專案的所有成員標籤。
-         *     使用者必須是該專案的成員。
-         */
-        get: operations["listMemberTags"];
-        put?: never;
-        /**
-         * 建立成員標籤
-         * @description 在指定專案中建立新的成員標籤（如組別、角色）。
-         *     任何專案角色皆可建立成員標籤。
-         */
-        post: operations["createMemberTag"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/member-tags/{tagId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得成員標籤詳細資訊
-         * @description 取得指定成員標籤的詳細資訊，包含指派的成員與聯絡人列表、
-         *     外部建立任務設定等。使用者必須是該專案的成員。
-         */
-        get: operations["getMemberTag"];
-        /**
-         * 更新成員標籤
-         * @description 更新成員標籤的名稱與描述。
-         *     僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
-         */
-        put: operations["updateMemberTag"];
-        post?: never;
-        /**
-         * 刪除成員標籤（軟刪除）
-         * @description 軟刪除成員標籤。刪除後該標籤的所有指派記錄仍保留，
-         *     但不再出現於查詢結果中。
-         *     僅專案擁有者（`owner`）可操作。
-         */
-        delete: operations["deleteMemberTag"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/member-tags/{tagId}/assign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 指派成員或聯絡人到標籤
-         * @description 將一位成員（Member）或聯絡人（Contact）指派到指定的成員標籤。
-         *     必須提供 `memberId` 或 `contactId` 其中之一。
-         *     不可重複指派同一成員或聯絡人到同一標籤。
-         *
-         *     僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
-         */
-        post: operations["assignMemberTag"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/member-tags/{tagId}/assignments/{assignmentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-                /** @description 指派記錄 ID */
-                assignmentId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 取消標籤指派
-         * @description 取消成員或聯絡人的標籤指派（直接刪除 `member_tag_assignments` 記錄）。
-         *     僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
-         */
-        delete: operations["removeTagAssignment"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/member-tags/{tagId}/external-task-creation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 更新外部建立任務設定
-         * @description 更新成員標籤的外部建立任務設定（`externalTaskCreation`）。
-         *     定義哪些自身擁有的任務模板，允許由哪些其他成員標籤的成員建立任務。
-         *     以完整取代方式更新。
-         *
-         *     僅專案擁有者（`owner`）與該標籤的管理者（`tag_admin`）可操作。
-         */
-        put: operations["updateExternalTaskCreation"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/task-templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出任務模板
-         * @description 列出專案中的任務模板，依據使用者的成員標籤進行過濾。
-         *
-         *     - 成員僅可看到其所屬成員標籤擁有的任務模板
-         *     - 專案擁有者可看到所有任務模板
-         *     - 支援游標分頁
-         */
-        get: operations["listTaskTemplates"];
-        put?: never;
-        /**
-         * 建立任務模板
-         * @description 在指定專案中建立新的任務模板。
-         *
-         *     - 任何專案角色皆可建立任務模板
-         *     - 專案擁有者可將任務模板設定屬於任意成員標籤
-         *     - 其他角色建立的任務模板僅能設定屬於自己所擁有的成員標籤
-         */
-        post: operations["createTaskTemplate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/task-templates/{templateId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得任務模板詳情
-         * @description 取得指定任務模板的完整資訊，包含待辦事項模板（todoTemplates）與資料表定義（dataSchemas）。
-         */
-        get: operations["getTaskTemplate"];
-        /**
-         * 更新任務模板
-         * @description 更新任務模板的名稱、描述、所屬成員標籤等基本資訊。
-         *
-         *     - 專案擁有者可更新任意任務模板
-         *     - 標籤管理者可更新所管理標籤的任務模板
-         */
-        put: operations["updateTaskTemplate"];
-        post?: never;
-        /**
-         * 刪除任務模板（軟刪除）
-         * @description 軟刪除任務模板，設定 `deletedAt` 時間戳。已建立的任務不受影響。
-         */
-        delete: operations["deleteTaskTemplate"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/task-templates/{templateId}/todo-templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 新增待辦事項模板
-         * @description 在任務模板中新增一個待辦事項模板。可設定子待辦事項模板（最多一層）。
-         */
-        post: operations["addTodoTemplate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/task-templates/{templateId}/todo-templates/{todoTemplateId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 待辦事項模板 ID */
-                todoTemplateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 更新待辦事項模板
-         * @description 更新待辦事項模板的名稱、描述、排序、子待辦事項模板等。
-         */
-        put: operations["updateTodoTemplate"];
-        post?: never;
-        /**
-         * 刪除待辦事項模板
-         * @description 刪除待辦事項模板。已從此模板實例化的待辦事項不受影響。
-         */
-        delete: operations["deleteTodoTemplate"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/task-templates/{templateId}/data-schemas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 新增資料表定義
-         * @description 在任務模板中新增一個資料表定義（DataSchema），定義任務需蒐集的結構化資料欄位。
-         */
-        post: operations["addDataSchema"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/task-templates/{templateId}/data-schemas/{schemaId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 更新資料表定義
-         * @description 更新資料表定義的名稱或欄位結構。
-         *
-         *     注意：修改欄位結構可能影響已存在的資料列，建議謹慎操作。
-         *     移除欄位不會刪除已填寫的資料，但該欄位將不再顯示於資料表中。
-         */
-        put: operations["updateDataSchema"];
-        post?: never;
-        /**
-         * 刪除資料表定義
-         * @description 刪除資料表定義。已填寫的資料列不會被刪除，但將不再顯示於資料表中。
-         */
-        delete: operations["deleteDataSchema"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/task-templates/{templateId}/data-sheet": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 查看聚合資料表
-         * @description 查看任務模板下所有任務的聚合資料列。
-         *
-         *     以任務模板為單位，彙整所有任務的資料列，方便總覽與統計
-         *     （如所有贊助商的聯絡狀態一覽）。
-         *
-         *     支援依資料表定義（schemaId）篩選，以及游標分頁。
-         */
-        get: operations["getTaskTemplateDataSheet"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/tasks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出任務
-         * @description 列出專案中的任務，可依狀態、成員標籤、參與身份進行篩選。
-         *
-         *     - 一般成員僅可查看自己作為參與人（participants）的任務
-         *     - 標籤管理者可查看所管理標籤下的所有任務（若具備 canViewAllTagTasks 權限）
-         *     - 專案擁有者可查看所有任務
-         *     - 支援游標分頁
-         */
-        get: operations["listTasks"];
-        put?: never;
-        /**
-         * 建立任務
-         * @description 從任務模板建立新任務，需指定歸屬的成員標籤（ownerTag）。
-         *
-         *     - 系統自動從模板實例化待辦事項與資料表結構
-         *     - 建立者自動成為任務參與人
-         *     - 可建立自身成員標籤的任務，也可建立其他組別允許外部建立的任務（依 externalTaskCreation 設定）
-         *     - 建立成功後觸發 `task_created` 事件，啟動 AI 建議流程
-         */
-        post: operations["createTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/tasks/{taskId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得任務詳情
-         * @description 取得指定任務的完整資訊，包含參與人列表、關聯任務、待辦進度摘要等。
-         */
-        get: operations["getTask"];
-        /**
-         * 更新任務
-         * @description 更新任務的名稱與描述。狀態更新請使用專用的狀態端點。
-         */
-        put: operations["updateTask"];
-        post?: never;
-        /**
-         * 刪除任務（軟刪除）
-         * @description 軟刪除任務，設定 `deletedAt` 時間戳。任務對話與相關資料保留但不可存取。
-         */
-        delete: operations["deleteTask"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/tasks/{taskId}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 更新任務狀態
-         * @description 更新任務的狀態。狀態轉換規則：
-         *
-         *     - `pending` → `in_progress`：當任務有實質活動時自動轉換，也可手動觸發
-         *     - `in_progress` → `completed`：所有待辦事項皆已完成後，由參與人手動標記
-         *     - 任何狀態 → `cancelled`：由參與人手動標記
-         *
-         *     標記為 `completed` 時，若有未完成的待辦事項，將回傳 409 錯誤。
-         */
-        put: operations["updateTaskStatus"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 還原已刪除的任務
-         * @description 還原軟刪除的任務，清除 `deletedAt` 時間戳。
-         *     還原後任務恢復為刪除前的狀態，對話與相關資料重新可存取。
-         */
-        post: operations["restoreTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/conversation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得對話訊息
-         * @description 取得任務對話的訊息列表，使用游標分頁，預設由新到舊排列。
-         *
-         *     對話是任務的完整時間線記錄，包含：
-         *     - 成員發言（Web 介面留言與 Email 來信）
-         *     - AI 建議（結構化建議卡片）
-         *     - 工具執行結果（待辦事項變化、資料表變化等）
-         *     - 系統事件（狀態變更、跨任務通知等）
-         */
-        get: operations["getConversation"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/conversation/messages": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 發送訊息
-         * @description 在任務對話中發送訊息。
-         *
-         *     須附帶 `lastSeenMessageId` 進行已讀保護驗證：
-         *     - 若 `lastSeenMessageId` 不等於對話中實際的最後一則訊息 ID，拒絕操作並回傳 409，
-         *       要求使用者先閱讀最新訊息後再操作
-         *     - 通過驗證後，訊息正常記錄到對話中
-         *
-         *     發送成功後觸發 `message_sent` 事件，啟動 AI 建議流程。
-         *
-         *     支援 `@member` 和 `@tag` 標記，系統自動發送通知給被標記的成員。
-         */
-        post: operations["sendMessage"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/conversation/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * CRDT 同步端點
-         * @description CRDT 狀態同步端點。客戶端傳送自身的 state vector，
-         *     伺服器回傳自該 vector 之後的所有更新。
-         *
-         *     用於：
-         *     - 初次載入時取得完整狀態
-         *     - 離線重新連線後同步差異
-         *     - 作為 WebSocket 不可用時的降級方案
-         */
-        post: operations["syncConversation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/conversation/ws-token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 取得 WebSocket 連線用一次性 token
-         * @description 產生一次性 token 用於 WebSocket 連線認證。
-         *     Token 有效期 30 秒，使用後即失效。
-         *     前端取得 token 後，以 query parameter 方式連線：
-         *     `ws://host/api/v1/tasks/{taskId}/conversation/ws?token={token}`
-         */
-        post: operations["createConversationWsToken"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/conversation/ws": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 即時對話 WebSocket
-         * @description WebSocket 連線，提供任務對話的即時雙向同步。
-         *
-         *     連線建立後支援 CRDT 即時同步與 Awareness 協定（presence / cursor tracking）。
-         *
-         *     **認證方式**：不使用 Authorization Header（瀏覽器原生 WebSocket API 不支援自定義 Header）。
-         *     認證完全依賴 query parameter `token`（一次性 token，透過 REST API `POST /tasks/{taskId}/conversation/ws-token` 取得）。
-         */
-        get: operations["conversationWebSocket"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/conversation/attachments/{attachmentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 附件 ID */
-                attachmentId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得附件
-         * @description 取得對話訊息的附件。伺服器回傳 302 重導向至預簽署的下載 URL。
-         *
-         *     預簽署 URL 有效期為 15 分鐘。
-         */
-        get: operations["getAttachment"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/todos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出待辦事項
-         * @description 列出任務的所有待辦事項，包含子待辦事項與指派成員資訊。
-         *     回傳結果依 sortOrder 排序。
-         */
-        get: operations["listTodos"];
-        put?: never;
-        /**
-         * 建立待辦事項
-         * @description 在任務中建立新的臨時待辦事項（ad_hoc 類型）。
-         *
-         *     任務的所有參與人（participants）皆可建立待辦事項。
-         *     建立結果自動記錄到任務對話中。
-         */
-        post: operations["createTodo"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/todos/{todoId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 取得待辦事項詳情
-         * @description 取得指定待辦事項的完整資訊，包含子待辦、指派成員、關聯任務等。
-         */
-        get: operations["getTodo"];
-        /**
-         * 更新待辦事項
-         * @description 更新待辦事項的標題、描述、截止日期、排序等屬性。
-         *     狀態更新請使用專用的狀態端點。
-         *
-         *     變化自動記錄到任務對話中。
-         */
-        put: operations["updateTodo"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/todos/{todoId}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 更新待辦事項狀態
-         * @description 標記待辦事項為完成或重新開啟。
-         *
-         *     驗證規則：
-         *     - 若待辦事項有 `linkedTask` 關聯任務，僅當該關聯任務狀態為 `completed` 時才可標記為完成
-         *     - 子待辦事項全部完成時，不會自動完成父待辦事項，需手動確認
-         *     - 標記完成後觸發 `todo_completed` 事件，啟動 AI 建議流程
-         */
-        put: operations["updateTodoStatus"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/todos/{todoId}/assignees": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 指派成員
-         * @description 將一或多位成員指派到待辦事項。
-         *
-         *     指派後：
-         *     - 被指派者自動成為任務參與人
-         *     - 系統發送 `todo_assigned` 通知給被指派者
-         *     - 變化記錄到任務對話中
-         */
-        post: operations["assignTodoMembers"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/todos/{todoId}/assignees/{memberId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-                /** @description 成員 ID */
-                memberId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 取消指派成員
-         * @description 從待辦事項中移除指派的成員。
-         *
-         *     注意：取消指派不會自動移除該成員的任務參與人身份
-         *     （參與人身份由多種來源決定）。
-         */
-        delete: operations["unassignTodoMember"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/todos/{todoId}/link": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 關聯待辦事項到另一個任務
-         * @description 將待辦事項關聯到另一個任務，用於跨組協作。
-         *
-         *     關聯後：
-         *     - 待辦事項的 `linkedTask` 指向目標任務
-         *     - 來源任務的 `linkedTasks` 同步更新
-         *     - 僅當關聯任務完成（`completed`）時，此待辦才可被標記為完成
-         *     - 關聯任務狀態變更時，來源任務對話會收到系統通知
-         */
-        post: operations["linkTodoToTask"];
-        /**
-         * 解除待辦事項的任務關聯
-         * @description 解除待辦事項與關聯任務的連結。
-         *
-         *     解除後，此待辦事項不再受關聯任務的完成狀態限制。
-         */
-        delete: operations["unlinkTodoFromTask"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/data-entries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出任務的資料列
-         * @description 列出任務的所有資料列，依據任務模板定義的資料表結構（DataSchema）組織。
-         *
-         *     每個 DataSchema 對應一筆資料列，包含各欄位的實際值。
-         */
-        get: operations["listDataEntries"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/data-entries/{schemaId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 新增或更新資料列
-         * @description 新增或更新任務中指定 DataSchema 的資料列（JSONB values）。
-         *
-         *     - 若該 schema 尚無資料列，則建立新的資料列
-         *     - 若已有資料列，則合併更新（僅更新提供的欄位，未提供的欄位保持不變）
-         *     - 值的格式需符合 DataSchema 中定義的欄位類型與限制
-         *     - 變化自動記錄到任務對話中（tool_execution 類型）
-         */
-        put: operations["upsertDataEntry"];
-        post?: never;
-        /**
-         * 刪除資料列
-         * @description 刪除任務中指定 DataSchema 的資料列。
-         *     刪除操作記錄到任務對話中。
-         */
-        delete: operations["deleteDataEntry"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/data-entries/{schemaId}/share": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 來源任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 來源資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 分享資料到另一個任務
-         * @description 將當前任務資料表中指定欄位的資料，複製到目標任務的資料表中（shareDataToTask）。
-         *
-         *     - 目標任務需有對應的 DataSchema 可接收
-         *     - 複製時建立來源關聯（sourceLink），當來源資料變更時，目標任務對話會收到變更通知
-         *     - 目標任務成員可決定是否同步更新
-         *     - 操作記錄在雙方的任務對話中
-         */
-        post: operations["shareDataToTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task-templates/{templateId}/data-sheet/{schemaId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 查看聚合資料表（依 schema）
-         * @description 查看指定任務模板下，特定 DataSchema 的所有任務資料列聚合檢視。
-         *
-         *     以任務模板為單位，彙整所有任務的資料列，方便總覽與統計。
-         *     例如查看所有贊助商的聯絡狀態。
-         *
-         *     支援游標分頁與排序。
-         */
-        get: operations["getAggregatedDataSheet"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/projects/{projectId}/task-templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * （外部）列出任務模板
-         * @description 供外部系統查詢專案中的任務模板列表。
-         *
-         *     使用專案層級的 API Key 進行認證，僅提供唯讀存取。
-         *     回傳任務模板的基本資訊與資料表定義結構。
-         */
-        get: operations["externalListTaskTemplates"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/projects/{projectId}/task-templates/{templateId}/data": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * （外部）查詢任務模板聚合資料
-         * @description 供外部系統查詢任務模板下所有任務的聚合資料列。
-         *
-         *     以任務模板為單位，回傳所有任務的資料列，供外部系統串接使用。
-         *     可依 schemaId 篩選特定資料表定義的資料。
-         */
-        get: operations["externalGetTemplateData"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/projects/{projectId}/tasks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * （外部）列出任務與狀態
-         * @description 供外部系統查詢專案中的任務列表，包含任務狀態與基本資訊。
-         */
-        get: operations["externalListTasks"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/projects/{projectId}/tasks/{taskId}/data": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * （外部）查詢任務資料列
-         * @description 供外部系統查詢特定任務的資料列，包含所有 DataSchema 的資料。
-         */
-        get: operations["externalGetTaskData"];
-        /**
-         * （外部）更新任務資料列
-         * @description 供外部系統更新特定任務的資料列。
-         *
-         *     更新成功後會觸發 `SourceDataChanged` DomainEvent，進而觸發 AI 建議。
-         *     需要具備 `write` scope 的 API Key。
-         *     傳入的 values 會根據對應的 DataSchema 進行欄位類型與約束驗證。
-         */
-        put: operations["externalUpdateTaskData"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/tools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 列出可用工具
-         * @description 依據目前使用者的權限，列出該專案中所有可用的執行工具。
-         *     包含核心工具（全域可用）、已啟用的內建工具、以及第三方 MCP 工具。
-         *     回傳的工具列表已過濾不可存取的工具。
-         */
-        get: operations["listTools"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/tools/{toolName}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得工具詳細資訊
-         * @description 取得指定工具的詳細定義，包含 MCP tool definition 格式的
-         *     參數結構（inputSchema）、回傳結構、使用說明等。
-         */
-        get: operations["getToolDetails"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/tools/{toolName}/execute": {
+    "/api/v1/organizations/{orgId}/members/invite": {
         parameters: {
             query?: never;
             header?: never;
@@ -2124,47 +402,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 執行工具
-         * @description 執行指定工具。寫入工具需經人類確認後才實際執行（透過 AI 建議流程時由建議決策觸發，
-         *     手動執行時直接送出）。查詢工具不需確認即可執行。
+         * Invite a new member to an organization by email.
+         * @description # Errors
          *
-         *     `lastSeenMessageId` 用於對話同步驗證：伺服器檢查使用者是否已看到最新對話訊息，
-         *     若有未讀訊息則拒絕操作，確保決策品質。
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["executeTool"];
+        post: operations["invite_member"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/projects/{projectId}/tool-configs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 列出專案工具設定
-         * @description 列出該專案的所有工具設定，包含內建工具的啟用狀態與設定，
-         *     以及第三方 MCP Server 的連線設定。僅專案擁有者可存取。
-         */
-        get: operations["listProjectToolConfigs"];
-        put?: never;
-        /**
-         * 建立專案工具設定
-         * @description 在專案中建立新的工具設定。可為內建工具設定啟用與參數，
-         *     或新增第三方 MCP Server 連線。
-         */
-        post: operations["createProjectToolConfig"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/tool-configs/{configId}": {
+    "/api/v1/organizations/{orgId}/members/{memberId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2173,203 +423,26 @@ export interface paths {
         };
         get?: never;
         /**
-         * 更新專案工具設定
-         * @description 更新指定的工具設定，包含啟用/停用狀態、連線參數等。
-         */
-        put: operations["updateProjectToolConfig"];
-        post?: never;
-        /**
-         * 刪除專案工具設定
-         * @description 刪除指定的工具設定。刪除後該工具在專案中將不再可用
-         *     （除非組織層級有設定且專案繼承）。
-         */
-        delete: operations["deleteProjectToolConfig"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 查詢記憶列表
-         * @description 查詢記憶條目，可依 `scopeType`、`scopeId` 過濾作用域，
-         *     或以 `search` 進行全文搜尋。回傳記憶摘要（`content`），
-         *     不含記憶庫文件完整內容。
-         */
-        get: operations["listMemories"];
-        put?: never;
-        /**
-         * 建立記憶
-         * @description 建立新的記憶條目。需指定作用域（`scopeType` + `scopeId`）與摘要內容。
-         *     可選擇性地關聯記憶庫文件（`libraryRef`）。
-         *     建立者需對該作用域具備寫入權限。
-         */
-        post: operations["createMemory"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memories/{memoryId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得記憶詳情
-         * @description 取得指定記憶的完整資訊，包含摘要內容、來源、
-         *     關聯的記憶庫文件參考等。
-         */
-        get: operations["getMemory"];
-        /**
-         * 更新記憶
-         * @description 更新記憶的摘要內容或記憶庫文件參考。
-         *     更新會產生新的版本記錄。
-         */
-        put: operations["updateMemory"];
-        post?: never;
-        /**
-         * 刪除記憶（軟刪除）
-         * @description 軟刪除指定記憶。刪除後記憶不再出現在查詢結果中，
-         *     也不再納入 AI 建議的上下文，但資料仍保留供審計。
-         */
-        delete: operations["deleteMemory"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memories/{memoryId}/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得記憶版本歷史
-         * @description 取得指定記憶的所有版本歷史，可追蹤記憶內容的修改過程。
-         */
-        get: operations["listMemoryVersions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/library-documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 查詢記憶庫文件
-         * @description 查詢記憶庫文件列表，可依作用域過濾。
-         *     回傳文件摘要（不含完整內容），需取得完整內容請使用單筆查詢。
-         */
-        get: operations["listLibraryDocuments"];
-        put?: never;
-        /**
-         * 建立記憶庫文件
-         * @description 建立新的記憶庫文件。文件歸屬於指定的作用域層級，
-         *     可被該作用域下的記憶條目透過 `libraryRef` 參考。
-         */
-        post: operations["createLibraryDocument"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/library-documents/{docId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得記憶庫文件（含完整內容）
-         * @description 取得指定記憶庫文件的完整內容，包含標題、完整文字內容等。
-         */
-        get: operations["getLibraryDocument"];
-        /**
-         * 更新記憶庫文件
-         * @description 更新記憶庫文件的標題或內容。更新會產生新的版本記錄。
-         */
-        put: operations["updateLibraryDocument"];
-        post?: never;
-        /**
-         * 刪除記憶庫文件（軟刪除）
-         * @description 軟刪除指定文件。刪除後參考此文件的記憶條目的 `libraryRef` 仍保留，
-         *     但查詢文件內容時會標示為已刪除。
-         */
-        delete: operations["deleteLibraryDocument"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/library-documents/{docId}/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得文件版本歷史
-         * @description 取得指定記憶庫文件的所有版本歷史，可追蹤文件內容的修改過程。
-         */
-        get: operations["listLibraryDocumentVersions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/memory-chain": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得任務的記憶繼承鏈
-         * @description 取得指定任務的完整記憶繼承鏈，沿著任務的 `ownerTag` 繼承路徑收集所有相關記憶：
+         * Update a member's role within an organization.
+         * @description # Errors
          *
-         *     帳號記憶 (Account) → 組織記憶 (Organization) → 專案記憶 (Project)
-         *     → ownerTag 記憶 (MemberTag) → 任務模板記憶 (TaskTemplate) → 任務記憶 (Task)
+         *     Returns `ProblemDetails` on failure.
+         */
+        put: operations["update_member_role"];
+        post?: never;
+        /**
+         * Remove a member from an organization.
+         * @description # Errors
          *
-         *     帳號記憶為當前操作帳號的個人記憶，獨立於 ownerTag 繼承鏈。
-         *     各層級的記憶按 scope 分組回傳。
+         *     Returns `ProblemDetails` on failure.
          */
-        get: operations["getTaskMemoryChain"];
-        put?: never;
-        post?: never;
-        delete?: never;
+        delete: operations["remove_member"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/notifications": {
+    "/api/v1/organizations/{orgId}/projects": {
         parameters: {
             query?: never;
             header?: never;
@@ -2377,223 +450,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 列出通知
-         * @description 列出當前使用者的通知，支援游標分頁。
-         *     可依已讀/未讀狀態與通知類型過濾。
-         *     通知按時間降冪排序（最新優先）。
-         */
-        get: operations["listNotifications"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/notifications/{notificationId}/read": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 標記通知為已讀
-         * @description 將指定通知標記為已讀。
-         */
-        put: operations["markNotificationRead"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/notifications/read-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * 全部標記為已讀
-         * @description 將當前使用者的所有未讀通知標記為已讀。
-         *     可選擇性地只標記特定專案的通知。
-         */
-        put: operations["markAllNotificationsRead"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/notifications/unread-count": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得未讀通知數量
-         * @description 取得當前使用者的未讀通知數量，用於顯示通知徽章。
-         *     可依專案過濾。
-         */
-        get: operations["getUnreadNotificationCount"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounts/me/notification-preferences": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得通知偏好設定
-         * @description 取得當前使用者的通知偏好設定，包含各通知類型的推送管道設定。
-         */
-        get: operations["getNotificationPreferences"];
-        /**
-         * 更新通知偏好設定
-         * @description 更新當前使用者的通知偏好設定。
-         *     僅需傳入要修改的部分，未傳入的設定維持不變。
-         */
-        put: operations["updateNotificationPreferences"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/notifications/web-push/subscribe": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 訂閱 Web Push 通知
-         * @description 註冊 Web Push 訂閱，將瀏覽器的 push subscription 物件送至伺服器。
-         *     一個帳號可擁有多個訂閱（對應不同裝置/瀏覽器）。
-         */
-        post: operations["webPushSubscribe"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/notifications/web-push/subscriptions/{endpoint}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Web Push subscription endpoint URL */
-                endpoint: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 取消 Web Push 訂閱
-         * @description 移除指定的 Web Push 訂閱。取消後該裝置/瀏覽器將不再收到推播通知。
-         */
-        delete: operations["webPushUnsubscribe"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/suggestions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 列出任務的建議群組
-         * @description 列出指定任務的所有 AI 建議群組，支援游標分頁。
-         *     每個建議群組包含 1~5 個建議（Suggestion），
-         *     按觸發時間降冪排序（最新優先）。
-         */
-        get: operations["listSuggestionGroups"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/suggestions/{groupId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得建議群組詳情
-         * @description 取得指定建議群組的完整資訊，包含每個建議的工具名稱、參數、
-         *     AI 推理說明、使用的記憶上下文，以及目前的決策狀態。
-         */
-        get: operations["getSuggestionGroup"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/suggestions/{groupId}/suggestions/{suggestionId}/decide": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 對建議做出決策
-         * @description 對指定的 AI 建議做出決策。每個建議可個別決策：
+         * List projects belonging to an organization.
+         * @description # Errors
          *
-         *     - **`accept`**：直接執行建議的工具呼叫
-         *     - **`modify_and_accept`**：修改參數後執行，需提供 `modifiedParameters`
-         *     - **`reject`**：拒絕建議，可附帶原因
-         *     - **`re_suggest`**：要求 AI 重新生成建議，可附帶額外指示
+         *     Returns `ProblemDetails` on failure.
+         */
+        get: operations["list_projects"];
+        put?: never;
+        /**
+         * Create a new project within an organization.
+         * @description # Errors
          *
-         *     `lastSeenMessageId` 為必要欄位，確保決策者已閱讀最新對話內容。
-         *     採納（accept / modify_and_accept）後會立即執行工具並回傳執行結果。
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["decideSuggestion"];
+        post: operations["create_project"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/tasks/{taskId}/suggestions/request": {
+    "/api/v1/organizations/{orgId}/projects/copy": {
         parameters: {
             query?: never;
             header?: never;
@@ -2603,76 +480,53 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 手動請求 AI 建議
-         * @description 手動觸發 AI 為指定任務生成建議。可附帶額外指示讓 AI 參考。
-         *     通常用於自動觸發未涵蓋的情境，或需要 AI 協助但無自然觸發事件時。
-         */
-        post: operations["requestAISuggestions"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/ai/resolve-placeholders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 解析佔位符為實際資料值
-         * @description 將含有佔位符的文字解析為實際資料值。前端可用此端點預覽 AI 建議中的佔位符
-         *     （如 `{{data.companyName}}`、`{{profile.phone}}`）替換後的真實內容，
-         *     供人類在採納建議前審核。
+         * Copy an existing project into a new project.
+         * @description # Errors
          *
-         *     此端點不修改任何資料，僅執行佔位符解析並回傳結果。
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["resolvePlaceholders"];
+        post: operations["copy_project"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/email/inbound": {
+    "/api/v1/projects/{projectId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * 接收外部來信
-         * @description 接收外部 Email 的 webhook 端點，供收信轉發函式（AWS SES Lambda / Cloudflare Email Worker）
-         *     將收到的原始 MIME 郵件轉送至系統。
+         * Get project details by ID.
+         * @description # Errors
          *
-         *     請求格式：
-         *     - Content-Type: `message/rfc822`（原始 RFC 5322 MIME 格式）
-         *     - Body: 原始郵件的二進位串流
+         *     Returns `ProblemDetails` on failure.
+         */
+        get: operations["get_project"];
+        /**
+         * Update an existing project.
+         * @description # Errors
          *
-         *     處理流程：
-         *     1. 使用 `mail-parser` 解析原始 MIME：提取寄件者、主旨、內容、附件、標頭
-         *     2. 判斷來源身份：Member 來信、Contact 來信、或未知寄件者（自動建立 Contact）
-         *     3. 嘗試匹配任務：優先 Email Header 匹配（In-Reply-To / References）、次要啟發式匹配
-         *     4. 匹配成功：在任務對話中新增訊息，觸發 AI 建議
-         *     5. 匹配失敗：歸入專案的未分類收件匣
+         *     Returns `ProblemDetails` on failure.
+         */
+        put: operations["update_project"];
+        post?: never;
+        /**
+         * Delete a project (soft delete).
+         * @description # Errors
          *
-         *     此端點使用 Bearer Token 驗證請求來源（`EMAIL_INBOUND_API_KEY`），不使用一般使用者 JWT。
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["receiveInboundEmail"];
-        delete?: never;
+        delete: operations["delete_project"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/projects/{projectId}/unassigned-inbox": {
+    "/api/v1/projects/{projectId}/permission-settings": {
         parameters: {
             query?: never;
             header?: never;
@@ -2680,302 +534,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 列出未分類信件
-         * @description 列出指定專案的未分類收件匣中的信件。
-         *     這些信件無法自動匹配到任何任務，需成員手動分配。
-         *     支援游標分頁，按收件時間降冪排序。
-         */
-        get: operations["listUnassignedEmails"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/unassigned-inbox/{emailId}/assign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 將未分類信件指派到任務
-         * @description 將未分類收件匣中的信件指派到指定任務。
-         *     指派後，信件內容會新增至該任務的對話中，並觸發 AI 建議流程。
-         *     同時會嘗試建立或匹配 Email Thread。
-         */
-        post: operations["assignUnassignedEmail"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/email-threads": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 列出任務的 Email 對話串
-         * @description 取得指定任務下的所有 Email 對話串列表。
-         *     每個對話串包含主旨、參與者、最後訊息時間等摘要資訊。
-         *     使用游標分頁，依最後訊息時間由新到舊排列。
-         */
-        get: operations["listEmailThreads"];
-        put?: never;
-        /**
-         * 手動建立 Email 對話串
-         * @description 在任務中手動建立一個新的 Email 對話串。
-         *     用於將外部 Email 通訊手動關聯至任務，或預先建立對話串以便追蹤。
-         */
-        post: operations["createEmailThread"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tasks/{taskId}/email-threads/{threadId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description Email 對話串 ID */
-                threadId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 刪除 Email 對話串
-         * @description 刪除指定的 Email 對話串。對話串中的訊息記錄將一併移除。
-         */
-        delete: operations["deleteEmailThread"];
-        options?: never;
-        head?: never;
-        /**
-         * 更新 Email 對話串資訊
-         * @description 更新 Email 對話串的主旨或參與者等資訊。
-         */
-        patch: operations["updateEmailThread"];
-        trace?: never;
-    };
-    "/projects/{projectId}/webhooks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 列出 Webhook 設定
-         * @description 列出指定專案的所有 Webhook 設定，包含推送端點 URL、
-         *     訂閱的事件類型、啟用狀態等。
-         */
-        get: operations["listWebhooks"];
-        put?: never;
-        /**
-         * 建立 Webhook 設定
-         * @description 在指定專案中建立新的 Webhook 設定。
-         *     需指定推送端點 URL 與訂閱的事件類型。
-         *     系統會自動產生 webhook secret 用於簽章驗證。
-         */
-        post: operations["createWebhook"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/webhooks/{webhookId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 取得 Webhook 詳情
-         * @description 取得指定 Webhook 設定的詳細資訊。
-         *     Secret 欄位以遮蔽形式回傳（如 `whsec_****`）。
-         */
-        get: operations["getWebhook"];
-        /**
-         * 更新 Webhook 設定
-         * @description 更新指定的 Webhook 設定，包含端點 URL、訂閱事件、啟用狀態等。
-         *     無法透過此端點更新 secret，需使用刪除後重建。
-         */
-        put: operations["updateWebhook"];
-        post?: never;
-        /**
-         * 刪除 Webhook（軟刪除）
-         * @description 軟刪除指定的 Webhook 設定。刪除後不再推送事件，
-         *     但歷史推送紀錄仍可查閱。
-         */
-        delete: operations["deleteWebhook"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/webhooks/{webhookId}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 發送測試事件
-         * @description 向指定 Webhook 端點發送一個測試事件，用於驗證端點是否正常接收。
-         *     測試事件會記錄在推送紀錄中，標記為測試類型。
-         */
-        post: operations["testWebhook"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/webhooks/{webhookId}/logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 列出 Webhook 推送紀錄
-         * @description 列出指定 Webhook 的事件推送紀錄，包含推送狀態、回應碼、回應時間等。
-         *     支援游標分頁，按推送時間降冪排序。
-         */
-        get: operations["listWebhookLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/webhooks/inbound/{endpointId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 接收外部系統的 Inbound Webhook 事件
-         * @description 接收外部系統推送的事件（如第三方服務的狀態通知、CI/CD 結果等）。
-         *     系統根據 `endpointId` 路由到對應的專案與任務，
-         *     將事件內容新增至任務對話，並觸發 AI 建議流程。
+         * Get permission settings for a project.
+         * @description # Errors
          *
-         *     請求簽章驗證：使用 `X-Webhook-Signature` header，
-         *     以 HMAC-SHA256 簽章驗證請求內容完整性。
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["receiveInboundWebhook"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/api-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
+        get: operations["get_permission_settings"];
         /**
-         * 列出 API Keys
-         * @description 列出專案的所有 API Keys。
-         *     僅 project owner 或 org_owner 可操作。
-         *     回傳的 key 欄位為遮蔽格式（如 `sk_****abcd`），不顯示完整金鑰。
+         * Update permission settings for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
          */
-        get: operations["listApiKeys"];
-        put?: never;
-        /**
-         * 產生 API Key
-         * @description 產生新的 API Key。
-         *     完整金鑰僅在建立時回傳一次，之後無法再次取得。
-         *     僅 project owner 或 org_owner 可操作。
-         */
-        post: operations["createApiKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}/api-keys/{keyId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description API Key ID */
-                keyId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 撤銷 API Key
-         * @description 撤銷（軟刪除）指定的 API Key。
-         *     撤銷後該 Key 立即失效，無法再用於 API 認證。
-         *     僅 project owner 或 org_owner 可操作。
-         */
-        delete: operations["revokeApiKey"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations/{orgId}/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 查詢組織審計日誌
-         * @description 查詢組織層級的審計日誌，包含組織本身及其下所有專案的操作記錄。
-         *     支援按操作者、動作類型、時間範圍過濾。
-         *     僅 org_owner 或 org_admin 可存取。
-         */
-        get: operations["listOrganizationAuditLogs"];
-        put?: never;
+        put: operations["update_permission_settings"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2983,32 +554,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/projects/{projectId}/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        /**
-         * 查詢專案審計日誌
-         * @description 查詢專案層級的審計日誌，包含專案內所有操作記錄。
-         *     支援按操作者、動作類型、時間範圍過濾。
-         *     僅 project owner 或 org_owner/org_admin 可存取。
-         */
-        get: operations["listProjectAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/files/upload": {
+    "/api/v1/projects/{projectId}/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -3016,42 +562,15 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
         /**
-         * 上傳檔案
-         * @description 上傳檔案到伺服器。支援 multipart/form-data。
-         *     檔案大小限制：50MB。
-         *     回傳檔案 ID 和元資料，可用於訊息附件或資料表欄位。
+         * Update the status of a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
          */
-        post: operations["uploadFile"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/files/{fileId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 檔案 ID */
-                fileId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * 下載檔案
-         * @description 下載指定檔案。回傳 302 重導向到檔案下載 URL。
-         */
-        get: operations["downloadFile"];
-        put?: never;
+        put: operations["update_project_status"];
         post?: never;
-        /**
-         * 刪除檔案
-         * @description 刪除指定檔案。僅檔案上傳者或專案擁有者可操作。
-         */
-        delete: operations["deleteFile"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3064,11 +583,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * 存活探測
-         * @description Kubernetes liveness probe。回傳服務是否存活。
-         */
-        get: operations["healthCheck"];
+        get: operations["healthz"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3084,32 +599,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * 就緒探測
-         * @description Kubernetes readiness probe。檢查服務是否準備好接受請求。
-         *     檢查項目：資料庫連線、必要外部服務。
-         */
-        get: operations["readinessCheck"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/metrics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Prometheus 指標
-         * @description 回傳 Prometheus 格式的應用指標。
-         */
-        get: operations["getMetrics"];
+        get: operations["readyz"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3122,2960 +612,235 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description 游標分頁參數 */
-        CursorPaginationParams: {
-            /** @description 不透明的游標 token，用於取得下一頁資料 */
-            cursor?: string;
-            /**
-             * @description 每頁回傳的項目數量
-             * @default 20
-             */
-            limit: number;
+        AccountResponse: {
+            avatarUrl?: string | null;
+            bio?: string | null;
+            createdAt: string;
+            email: string;
+            /** Format: uuid */
+            id: string;
+            locale: string;
+            name: string;
+            updatedAt: string;
         };
-        /** @description 游標分頁中繼資訊 */
-        CursorPaginationMeta: {
-            /** @description 下一頁的游標 token，若無更多資料則為 null */
-            nextCursor?: string | null;
-            /** @description 是否有更多資料頁 */
-            hasMore: boolean;
-            /** @description 符合條件的項目總數（可選，部分端點為效能考量可能省略） */
-            totalCount?: number;
+        AuthTokenResponse: {
+            accessToken: string;
+            /** Format: int64 */
+            expiresIn: number;
+            tokenType: string;
         };
-        /** @description 錯誤回應，遵循 RFC 7807 Problem Details 規範 */
+        BTreeMap: {
+            [key: string]: boolean;
+        };
+        ChannelPreference: {
+            categories: components["schemas"]["BTreeMap"];
+            enabled: boolean;
+        };
+        CopyProjectRequest: {
+            description?: string | null;
+            name: string;
+            /** Format: uuid */
+            sourceProjectId: string;
+        };
+        CreateOrganizationRequest: {
+            description?: string | null;
+            logoUrl?: string | null;
+            name: string;
+        };
+        CreateProjectRequest: {
+            description?: string | null;
+            name: string;
+        };
+        HealthResponse: {
+            status: string;
+        };
+        InviteMemberRequest: {
+            email: string;
+            role: components["schemas"]["OrgRole"];
+        };
+        InviteMemberResponse: {
+            /** Format: uuid */
+            memberId: string;
+        };
+        MagicLinkRequest: {
+            email: string;
+        };
+        MagicLinkResponse: {
+            message: string;
+        };
+        NotificationChannels: {
+            email: components["schemas"]["ChannelPreference"];
+            inApp: components["schemas"]["ChannelPreference"];
+            webPush: components["schemas"]["ChannelPreference"];
+        };
+        NotificationPreferencesResponse: {
+            channels: components["schemas"]["NotificationChannels"];
+        };
+        OrgMemberListResponse: {
+            members: components["schemas"]["OrgMemberResponse"][];
+        };
+        OrgMemberResponse: {
+            /** Format: uuid */
+            accountId: string;
+            avatarUrl?: string | null;
+            createdAt: string;
+            email: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            role: components["schemas"]["OrgRole"];
+        };
+        /** @enum {string} */
+        OrgRole: "org_owner" | "org_admin" | "org_member";
+        OrganizationListItem: {
+            createdAt: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            logoUrl?: string | null;
+            name: string;
+            role: components["schemas"]["OrgRole"];
+        };
+        OrganizationListResponse: {
+            organizations: components["schemas"]["OrganizationListItem"][];
+        };
+        OrganizationResponse: {
+            createdAt: string;
+            /** Format: uuid */
+            createdBy: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            logoUrl?: string | null;
+            name: string;
+            updatedAt: string;
+        };
+        PasskeyListResponse: {
+            passkeys: components["schemas"]["PasskeyResponse"][];
+        };
+        PasskeyLoginBeginResponse: Record<string, never> & {
+            /** Format: uuid */
+            challenge_id: string;
+        };
+        PasskeyLoginCompleteRequest: {
+            /** Format: uuid */
+            challenge_id: string;
+            credential: Record<string, never>;
+        };
+        PasskeyRegisterCompleteRequest: {
+            credential: Record<string, never>;
+            name?: string;
+        };
+        PasskeyResponse: {
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            lastUsedAt?: string | null;
+            name: string;
+        };
+        PermissionSettingsResponse: {
+            settings: Record<string, never>;
+        };
+        /** @description RFC 7807 Problem Details error response. */
         ProblemDetails: {
+            /** @description Detailed error description. */
+            detail?: string | null;
+            /** @description Field-level validation errors. */
+            errors?: components["schemas"]["ValidationError"][] | null;
+            /** @description URI of the specific resource where the error occurred. */
+            instance?: string | null;
             /**
-             * Format: uri
-             * @description 錯誤類型 URI，用於程式化識別錯誤類別
-             * @example https://api.conf-ops.dev/errors/validation
-             * @example https://api.conf-ops.dev/errors/not-found
-             */
-            type: string;
-            /**
-             * @description 人類可讀的錯誤摘要
-             * @example Validation Error
-             * @example Resource Not Found
-             */
-            title: string;
-            /**
-             * @description HTTP 狀態碼
-             * @example 400
-             * @example 404
-             * @example 409
+             * Format: int32
+             * @description HTTP status code.
              */
             status: number;
-            /** @description 錯誤的詳細說明 */
-            detail?: string;
-            /**
-             * Format: uri
-             * @description 此次錯誤發生的特定資源 URI
-             */
-            instance?: string;
-            /** @description 欄位層級的驗證錯誤列表 */
-            errors?: components["schemas"]["ValidationError"][];
-        };
-        /** @description 單一欄位的驗證錯誤 */
-        ValidationError: {
-            /** @description 發生錯誤的欄位路徑（如 'name', 'config.apiKey'） */
-            field: string;
-            /** @description 人類可讀的錯誤訊息 */
-            message: string;
-            /** @description 錯誤代碼，供程式化處理（如 'required', 'too_long', 'invalid_format'） */
-            code: string;
-        };
-        /** @description 標準時間戳欄位，所有時間皆為 UTC */
-        Timestamps: {
-            /**
-             * Format: date-time
-             * @description 建立時間（UTC）
-             */
-            createdAt?: string;
-            /**
-             * Format: date-time
-             * @description 最後更新時間（UTC）
-             */
-            updatedAt?: string;
-        };
-        Account: components["schemas"]["entities_AccountResponse"];
-        Organization: components["schemas"]["entities_OrganizationResponse"];
-        OrganizationMember: components["schemas"]["OrganizationMemberResponse"];
-        Project: components["schemas"]["entities_ProjectResponse"];
-        Member: components["schemas"]["entities_MemberResponse"];
-        Contact: components["schemas"]["ContactResponse"];
-        MemberTag: components["schemas"]["MemberTagResponse"];
-        TaskTemplate: components["schemas"]["TaskTemplateResponse"];
-        TodoTemplate: components["schemas"]["TodoTemplateResponse"];
-        DataSchema: components["schemas"]["DataSchemaResponse"];
-        Task: components["schemas"]["TaskResponse"];
-        Message: components["schemas"]["MessageResponse"];
-        SuggestionGroup: components["schemas"]["SuggestionGroupResponse"];
-        Suggestion: components["schemas"]["SuggestionResponse"];
-        Todo: components["schemas"]["TodoResponse"];
-        DataEntry: components["schemas"]["DataEntryResponse"];
-        ToolConfig: components["schemas"]["ToolConfigResponse"];
-        Memory: components["schemas"]["MemoryResponse"];
-        LibraryDocument: components["schemas"]["LibraryDocumentResponse"];
-        AuditLog: components["schemas"]["AuditLogResponse"];
-        Notification: components["schemas"]["NotificationResponse"];
-        Reminder: components["schemas"]["ReminderResponse"];
-        EmailThread: components["schemas"]["EmailThreadResponse"];
-        Webhook: components["schemas"]["WebhookResponse"];
-        WebhookEventLog: components["schemas"]["WebhookEventLogResponse"];
-        /** @description 建立帳號 */
-        CreateAccount: {
-            /** @description 使用者名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description Email，系統唯一識別
-             */
-            email: string;
-            /** @description 頭像 URL */
-            avatarUrl?: string;
-            /** @description 公開的自我介紹文字 */
-            bio?: string;
-            /**
-             * @description 使用者偏好語系
-             * @default zh-TW
-             */
-            locale: string;
-        };
-        /** @description 更新帳號資料 */
-        UpdateAccount: {
-            name?: string;
-            avatarUrl?: string | null;
-            bio?: string | null;
-            /** @description 私人的結構化資料 */
-            profileData?: {
-                [key: string]: unknown;
-            };
-            locale?: string;
-        };
-        /** @description 建立組織 */
-        CreateOrganization: {
-            /** @description 組織名稱 */
-            name: string;
-            /** @description 組織描述 */
-            description?: string;
-            /** @description 組織 Logo URL */
-            logoUrl?: string;
-        };
-        /** @description 更新組織資料 */
-        UpdateOrganization: {
-            name?: string;
-            description?: string | null;
-            logoUrl?: string | null;
-        };
-        /** @description 建立專案 */
-        CreateProject: {
-            /** @description 專案名稱 */
-            name: string;
-            /** @description 專案描述 */
-            description?: string;
-        };
-        /** @description 更新專案資料 */
-        UpdateProject: {
-            name?: string;
-            description?: string | null;
-            status?: components["schemas"]["ProjectStatus"];
-            /** @description 專案權限設定 */
-            permissionSettings?: {
-                taskVisibility?: {
-                    tag: string;
-                    allow: string[];
-                    deny: string[];
-                }[];
-                toolPermissions?: {
-                    tag: string;
-                    allow: string[];
-                    deny: string[];
-                }[];
-                memoryVisibility?: {
-                    tag: string;
-                    allow: string[];
-                    deny: string[];
-                }[];
-                dataAccess?: {
-                    tag: string;
-                    allow: string[];
-                    deny: string[];
-                }[];
-            };
-        };
-        /** @description 複製專案 */
-        CopyProject: {
-            /** @description 新專案名稱 */
-            name: string;
-            /** @description 新專案描述 */
-            description?: string;
-        };
-        /** @description 建立任務（從模板實例化） */
-        CreateTask: {
-            /** @description 來源任務模板 ID */
-            taskTemplateId: components["schemas"]["UUID"];
-            /** @description 歸屬的成員標籤 ID */
-            ownerTagId: components["schemas"]["UUID"];
-            /** @description 任務名稱 */
-            name: string;
-            /** @description 任務描述 */
-            description?: string;
-        };
-        /** @description 發送任務對話訊息 */
-        SendMessage: {
-            /** @description 訊息內容 */
-            content: {
-                /** @description 訊息文字內容 */
-                text: string;
-                mentions?: {
-                    /**
-                     * @description 提及類型：member（提及成員）或 tag（提及標籤下所有成員）
-                     * @enum {string}
-                     */
-                    type: "member" | "tag";
-                    /** @description 被提及的成員 ID 或標籤 ID */
-                    id: components["schemas"]["UUID"];
-                }[];
-            };
-            /** @description 附件檔案 ID 列表（先透過檔案上傳 API 取得 fileId，再於發送訊息時引用） */
-            attachments?: components["schemas"]["UUID"][];
-            /** @description 客戶端已讀的最後一則訊息 ID（已讀保護機制） */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        SuggestionDecision: components["schemas"]["SuggestionDecisionRequest"];
-        /** @description 列表回應，包含游標分頁中繼資訊與項目陣列 */
-        ListResponse: {
-            /** @description 項目列表 */
-            items: unknown[];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description 認證 Token 回應（與 auth.yaml#/TokenPair 一致，遵循 OAuth 2.0 慣例） */
-        TokenPairResponse: {
-            /** @description JWT Access Token */
-            accessToken: string;
-            /** @description Refresh Token（用於換發新 Access Token） */
-            refreshToken?: string;
-            /**
-             * @description Access Token 有效時間（秒），遵循 OAuth 2.0 expires_in 慣例
-             * @example 900
-             */
-            expiresIn: number;
-            /**
-             * @description Token 類型
-             * @default Bearer
-             */
-            tokenType: string;
-        };
-        /** @description 系統健康檢查回應 */
-        HealthResponse: {
-            /**
-             * @description 整體健康狀態
-             * @enum {string}
-             */
-            status: "healthy" | "degraded" | "unhealthy";
-            /** @description API 版本 */
-            version?: string;
-            /** @description 服務運行時間（秒） */
-            uptime?: number;
-            /** @description 各子系統的健康狀態 */
-            checks: {
-                database?: components["schemas"]["HealthCheck"];
-                crdtSync?: components["schemas"]["HealthCheck"];
-                emailService?: components["schemas"]["HealthCheck"];
-                webhookWorker?: components["schemas"]["HealthCheck"];
-            };
-        };
-        /** @description Passkey 註冊選項回應，包含 WebAuthn PublicKeyCredentialCreationOptions */
-        PasskeyRegisterBeginResponse: {
-            /** @description Base64URL 編碼的隨機挑戰值 */
-            challenge: string;
-            /** @description Relying Party 資訊 */
-            rp: {
-                /**
-                 * @description Relying Party 名稱
-                 * @example Conf-Ops
-                 */
-                name: string;
-                /**
-                 * @description Relying Party ID（域名）
-                 * @example conf-ops.example.com
-                 */
-                id: string;
-            };
-            /** @description 使用者資訊 */
-            user: {
-                /** @description Base64URL 編碼的使用者 ID */
-                id: string;
-                /** @description 使用者帳號名稱（通常為 email） */
-                name: string;
-                /** @description 使用者顯示名稱 */
-                displayName: string;
-            };
-            /** @description 允許的公鑰憑證參數列表 */
-            pubKeyCredParams: {
-                /** @constant */
-                type: "public-key";
-                /** @description COSE 演算法識別碼（如 -7 為 ES256、-257 為 RS256） */
-                alg: number;
-            }[];
-            /**
-             * @description 逾時時間（毫秒）
-             * @example 60000
-             */
-            timeout?: number;
-            /**
-             * @description Attestation 偏好
-             * @example none
-             * @enum {string}
-             */
-            attestation?: "none" | "indirect" | "direct" | "enterprise";
-            /** @description Authenticator 選擇條件 */
-            authenticatorSelection?: {
-                /** @enum {string} */
-                authenticatorAttachment?: "platform" | "cross-platform";
-                /** @enum {string} */
-                residentKey?: "discouraged" | "preferred" | "required";
-                requireResidentKey?: boolean;
-                /** @enum {string} */
-                userVerification?: "required" | "preferred" | "discouraged";
-            };
-            /** @description 已註冊的憑證列表，避免重複註冊 */
-            excludeCredentials?: {
-                /** @constant */
-                type: "public-key";
-                /** @description Base64URL 編碼的已註冊憑證 ID */
-                id: string;
-                transports?: ("usb" | "ble" | "nfc" | "internal")[];
-            }[];
-        };
-        /** @description Passkey 註冊完成請求，包含瀏覽器 navigator.credentials.create() 的回傳結果 */
-        PasskeyRegisterCompleteRequest: {
-            /** @description Base64URL 編碼的憑證 ID */
-            id: string;
-            /** @description Base64URL 編碼的原始憑證 ID */
-            rawId: string;
-            /** @description AuthenticatorAttestationResponse */
-            response: {
-                /** @description Base64URL 編碼的 attestation object */
-                attestationObject: string;
-                /** @description Base64URL 編碼的 client data JSON */
-                clientDataJSON: string;
-            };
-            /**
-             * @description 憑證類型，固定為 'public-key'
-             * @constant
-             */
-            type: "public-key";
-        };
-        /** @description Passkey 註冊成功回應 */
-        PasskeyRegisterCompleteResponse: {
-            /** @description Base64URL 編碼的已註冊憑證 ID */
-            credentialId: string;
-            /**
-             * Format: date-time
-             * @description 憑證建立時間（UTC）
-             */
-            createdAt: string;
-        };
-        /** @description Passkey 登入開始請求，可選提供 email 以縮小憑證範圍 */
-        PasskeyLoginBeginRequest: {
-            /**
-             * Format: email
-             * @description 使用者 Email（可選），提供時僅回傳該帳號的憑證
-             */
-            email?: string;
-        };
-        /** @description Passkey 登入選項回應，包含 WebAuthn PublicKeyCredentialRequestOptions */
-        PasskeyLoginBeginResponse: {
-            /** @description Base64URL 編碼的隨機挑戰值 */
-            challenge: string;
-            /**
-             * @description 逾時時間（毫秒）
-             * @example 60000
-             */
-            timeout?: number;
-            /**
-             * @description Relying Party ID（域名）
-             * @example conf-ops.example.com
-             */
-            rpId: string;
-            /** @description 允許的憑證列表（提供 email 時會篩選） */
-            allowCredentials?: {
-                /** @constant */
-                type: "public-key";
-                /** @description Base64URL 編碼的憑證 ID */
-                id: string;
-                transports?: ("usb" | "ble" | "nfc" | "internal")[];
-            }[];
-            /**
-             * @description 使用者驗證偏好
-             * @enum {string}
-             */
-            userVerification?: "required" | "preferred" | "discouraged";
-        };
-        /** @description Passkey 登入完成請求，包含瀏覽器 navigator.credentials.get() 的回傳結果 */
-        PasskeyLoginCompleteRequest: {
-            /** @description Base64URL 編碼的憑證 ID */
-            id: string;
-            /** @description Base64URL 編碼的原始憑證 ID */
-            rawId: string;
-            /** @description AuthenticatorAssertionResponse */
-            response: {
-                /** @description Base64URL 編碼的 authenticator data */
-                authenticatorData: string;
-                /** @description Base64URL 編碼的 client data JSON */
-                clientDataJSON: string;
-                /** @description Base64URL 編碼的簽章 */
-                signature: string;
-                /** @description Base64URL 編碼的使用者 handle（可選） */
-                userHandle?: string;
-            };
-            /**
-             * @description 憑證類型，固定為 'public-key'
-             * @constant
-             */
-            type: "public-key";
-        };
-        /** @description 認證 Token Pair 回應。Access token 於 JSON body 回傳，refresh token 同時以 HTTP-only cookie 設定。 */
-        TokenPair: {
-            /** @description JWT Access Token（EdDSA 簽署） */
-            accessToken: string;
-            /**
-             * @description Access Token 有效時間（秒）
-             * @example 900
-             */
-            expiresIn: number;
-            /**
-             * @description Token 類型
-             * @default Bearer
-             * @example Bearer
-             */
-            tokenType: string;
-            /** @description Refresh token（僅非瀏覽器客戶端使用，瀏覽器端透過 HTTP-only cookie 傳遞） */
-            refreshToken?: string;
-        };
-        /** @description Magic Link 登入請求，提供 Email 以發送一次性登入連結 */
-        MagicLinkRequestBody: {
-            /**
-             * Format: email
-             * @description 接收 Magic Link 的 Email 地址
-             */
-            email: string;
-        };
-        /** @description Magic Link 發送回應（無論帳號是否存在皆回傳成功，防止列舉攻擊） */
-        MagicLinkRequestResponse: {
-            /**
-             * @description 操作結果訊息
-             * @example 若該 Email 已註冊，將收到登入連結
-             */
-            message: string;
-        };
-        /**
-         * Format: uuid
-         * @description UUID v7 識別碼，前 48 位元為毫秒級時間戳，自帶時間排序
-         * @example 018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b
-         */
-        UUID: string;
-        /** @description 帳號完整回應（公開資訊，不含私人 profileData） */
-        AccountResponse: {
-            id: components["schemas"]["UUID"];
-            /** @description 使用者名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description Email，系統唯一識別
-             */
-            email: string;
-            /** @description 頭像 URL */
-            avatarUrl?: string | null;
-            /** @description 公開的自我介紹文字 */
-            bio?: string | null;
-            /**
-             * @description 使用者偏好語系
-             * @example zh-TW
-             */
-            locale: string;
-            /**
-             * Format: date-time
-             * @description 建立時間（UTC）
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description 最後更新時間（UTC）
-             */
-            updatedAt: string;
-        };
-        /** @description 更新帳號公開資訊，僅傳入需要更新的欄位 */
-        UpdateAccountRequest: {
-            /** @description 使用者名稱 */
-            name?: string;
-            /** @description 頭像 URL，設為 null 可移除 */
-            avatarUrl?: string | null;
-            /** @description 公開的自我介紹文字，設為 null 可移除 */
-            bio?: string | null;
-            /** @description 使用者偏好語系 */
-            locale?: string;
-        };
-        /** @description 個人資料欄位結構描述 */
-        ProfileSchemaField: {
-            /** @description 欄位鍵名，對應 profileData 中的 key */
-            key: string;
-            /** @description 欄位顯示名稱 */
-            label: string;
-            /** @description 欄位用途說明 */
-            description: string;
-            /** @description 欄位類型，前端據此渲染對應的輸入元件。建議值：text, number, email, url, date, select, multi_select, checkbox, file */
+            /** @description Human-readable error summary. */
+            title: string;
+            /** @description Error type URI for programmatic identification. */
             type: string;
         };
-        /** @description 個人資料表回應，包含私人結構化資料與欄位結構描述（僅帳號本人可存取） */
         ProfileResponse: {
-            /** @description 私人的結構化資料（電話、地址、飲食偏好等自由 key-value） */
-            profileData: {
-                [key: string]: unknown;
-            };
-            /** @description 個人欄位結構描述，可由使用者手動定義或系統自動維護 */
-            profileSchema: components["schemas"]["ProfileSchemaField"][];
+            profileData: Record<string, never>;
+            profileSchema: Record<string, never>;
         };
-        /** @description 更新個人資料表，以 merge 方式更新 — 僅覆蓋傳入的欄位，設為 null 可刪除該欄位 */
-        UpdateProfileRequest: {
-            /** @description 要更新的欄位 key-value，未傳入的欄位保持不變 */
-            profileData: {
-                [key: string]: unknown;
-            };
-            /** @description 可選 — 新增或更新欄位的結構定義（key, label, type, description） */
-            profileSchema?: components["schemas"]["ProfileSchemaField"][];
-        };
-        /**
-         * @description 待辦事項狀態：open（未完成）或 completed（已完成）
-         * @enum {string}
-         */
-        TodoStatus: "open" | "completed";
-        /**
-         * @description 待辦事項類型：template（從模板產生）或 ad_hoc（臨時建立）
-         * @enum {string}
-         */
-        TodoType: "template" | "ad_hoc";
-        /** @description 帳號待辦事項項目（包含所屬任務與專案資訊） */
-        AccountTodoItem: {
-            id: components["schemas"]["UUID"];
-            /** @description 待辦標題 */
-            title: string;
-            status: components["schemas"]["TodoStatus"];
-            type?: components["schemas"]["TodoType"];
-            /**
-             * Format: date-time
-             * @description 截止日期
-             */
-            dueDate?: string | null;
-            /** @description 所屬任務 ID */
-            taskId?: components["schemas"]["UUID"];
-            /** @description 所屬任務名稱 */
-            taskName?: string;
-            /** @description 所屬專案 ID */
-            projectId?: components["schemas"]["UUID"];
-            /** @description 所屬專案名稱 */
-            projectName?: string;
-        };
-        /** @description 個人所有待辦事項列表回應（跨專案，cursor 分頁） */
-        TodoListResponse: {
-            /** @description 待辦事項列表 */
-            items: components["schemas"]["AccountTodoItem"][];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /**
-         * @description 通知類型
-         * @enum {string}
-         */
-        NotificationType: "todo_assigned" | "member_mentioned" | "tag_mentioned" | "task_completed" | "linked_task_completed" | "source_data_changed" | "reminder";
-        /** @description 通知摘要 */
-        NotificationSummary: {
-            id: components["schemas"]["UUID"];
-            type: components["schemas"]["NotificationType"];
-            title: string;
-            isRead: boolean;
-            /** Format: date-time */
+        ProjectListItemResponse: {
             createdAt: string;
-        };
-        /** @description 通知列表回應（cursor 分頁，依建立時間倒序） */
-        NotificationListResponse: {
-            /** @description 通知列表 */
-            items: components["schemas"]["NotificationSummary"][];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /**
-         * @description 組織角色：org_owner（擁有者）/ org_admin（管理者）/ org_member（成員）
-         * @enum {string}
-         */
-        OrgRole: "org_owner" | "org_admin" | "org_member";
-        /** @description 組織列表回應，含游標分頁 */
-        OrganizationListResponse: {
-            items: {
-                id: components["schemas"]["UUID"];
-                name: string;
-                description?: string | null;
-                logoUrl?: string | null;
-                /** @description 當前使用者在該組織中的角色 */
-                role?: components["schemas"]["OrgRole"];
-                /** Format: date-time */
-                createdAt?: string;
-            }[];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description 建立組織請求 */
-        CreateOrganizationRequest: {
-            /** @description 組織名稱 */
-            name: string;
-            /** @description 組織描述 */
-            description?: string;
-            /** @description 組織 Logo URL */
-            logoUrl?: string;
-        };
-        /** @description 組織回應 */
-        OrganizationResponse: {
-            id: components["schemas"]["UUID"];
-            /** @description 組織名稱 */
-            name: string;
-            /** @description 組織描述 */
             description?: string | null;
-            /** @description 組織 Logo URL */
-            logoUrl?: string | null;
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 組織詳細回應，包含統計資訊 */
-        OrganizationDetailResponse: {
-            id: components["schemas"]["UUID"];
-            /** @description 組織名稱 */
+            /** Format: uuid */
+            id: string;
             name: string;
-            /** @description 組織描述 */
-            description?: string | null;
-            /** @description 組織 Logo URL */
-            logoUrl?: string | null;
-            createdBy: components["schemas"]["UUID"];
-            /** @description 組織成員數量 */
-            memberCount?: number;
-            /** @description 組織專案數量 */
-            projectCount?: number;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
+            status: components["schemas"]["ProjectStatus"];
             updatedAt: string;
         };
-        /** @description 更新組織資料請求 */
-        UpdateOrganizationRequest: {
-            name?: string;
-            description?: string | null;
-            logoUrl?: string | null;
-        };
-        /** @description 組織成員回應 */
-        OrgMemberResponse: {
-            id: components["schemas"]["UUID"];
-            accountId: components["schemas"]["UUID"];
-            /** @description 成員名稱（來自帳號） */
-            name?: string;
-            /**
-             * Format: email
-             * @description 成員 Email（來自帳號）
-             */
-            email?: string;
-            /** @description 成員頭像 URL */
-            avatarUrl?: string | null;
-            role: components["schemas"]["OrgRole"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        /** @description 組織成員列表回應，含游標分頁 */
-        OrgMemberListResponse: {
-            items: components["schemas"]["OrgMemberResponse"][];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description 邀請成員加入組織請求 */
-        InviteMemberRequest: {
-            /**
-             * Format: email
-             * @description 被邀請者的 Email
-             */
-            email: string;
-            /** @description 指定的組織角色 */
-            role: components["schemas"]["OrgRole"];
-        };
-        /** @description 邀請成員回應 */
-        InviteMemberResponse: {
-            /**
-             * @description 邀請狀態：invited（已寄送邀請信）或 joined（已直接加入）
-             * @enum {string}
-             */
-            status: "invited" | "joined";
-            /**
-             * Format: email
-             * @description 被邀請者 Email
-             */
-            email: string;
-            /** @description 操作結果訊息 */
-            message?: string;
-        };
-        /** @description 更新組織成員角色請求 */
-        UpdateOrgMemberRequest: {
-            /** @description 新的組織角色 */
-            role: components["schemas"]["OrgRole"];
-        };
-        /** @description 外部聯絡人完整回應 */
-        ContactResponse: {
-            id: components["schemas"]["UUID"];
-            organizationId: components["schemas"]["UUID"];
-            /** @description 聯絡人名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description 聯絡人 Email
-             */
-            email: string;
-            /** @description 合併目標 Contact ID，null 表示未被合併 */
-            mergedIntoId?: components["schemas"]["UUID"] | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 建立外部聯絡人 */
-        CreateContactRequest: {
-            /** @description 聯絡人名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description 聯絡人 Email
-             */
-            email: string;
-        };
-        /** @description 聯絡人在某專案中的標籤指派資訊 */
-        ContactTagAssignment: {
-            projectId: components["schemas"]["UUID"];
-            /** @description 專案名稱 */
-            projectName: string;
-            tags: {
-                id: components["schemas"]["UUID"];
-                /** @description 標籤名稱 */
-                name: string;
-            }[];
-        };
-        /** @description 外部聯絡人詳細回應，包含在各專案中被指派的成員標籤 */
-        ContactDetailResponse: {
-            id: components["schemas"]["UUID"];
-            organizationId: components["schemas"]["UUID"];
-            /** @description 聯絡人名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description 聯絡人 Email
-             */
-            email: string;
-            /** @description 合併目標 Contact ID，null 表示未被合併 */
-            mergedIntoId?: components["schemas"]["UUID"] | null;
-            /** @description 在各專案中被指派的成員標籤 */
-            tagAssignments?: components["schemas"]["ContactTagAssignment"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 更新外部聯絡人 */
-        UpdateContactRequest: {
-            /** @description 聯絡人名稱 */
-            name?: string;
-            /**
-             * Format: email
-             * @description 聯絡人 Email
-             */
-            email?: string;
-        };
-        /** @description 合併聯絡人 - 將多個 Contact 合併為一個主要 Contact */
-        MergeContactsRequest: {
-            /** @description 被合併的 Contact ID 列表 */
-            sourceIds: components["schemas"]["UUID"][];
-            /** @description 保留的主要 Contact ID */
-            targetId: components["schemas"]["UUID"];
-        };
-        /** @description 聯絡人合併成功回應 */
-        MergeContactsResponse: {
-            /** @description 主要聯絡人摘要 */
-            target: {
-                id: components["schemas"]["UUID"];
-                /** @description 聯絡人名稱 */
-                name: string;
-                /**
-                 * Format: email
-                 * @description 聯絡人 Email
-                 */
-                email: string;
-            };
-            /** @description 被合併的聯絡人數量 */
-            mergedCount: number;
-            /** @description 操作結果訊息 */
-            message: string;
-        };
-        /**
-         * @description 工具設定的作用域類型
-         * @enum {string}
-         */
-        ToolScopeType: "organization" | "project";
-        /** @description MCP Server 連線設定 */
-        McpServerConfig: {
-            /**
-             * @description 傳輸方式
-             * @enum {string}
-             */
-            transport: "stdio" | "sse";
-            /** @description stdio 模式的啟動指令 */
-            command?: string;
-            /**
-             * Format: uri
-             * @description sse 模式的伺服器 URL
-             */
-            url?: string;
-            /** @description 啟動參數 */
-            args?: string[];
-        };
-        /** @description 工具設定完整回應 */
-        tools_ToolConfig: {
-            id: components["schemas"]["UUID"];
-            scopeType: components["schemas"]["ToolScopeType"];
-            scopeId: components["schemas"]["UUID"];
-            /**
-             * @description 工具類型：builtin（內建）或 external（外部 MCP Server）
-             * @enum {string}
-             */
-            toolType: "builtin" | "external";
-            /** @description 工具識別名稱（如 'smtp/sendEmail'） */
-            toolName: string;
-            /** @description 顯示名稱 */
-            displayName?: string | null;
-            /** @description 工具說明 */
-            description?: string | null;
-            /** @description 是否啟用 */
-            enabled: boolean;
-            /** @description 工具設定（敏感欄位以遮罩形式呈現） */
-            config: {
-                [key: string]: unknown;
-            };
-            /** @description 外部工具的 MCP Server 連線設定（僅 tool_type = external 時有值） */
-            mcpServerConfig?: components["schemas"]["McpServerConfig"] | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /**
-         * @description 專案狀態：preparing（準備中）→ active（進行中）→ completed（已完成）→ archived（已封存）
-         * @enum {string}
-         */
-        ProjectStatus: "preparing" | "active" | "completed" | "archived";
-        /** @description 專案列表回應，含游標分頁 */
         ProjectListResponse: {
-            items: {
-                id: components["schemas"]["UUID"];
-                organizationId: components["schemas"]["UUID"];
-                name: string;
-                description?: string | null;
-                status: components["schemas"]["ProjectStatus"];
-                /** @description 專案成員數量 */
-                memberCount?: number;
-                /** Format: date-time */
-                createdAt?: string;
-            }[];
-            meta: components["schemas"]["CursorPaginationMeta"];
+            projects: components["schemas"]["ProjectListItemResponse"][];
         };
-        /** @description 建立專案請求 */
-        CreateProjectRequest: {
-            /** @description 專案名稱 */
-            name: string;
-            /** @description 專案描述 */
-            description?: string;
-        };
-        /** @description 專案回應 */
         ProjectResponse: {
-            id: components["schemas"]["UUID"];
-            organizationId: components["schemas"]["UUID"];
-            /** @description 專案名稱 */
-            name: string;
-            /** @description 專案描述 */
-            description?: string | null;
-            status: components["schemas"]["ProjectStatus"];
-            /** @description 來源專案 ID（若為複製建立） */
-            sourceProjectId?: components["schemas"]["UUID"] | null;
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
             createdAt: string;
-            /** Format: date-time */
+            /** Format: uuid */
+            createdBy: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            organizationId: string;
+            /** Format: uuid */
+            sourceProjectId?: string | null;
+            status: components["schemas"]["ProjectStatus"];
             updatedAt: string;
         };
-        /** @description 複製專案請求 */
-        CopyProjectRequest: {
-            /** @description 來源專案 ID */
-            sourceProjectId: components["schemas"]["UUID"];
-            /** @description 新專案名稱 */
-            name: string;
-            /** @description 新專案描述 */
-            description?: string;
+        /** @enum {string} */
+        ProjectStatus: "preparing" | "active" | "completed" | "archived";
+        ReadyChecks: {
+            database: string;
         };
-        /** @description 專案詳細回應，包含統計資訊 */
-        ProjectDetailResponse: {
-            id: components["schemas"]["UUID"];
-            organizationId: components["schemas"]["UUID"];
-            /** @description 專案名稱 */
-            name: string;
-            /** @description 專案描述 */
+        ReadyResponse: {
+            checks: components["schemas"]["ReadyChecks"];
+            status: string;
+        };
+        UpdateAccountRequest: {
+            avatarUrl?: string | null;
+            bio?: string | null;
+            locale?: string | null;
+            name?: string | null;
+        };
+        UpdateNotificationPreferencesRequest: {
+            channels: components["schemas"]["NotificationChannels"];
+        };
+        UpdateOrgMemberRequest: {
+            role: components["schemas"]["OrgRole"];
+        };
+        UpdateOrganizationRequest: {
             description?: string | null;
-            status: components["schemas"]["ProjectStatus"];
-            /** @description 來源專案 ID（若為複製建立） */
-            sourceProjectId?: components["schemas"]["UUID"] | null;
-            createdBy: components["schemas"]["UUID"];
-            /** @description 專案成員數量 */
-            memberCount?: number;
-            /** @description 專案任務數量 */
-            taskCount?: number;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
+            logoUrl?: string | null;
+            name?: string | null;
         };
-        /** @description 更新專案資料請求 */
+        UpdatePermissionSettingsRequest: {
+            settings: Record<string, never>;
+        };
+        UpdateProfileRequest: {
+            profileData: Record<string, never>;
+            profileSchema?: Record<string, never> | null;
+        };
         UpdateProjectRequest: {
-            name?: string;
             description?: string | null;
+            name?: string | null;
         };
-        /** @description 更新專案狀態請求 */
         UpdateProjectStatusRequest: {
             status: components["schemas"]["ProjectStatus"];
         };
-        /** @description 權限規則 */
-        PermissionRule: {
-            /** @description 成員標籤名稱，'*' 表示所有標籤 */
-            tag: string;
-            /** @description 允許的權限項目 */
-            allow: string[];
-            /** @description 拒絕的權限項目 */
-            deny: string[];
-        };
-        /** @description 專案權限設定回應 */
-        PermissionSettingsResponse: {
-            /** @description 任務可見性設定，控制各標籤可查看的任務範圍 */
-            taskVisibility?: components["schemas"]["PermissionRule"][];
-            /** @description 工具權限設定，控制各標籤可使用的執行工具 */
-            toolPermissions?: components["schemas"]["PermissionRule"][];
-            /** @description 記憶可見性設定，控制各標籤可查看的記憶範圍 */
-            memoryVisibility?: components["schemas"]["PermissionRule"][];
-            /** @description 資料存取設定，控制各標籤可存取的資料表範圍 */
-            dataAccess?: components["schemas"]["PermissionRule"][];
-        };
-        /** @description 更新專案權限設定請求（完整取代） */
-        UpdatePermissionSettingsRequest: {
-            /** @description 任務可見性設定 */
-            taskVisibility?: components["schemas"]["PermissionRule"][];
-            /** @description 工具權限設定 */
-            toolPermissions?: components["schemas"]["PermissionRule"][];
-            /** @description 記憶可見性設定 */
-            memoryVisibility?: components["schemas"]["PermissionRule"][];
-            /** @description 資料存取設定 */
-            dataAccess?: components["schemas"]["PermissionRule"][];
-        };
-        /** @description 提醒回應 */
-        ReminderResponse: {
-            id: components["schemas"]["UUID"];
-            todoId: components["schemas"]["UUID"];
-            /**
-             * @description 提醒類型
-             * @enum {string}
-             */
-            type: "due_date_approaching" | "due_date_overdue" | "todo_stale";
-            /**
-             * Format: date-time
-             * @description 預定觸發時間
-             */
-            triggerAt: string;
-            /** @description 是否已觸發 */
-            fired: boolean;
-            /** Format: date-time */
-            firedAt?: string | null;
-            notificationId?: components["schemas"]["UUID"] | null;
-            /** @description 提醒設定參數 */
-            config?: Record<string, never> | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /**
-         * @description 專案成員角色：owner（擁有者）/ tag_admin（標籤管理者）/ member（成員）
-         * @enum {string}
-         */
-        MemberRole: "owner" | "tag_admin" | "member";
-        /** @description 專案成員回應 */
-        MemberResponse: {
-            id: components["schemas"]["UUID"];
-            accountId: components["schemas"]["UUID"];
-            /** @description 成員名稱（來自帳號） */
-            name?: string;
-            /**
-             * Format: email
-             * @description 成員 Email（來自帳號）
-             */
-            email?: string;
-            /** @description 成員頭像 URL */
-            avatarUrl?: string | null;
-            /** @description 公開的自我介紹文字 */
-            bio?: string | null;
-            role: components["schemas"]["MemberRole"];
-            /** @description 成員所屬的成員標籤 */
-            tags?: {
-                id: components["schemas"]["UUID"];
-                name: string;
-            }[];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        /** @description 專案成員列表回應，含游標分頁 */
-        MemberListResponse: {
-            items: components["schemas"]["MemberResponse"][];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description 邀請成員加入專案請求 */
-        InviteProjectMemberRequest: {
-            /** @description 被邀請者的帳號 ID（必須已是組織成員） */
-            accountId: components["schemas"]["UUID"];
-            /** @description 指定的專案角色 */
-            role: components["schemas"]["MemberRole"];
-            /** @description 初始指派的成員標籤 ID 列表 */
-            tagIds?: components["schemas"]["UUID"][];
-        };
-        /** @description 專案成員詳細回應，包含統計資訊 */
-        MemberDetailResponse: {
-            id: components["schemas"]["UUID"];
-            accountId: components["schemas"]["UUID"];
-            /** @description 成員名稱（來自帳號） */
-            name?: string;
-            /**
-             * Format: email
-             * @description 成員 Email（來自帳號）
-             */
-            email?: string;
-            /** @description 成員頭像 URL */
-            avatarUrl?: string | null;
-            /** @description 公開的自我介紹文字 */
-            bio?: string | null;
-            role: components["schemas"]["MemberRole"];
-            /** @description 成員所屬的成員標籤（含描述） */
-            tags?: {
-                id: components["schemas"]["UUID"];
-                name: string;
-                description?: string | null;
-            }[];
-            /** @description 成員的待辦事項統計 */
-            todoStats?: {
-                /** @description 未完成的待辦事項數量 */
-                open?: number;
-                /** @description 已完成的待辦事項數量 */
-                completed?: number;
-            };
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 更新專案成員角色請求 */
-        UpdateMemberRequest: {
-            /** @description 新的專案角色 */
-            role: components["schemas"]["MemberRole"];
-        };
-        /** @description 成員標籤列表項目（含統計數量） */
-        MemberTagListItem: {
-            id: components["schemas"]["UUID"];
-            projectId: components["schemas"]["UUID"];
-            /** @description 標籤名稱 */
-            name: string;
-            /** @description 標籤描述 */
-            description?: string | null;
-            /** @description 已指派的成員數量 */
-            memberCount?: number;
-            /** @description 已指派的聯絡人數量 */
-            contactCount?: number;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        /** @description 成員標籤列表回應，包含游標分頁中繼資訊 */
-        MemberTagListResponse: {
-            items: components["schemas"]["MemberTagListItem"][];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description 跨組任務建立規則 */
-        ExternalTaskCreationRule: {
-            taskTemplateId: components["schemas"]["UUID"];
-            allowedFromTags: "*" | string[];
-        };
-        /** @description 建立成員標籤 */
-        CreateMemberTagRequest: {
-            /** @description 標籤名稱 */
-            name: string;
-            /** @description 標籤描述 */
-            description?: string;
-            /** @description 外部建立任務設定 */
-            externalTaskCreation?: components["schemas"]["ExternalTaskCreationRule"][];
-        };
-        /** @description 成員標籤完整回應 */
-        MemberTagResponse: {
-            id: components["schemas"]["UUID"];
-            projectId: components["schemas"]["UUID"];
-            /** @description 標籤名稱（如「贊助組」、「資訊組」） */
-            name: string;
-            /** @description 標籤描述 */
-            description?: string | null;
-            /** @description 外部建立任務設定 */
-            externalTaskCreation: components["schemas"]["ExternalTaskCreationRule"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 跨組任務建立規則（含模板名稱） */
-        ExternalTaskCreationDetailRule: {
-            taskTemplateId: components["schemas"]["UUID"];
-            /** @description 任務模板名稱 */
-            taskTemplateName?: string;
-            allowedFromTags: "*" | string[];
-        };
-        /** @description 標籤中已指派的成員資訊 */
-        TagAssignedMember: {
-            /** @description 成員 ID（members.id） */
-            id: components["schemas"]["UUID"];
-            /** @description 指派記錄 ID（member_tag_assignments.id） */
-            assignmentId: components["schemas"]["UUID"];
-            /** @description 成員名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description 成員 Email
-             */
-            email: string;
-        };
-        /** @description 標籤中已指派的聯絡人資訊 */
-        TagAssignedContact: {
-            /** @description 聯絡人 ID（contacts.id） */
-            id: components["schemas"]["UUID"];
-            /** @description 指派記錄 ID（member_tag_assignments.id） */
-            assignmentId: components["schemas"]["UUID"];
-            /** @description 聯絡人名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description 聯絡人 Email
-             */
-            email: string;
-        };
-        /** @description 成員標籤詳細回應，包含指派的成員與聯絡人列表 */
-        MemberTagDetailResponse: {
-            id: components["schemas"]["UUID"];
-            projectId: components["schemas"]["UUID"];
-            /** @description 標籤名稱（如「贊助組」、「資訊組」） */
-            name: string;
-            /** @description 標籤描述 */
-            description?: string | null;
-            /** @description 外部建立任務設定（含模板名稱） */
-            externalTaskCreation: components["schemas"]["ExternalTaskCreationDetailRule"][];
-            /** @description 已指派的成員列表 */
-            members?: components["schemas"]["TagAssignedMember"][];
-            /** @description 已指派的聯絡人列表 */
-            contacts?: components["schemas"]["TagAssignedContact"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 更新成員標籤 */
-        UpdateMemberTagRequest: {
-            /** @description 標籤名稱 */
-            name?: string;
-            /** @description 標籤描述 */
-            description?: string | null;
-        };
-        /** @description 指派成員標籤給成員或聯絡人 */
-        AssignTagRequest: {
-            /** @description 被指派的成員 ID（與 contactId 二擇一） */
-            memberId?: components["schemas"]["UUID"];
-            /** @description 被指派的聯絡人 ID（與 memberId 二擇一） */
-            contactId?: components["schemas"]["UUID"];
-        } & (unknown | unknown);
-        /** @description 成員標籤指派回應 */
-        TagAssignmentResponse: {
-            id: components["schemas"]["UUID"];
-            tagId: components["schemas"]["UUID"];
-            /** @description 被指派的成員 ID（與 contactId 二擇一） */
-            memberId?: components["schemas"]["UUID"] | null;
-            /** @description 被指派的聯絡人 ID（與 memberId 二擇一） */
-            contactId?: components["schemas"]["UUID"] | null;
-            projectId: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-        };
-        /** @description 更新外部建立任務設定（完整取代） */
-        UpdateExternalTaskCreationRequest: {
-            /** @description 外部建立任務設定 */
-            externalTaskCreation: components["schemas"]["ExternalTaskCreationRule"][];
-        };
-        /** @description 任務模板摘要 */
-        TaskTemplateSummary: {
-            id: components["schemas"]["UUID"];
-            name: string;
-            description?: string | null;
-        };
-        TaskTemplateListResponse: components["schemas"]["ListResponse"] & {
-            items?: components["schemas"]["TaskTemplateSummary"][];
-        };
-        /** @description 建立任務模板 */
-        CreateTaskTemplate: {
-            /** @description 模板名稱 */
-            name: string;
-            /** @description 模板描述 */
-            description?: string;
-            /** @description 關聯的成員標籤 ID 列表 */
-            tagIds?: components["schemas"]["UUID"][];
-        };
-        /** @description 成員標籤摘要 */
-        MemberTagSummary: {
-            id: components["schemas"]["UUID"];
-            name: string;
-        };
-        /** @description 待辦事項模板回應 */
-        TodoTemplateResponse: {
-            id: components["schemas"]["UUID"];
-            taskTemplateId: components["schemas"]["UUID"];
-            /** @description 父待辦模板 ID，null 表示頂層 */
-            parentId?: components["schemas"]["UUID"] | null;
-            /** @description 待辦模板名稱 */
-            name: string;
-            description?: string | null;
-            /** @description 排序順序 */
-            sortOrder: number;
-            /** @description 子待辦模板（最多一層） */
-            children?: components["schemas"]["TodoTemplateResponse"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 欄位約束條件（依欄位型別而異） */
-        FieldConstraints: {
-            /** @description 最大字元數（single_line_text、multi_line_text） */
-            maxLength?: number;
-            /** @description 最大行數（multi_line_text） */
-            maxLines?: number;
-            /** @description 最小值（number） */
-            min?: number;
-            /** @description 最大值（number） */
-            max?: number;
-            /** @description 是否允許小數（number） */
-            decimal?: boolean;
-            /**
-             * Format: date
-             * @description 最小日期（date，ISO 8601）
-             */
-            minDate?: string;
-            /**
-             * Format: date
-             * @description 最大日期（date，ISO 8601）
-             */
-            maxDate?: string;
-            /** @description 可選選項列表（select） */
-            options?: string[];
-            /** @description 最大檔案大小 bytes（image、file） */
-            maxFileSize?: number;
-            /** @description 允許的 MIME 類型（image、file） */
-            accept?: string[];
-        };
-        /** @description 資料表欄位定義 */
-        DataSchemaField: {
-            /** @description 欄位識別鍵（schema 內唯一） */
-            key: string;
-            /** @description 顯示名稱 */
-            label: string;
-            /** @description 用途說明 */
-            description: string;
-            /**
-             * @description 欄位資料型別
-             * @enum {string}
-             */
-            type: "single_line_text" | "multi_line_text" | "number" | "date" | "email" | "url" | "select" | "boolean" | "image" | "file";
-            /** @description 是否為必填欄位 */
-            required: boolean;
-            constraints?: components["schemas"]["FieldConstraints"];
-        };
-        /** @description 資料表定義回應 */
-        DataSchemaResponse: {
-            id: components["schemas"]["UUID"];
-            taskTemplateId: components["schemas"]["UUID"];
-            /** @description 資料表名稱 */
-            name: string;
-            /** @description 欄位定義 */
-            fields: components["schemas"]["DataSchemaField"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 任務模板完整回應 */
-        TaskTemplateResponse: {
-            id: components["schemas"]["UUID"];
-            /** @description 模板名稱 */
-            name: string;
-            /** @description 模板描述 */
-            description?: string | null;
-            createdBy: components["schemas"]["UUID"];
-            /** @description 關聯的成員標籤 */
-            tags?: components["schemas"]["MemberTagSummary"][];
-            /** @description 待辦事項模板 */
-            todoTemplates?: components["schemas"]["TodoTemplateResponse"][];
-            /** @description 資料表定義 */
-            dataSchemas?: components["schemas"]["DataSchemaResponse"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 任務模板詳細回應（含待辦模板與資料表定義） */
-        TaskTemplateDetailResponse: {
-            data: components["schemas"]["TaskTemplateResponse"];
-        };
-        /** @description 更新任務模板 */
-        UpdateTaskTemplate: {
-            name?: string;
-            description?: string | null;
-            /** @description 更新關聯的成員標籤 ID 列表（完整替換） */
-            tagIds?: components["schemas"]["UUID"][];
-        };
-        /** @description 建立待辦事項模板 */
-        CreateTodoTemplate: {
-            /** @description 父待辦模板 ID（最多一層巢狀） */
-            parentId?: components["schemas"]["UUID"];
-            /** @description 待辦模板名稱 */
-            name: string;
-            description?: string;
-            /** @description 排序順序 */
-            sortOrder: number;
-        };
-        /** @description 更新待辦事項模板 */
-        UpdateTodoTemplate: {
-            name?: string;
-            description?: string | null;
-            sortOrder?: number;
-        };
-        /** @description 建立資料表定義 */
-        CreateDataSchema: {
-            /** @description 資料表名稱 */
-            name: string;
-            /** @description 欄位定義 */
-            fields: components["schemas"]["DataSchemaField"][];
-        };
-        /** @description 更新資料表定義 */
-        UpdateDataSchema: {
-            name?: string;
-            fields?: components["schemas"]["DataSchemaField"][];
-        };
-        /** @description 跨任務資料來源關聯 */
-        SourceLink: {
-            sourceTaskId: components["schemas"]["UUID"];
-            sourceSchemaId: components["schemas"]["UUID"];
-            /** @description 被分享的欄位 key 列表 */
-            fieldKeys: string[];
-            /** Format: date-time */
-            sharedAt: string;
-            sharedBy: components["schemas"]["UUID"];
-        };
-        /** @description 資料列完整回應 */
-        DataEntryResponse: {
-            id: components["schemas"]["UUID"];
-            taskId: components["schemas"]["UUID"];
-            dataSchemaId: components["schemas"]["UUID"];
-            /** @description 欄位值，key 對應 DataSchema 的 field key */
-            values: {
-                [key: string]: unknown;
-            };
-            /** @description 跨任務資料分享的來源關聯 */
-            sourceLinks?: components["schemas"]["SourceLink"][] | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /**
-         * @description 任務狀態：pending（待開始）→ in_progress（進行中）→ completed（已完成）/ cancelled（已取消）
-         * @enum {string}
-         */
-        TaskStatus: "pending" | "in_progress" | "completed" | "cancelled";
-        /** @description 任務摘要 */
-        TaskSummary: {
-            id: components["schemas"]["UUID"];
-            name: string;
-            status: components["schemas"]["TaskStatus"];
-            ownerTagId: components["schemas"]["UUID"];
-            ownerTag?: components["schemas"]["MemberTagSummary"];
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        /** @description 資料表聚合視圖回應（DataSheet），將同一 DataSchema 下所有任務的資料列彙整 */
-        DataSheetResponse: {
-            /** @description 資料表定義 */
-            schema: components["schemas"]["DataSchemaResponse"];
-            /** @description 資料列與對應任務的組合 */
-            entries: {
-                dataEntry: components["schemas"]["DataEntryResponse"];
-                task: components["schemas"]["TaskSummary"];
-            }[];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /**
-         * @description 排序方向：asc（升冪）或 desc（降冪）
-         * @default desc
-         * @enum {string}
-         */
-        SortOrder: "asc" | "desc";
-        TaskListResponse: components["schemas"]["ListResponse"] & {
-            items?: components["schemas"]["TaskSummary"][];
-        };
-        /** @description 任務完整回應 */
-        TaskResponse: {
-            id: components["schemas"]["UUID"];
-            projectId: components["schemas"]["UUID"];
-            taskTemplateId: components["schemas"]["UUID"];
-            ownerTagId: components["schemas"]["UUID"];
-            /** @description 任務名稱 */
-            name: string;
-            /** @description 任務描述 */
-            description?: string | null;
-            status: components["schemas"]["TaskStatus"];
-            createdBy: components["schemas"]["UUID"];
-            ownerTag?: components["schemas"]["MemberTagSummary"];
-            template?: components["schemas"]["TaskTemplateSummary"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 任務詳細回應（含待辦事項、資料列等） */
-        TaskDetailResponse: {
-            data: components["schemas"]["TaskResponse"];
-        };
-        /** @description 更新任務資料 */
-        UpdateTaskRequest: {
-            name?: string;
-            description?: string | null;
-            /** @description 客戶端已讀的最後一則訊息 ID（已讀保護機制） */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        /** @description 更新任務狀態 */
-        UpdateTaskStatus: {
-            status: components["schemas"]["TaskStatus"];
-            /** @description 客戶端已讀的最後一則訊息 ID（已讀保護機制） */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        /**
-         * @description 訊息來源類型
-         * @enum {string}
-         */
-        MessageSourceType: "member" | "ai_suggestion" | "tool_execution" | "system" | "email_inbound";
-        MemberMessageContent: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "member";
-            text: string;
-            mentions?: {
-                /** @enum {string} */
-                type?: "member" | "tag";
-                /** Format: uuid */
-                id?: string;
-                name?: string;
-            }[];
-        };
-        AiSuggestionMessageContent: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "ai_suggestion";
-            /** Format: uuid */
-            suggestionGroupId: string;
-            summary?: string;
-        };
-        ToolExecutionMessageContent: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "tool_execution";
-            toolName: string;
-            /** @enum {string} */
-            status: "success" | "error";
-            summary?: string;
-            result?: Record<string, never> | null;
-        };
-        SystemMessageContent: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "system";
-            /** @description 系統事件類型，如 member_joined, task_status_changed */
-            event: string;
-            text?: string;
-        };
-        /** @description Email 來信訊息內容 */
-        EmailInboundMessageContent: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "email_inbound";
-            /** @description 所屬信件串 ID */
-            emailThreadId: components["schemas"]["UUID"];
-            /** @description 對應的 email_messages 記錄 ID */
-            emailMessageId: components["schemas"]["UUID"];
-            /** @description 寄件人 Email 地址 */
-            from: string;
-            /** @description 信件主旨 */
-            subject: string;
-            /** @description 信件內文摘要（前 200 字元） */
-            bodyPreview?: string;
-            /**
-             * @description 寄件人身份類型
-             * @enum {string}
-             */
-            senderType?: "member" | "contact" | "unknown";
-            /** @description 解析後的寄件人 ID（member_id 或 contact_id），未知時為 null */
-            senderId?: components["schemas"]["UUID"] | null;
-        };
-        /** @description 訊息附件（回應中包含完整檔案資訊，由伺服器根據 fileId 關聯） */
-        Attachment: {
-            /** @description 關聯至 files 表的檔案 ID */
-            fileId: components["schemas"]["UUID"];
-            /** @description 原始檔案名稱 */
-            fileName: string;
-            /** @description MIME 類型 */
-            mimeType: string;
-            /** @description 檔案大小（bytes） */
-            fileSize: number;
-        };
-        /** @description 訊息回應（不可變記錄） */
-        MessageResponse: {
-            id: components["schemas"]["UUID"];
-            taskId: components["schemas"]["UUID"];
-            sourceType: components["schemas"]["MessageSourceType"];
-            /** @description 來源者 ID（source_type = member 時為 members.id） */
-            sourceId?: components["schemas"]["UUID"] | null;
-            content: components["schemas"]["MemberMessageContent"] | components["schemas"]["AiSuggestionMessageContent"] | components["schemas"]["ToolExecutionMessageContent"] | components["schemas"]["SystemMessageContent"] | components["schemas"]["EmailInboundMessageContent"];
-            attachments?: components["schemas"]["Attachment"][] | null;
-            /** @description AI 建議的決策與執行結果 */
-            actionResult?: Record<string, never> | null;
-            /** @description 寫入時客戶端附帶的已讀訊息 ID */
-            lastSeenMessageId?: components["schemas"]["UUID"] | null;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        /** @description 任務對話回應（訊息列表與對話中繼資訊） */
-        ConversationResponse: {
-            messages: components["schemas"]["MessageResponse"][];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description Multipart form 訊息傳送（含附件） */
-        SendMessageMultipartRequest: Record<string, never>;
-        /** @description 對話已過時錯誤回應（RFC 7807 Problem Details，已讀保護機制觸發時回傳） */
-        StaleConversationErrorResponse: {
-            /**
-             * Format: uri
-             * @description 問題類型 URI
-             * @example https://conf-ops.dev/problems/stale-conversation
-             */
-            type: string;
-            /**
-             * @description 問題的簡短摘要
-             * @example Stale Conversation
-             */
-            title: string;
-            /**
-             * @description HTTP 狀態碼
-             * @example 409
-             */
-            status: number;
-            /**
-             * @description 問題的詳細說明
-             * @example 對話已有新訊息，請重新整理後再操作
-             */
-            detail: string;
-            /** @description 伺服器端最新的訊息 ID（RFC 7807 擴充欄位） */
-            latestMessageId: components["schemas"]["UUID"];
-        };
-        /** @description 待辦事項摘要 */
-        TodoSummary: {
-            id: components["schemas"]["UUID"];
-            title: string;
-            status: components["schemas"]["TodoStatus"];
-            type: components["schemas"]["TodoType"];
-            /** Format: date-time */
-            dueDate?: string | null;
-        };
-        responses_TodoListResponse: components["schemas"]["ListResponse"] & {
-            items?: components["schemas"]["TodoSummary"][];
-        };
-        /** @description 建立臨時待辦事項（ad_hoc） */
-        CreateTodo: {
-            /** @description 父待辦 ID（最多一層巢狀） */
-            parentId?: components["schemas"]["UUID"];
-            /** @description 待辦標題 */
-            title: string;
-            description?: string;
-            /**
-             * Format: date-time
-             * @description 截止日期
-             */
-            dueDate?: string;
-            /** @description 排序順序 */
-            sortOrder: number;
-            /** @description 被指派的成員 ID 列表 */
-            assigneeIds?: components["schemas"]["UUID"][];
-            /** @description 跨組協作的關聯任務 ID */
-            linkedTaskId?: components["schemas"]["UUID"];
-        };
-        /** @description 帳號摘要（用於列表與關聯顯示） */
-        AccountSummary: {
-            id: components["schemas"]["UUID"];
-            name: string;
-            /** Format: email */
-            email: string;
-            avatarUrl?: string | null;
-        };
-        /** @description 專案成員摘要 */
-        MemberSummary: {
-            id: components["schemas"]["UUID"];
-            accountId: components["schemas"]["UUID"];
-            role: components["schemas"]["MemberRole"];
-            account?: components["schemas"]["AccountSummary"];
-        };
-        /** @description 待辦事項完整回應 */
-        TodoResponse: {
-            id: components["schemas"]["UUID"];
-            taskId: components["schemas"]["UUID"];
-            /** @description 父待辦 ID，null 表示頂層 */
-            parentId?: components["schemas"]["UUID"] | null;
-            /** @description 待辦標題 */
-            title: string;
-            description?: string | null;
-            status: components["schemas"]["TodoStatus"];
-            type: components["schemas"]["TodoType"];
-            /** @description 來源待辦模板 ID */
-            sourceTemplateId?: components["schemas"]["UUID"] | null;
-            /**
-             * Format: date-time
-             * @description 截止日期
-             */
-            dueDate?: string | null;
-            /** @description 排序順序 */
-            sortOrder: number;
-            /** @description 跨組協作的關聯任務 ID */
-            linkedTaskId?: components["schemas"]["UUID"] | null;
-            /** Format: date-time */
-            completedAt?: string | null;
-            completedBy?: components["schemas"]["UUID"] | null;
-            /** @description 被指派的成員 */
-            assignees?: components["schemas"]["MemberSummary"][];
-            /** @description 子待辦事項 */
-            children?: components["schemas"]["TodoResponse"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 待辦事項詳細回應（含子待辦與指派資訊） */
-        TodoDetailResponse: {
-            data: components["schemas"]["TodoResponse"];
-        };
-        /** @description 更新待辦事項 */
-        UpdateTodo: {
-            title?: string;
-            description?: string | null;
-            /** Format: date-time */
-            dueDate?: string | null;
-            sortOrder?: number;
-            status?: components["schemas"]["TodoStatus"];
-            /** @description 客戶端已讀的最後一則訊息 ID（已讀保護機制） */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        /** @description 更新待辦事項狀態 */
-        UpdateTodoStatusRequest: {
-            status: components["schemas"]["TodoStatus"];
-            /** @description 客戶端已讀的最後一則訊息 ID（已讀保護機制） */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        /** @description 指派待辦事項給成員 */
-        AssignTodo: {
-            /** @description 被指派的成員 ID 列表（完整替換） */
-            memberIds: components["schemas"]["UUID"][];
-        };
-        /** @description 將待辦事項關聯至跨組任務 */
-        LinkTodoToTaskRequest: {
-            /** @description 關聯的任務 ID */
-            linkedTaskId: components["schemas"]["UUID"];
-        };
-        DataEntryListResponse: components["schemas"]["ListResponse"] & {
-            items?: components["schemas"]["DataEntryResponse"][];
-        };
-        /** @description 新增或更新資料列欄位值 */
-        UpsertDataEntry: {
-            /** @description 欄位值，key 對應 DataSchema 的 field key */
-            values: {
-                [key: string]: unknown;
-            };
-            /** @description 客戶端已讀的最後一則訊息 ID（已讀保護機制） */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        /** @description 分享資料至其他任務 */
-        ShareDataToTaskRequest: {
-            /** @description 目標任務 ID */
-            targetTaskId: components["schemas"]["UUID"];
-            /** @description 目標資料表定義 ID */
-            targetSchemaId: components["schemas"]["UUID"];
-            /** @description 欄位對應關係列表 */
-            fieldMappings: {
-                /** @description 來源欄位 key */
-                sourceField: string;
-                /** @description 目標欄位 key */
-                targetField: string;
-            }[];
-        };
-        /** @description 資料分享結果回應 */
-        ShareDataResponse: {
-            sourceTaskId: components["schemas"]["UUID"];
-            targetTaskId: components["schemas"]["UUID"];
-            /** @description 已分享的欄位 key 列表 */
-            sharedFields: string[];
-        };
-        /** @description 跨任務聚合資料表回應 */
-        AggregatedDataSheetResponse: {
-            schema: components["schemas"]["DataSchemaResponse"];
-            entries: Record<string, never>[];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description 外部可建立的任務模板列表回應 */
-        ExternalTaskTemplateListResponse: {
-            items: components["schemas"]["TaskTemplateSummary"][];
-        };
-        /** @description 外部資料回應 */
-        ExternalDataResponse: {
-            /** @description 外部資料內容 */
-            data: {
-                [key: string]: unknown;
-            };
-        };
-        /** @description 外部任務列表回應 */
-        ExternalTaskListResponse: {
-            items: components["schemas"]["TaskSummary"][];
-            meta: components["schemas"]["CursorPaginationMeta"];
-        };
-        /** @description 外部任務資料回應（含任務與資料列） */
-        ExternalTaskDataResponse: {
-            task: components["schemas"]["TaskSummary"];
-            dataEntries: components["schemas"]["DataEntryResponse"][];
-        };
-        /** @description 工具摘要，用於列表顯示 */
-        ToolSummary: {
-            /** @description 工具識別名稱 */
-            name: string;
-            /** @description 工具顯示名稱 */
-            displayName?: string | null;
-            /**
-             * @description 工具類別
-             * @enum {string}
-             */
-            category?: "core" | "builtin" | "external";
-            /**
-             * @description 工具操作類型
-             * @enum {string}
-             */
-            type?: "read" | "write";
-            /** @description 工具功能說明 */
-            description: string;
-        };
-        /** @description MCP 工具完整定義，包含參數結構（inputSchema） */
-        ToolDefinition: {
-            /** @description 工具識別名稱（如 'createTask'、'smtp/sendEmail'） */
-            name: string;
-            /** @description 工具顯示名稱 */
-            displayName?: string | null;
-            /**
-             * @description 工具類別：core（核心）、builtin（內建）、external（外部 MCP Server）
-             * @enum {string}
-             */
-            category?: "core" | "builtin" | "external";
-            /**
-             * @description 工具操作類型：read（查詢，不需確認）或 write（寫入，需人類確認）
-             * @enum {string}
-             */
-            type?: "read" | "write";
-            /** @description 工具功能說明 */
-            description: string;
-            /** @description 工具參數的 JSON Schema 定義 */
-            inputSchema: {
-                [key: string]: unknown;
-            };
-        };
-        /** @description 工具執行請求 */
-        ToolExecuteRequest: {
-            /** @description 執行工具的任務 ID */
-            taskId: components["schemas"]["UUID"];
-            /** @description 工具參數，結構依工具的 inputSchema 而定 */
-            parameters: {
-                [key: string]: unknown;
-            };
-            /** @description 客戶端已讀的最後一則訊息 ID（已讀保護機制） */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        /** @description 工具執行結果回應 */
-        ToolExecuteResponse: {
-            /** @description 執行是否成功 */
-            success: boolean;
-            /** @description 執行結果資料，結構依工具而異 */
-            result?: {
-                [key: string]: unknown;
-            };
-            /** @description 錯誤訊息（success = false 時） */
-            error?: string;
-            /** @description 執行結果產生的對話訊息 ID */
-            messageId?: components["schemas"]["UUID"];
-        };
-        /** @description 建立工具設定 */
-        CreateToolConfigRequest: {
-            /**
-             * @description 工具類型
-             * @enum {string}
-             */
-            toolType: "builtin" | "external";
-            /** @description 工具識別名稱 */
-            toolName: string;
-            /** @description 顯示名稱 */
-            displayName?: string;
-            /** @description 工具說明 */
-            description?: string;
-            /**
-             * @description 是否啟用
-             * @default false
-             */
-            enabled: boolean;
-            /** @description 工具設定 */
-            config: {
-                [key: string]: unknown;
-            };
-            /** @description MCP Server 連線設定（僅 toolType = external 時必填） */
-            mcpServerConfig?: {
-                /** @enum {string} */
-                transport: "stdio" | "sse";
-                command?: string;
-                /** Format: uri */
-                url?: string;
-                args?: string[];
-            };
-        };
-        /** @description 更新工具設定 */
-        UpdateToolConfigRequest: {
-            /** @description 顯示名稱 */
-            displayName?: string | null;
-            /** @description 工具說明 */
-            description?: string | null;
-            /** @description 是否啟用 */
-            enabled?: boolean;
-            /** @description 工具設定 */
-            config?: {
-                [key: string]: unknown;
-            };
-            /** @description MCP Server 連線設定 */
-            mcpServerConfig?: {
-                /** @enum {string} */
-                transport?: "stdio" | "sse";
-                command?: string;
-                /** Format: uri */
-                url?: string;
-                args?: string[];
-            } | null;
-        };
-        /**
-         * @description 作用域類型，用於記憶與文件的多層級歸屬
-         * @enum {string}
-         */
-        ScopeType: "account" | "organization" | "project" | "member_tag" | "task_template" | "task";
-        /**
-         * @description 記憶來源：manual（手動建立）或 auto_extracted（系統自動擷取）
-         * @enum {string}
-         */
-        MemorySource: "manual" | "auto_extracted";
-        /** @description 記憶摘要（用於列表顯示） */
-        MemorySummary: {
-            id: components["schemas"]["UUID"];
-            scopeType?: components["schemas"]["ScopeType"];
-            scopeId?: components["schemas"]["UUID"];
-            /** @description 記憶摘要內容 */
-            content: string;
-            source: components["schemas"]["MemorySource"];
-            /** @description 關聯的記憶庫文件 ID */
-            libraryRef?: components["schemas"]["UUID"] | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        /** @description 建立記憶請求 */
-        CreateMemoryRequest: {
-            /** @description 記憶歸屬的作用域類型 */
-            scopeType: components["schemas"]["ScopeType"];
-            /** @description 作用域實體的 ID */
-            scopeId: components["schemas"]["UUID"];
-            /** @description 記憶摘要內容 */
-            content: string;
-            /** @description 關聯的記憶庫文件 ID */
-            libraryRef?: components["schemas"]["UUID"] | null;
-        };
-        /** @description 記憶完整物件 */
-        memories_Memory: {
-            id: components["schemas"]["UUID"];
-            scopeType: components["schemas"]["ScopeType"];
-            scopeId: components["schemas"]["UUID"];
-            /** @description 記憶摘要內容（保持簡短扼要） */
-            content: string;
-            /** @description 關聯的記憶庫文件 ID */
-            libraryRef?: components["schemas"]["UUID"] | null;
-            source: components["schemas"]["MemorySource"];
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 更新記憶請求 */
-        UpdateMemoryRequest: {
-            /** @description 更新後的記憶內容 */
-            content: string;
-            /** @description 關聯的記憶庫文件 ID（設為 null 可移除關聯） */
-            libraryRef?: components["schemas"]["UUID"] | null;
-        };
-        /** @description 記憶版本歷史記錄 */
-        MemoryVersion: {
-            /** @description 版本號（降冪排列，最新版本號最大） */
-            version: number;
-            /** @description 該版本的記憶內容 */
-            content: string;
-            /** @description 修改者帳號 ID */
-            editedBy: components["schemas"]["UUID"];
-            /**
-             * Format: date-time
-             * @description 修改時間（UTC）
-             */
-            editedAt: string;
-        };
-        /** @description 記憶庫文件摘要（用於列表顯示，不含完整內容） */
-        LibraryDocumentSummary: {
-            id: components["schemas"]["UUID"];
-            scopeType?: components["schemas"]["ScopeType"];
-            scopeId?: components["schemas"]["UUID"];
-            /** @description 文件標題 */
-            title: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        /** @description 建立記憶庫文件請求 */
-        CreateLibraryDocumentRequest: {
-            /** @description 文件歸屬的作用域類型 */
-            scopeType: components["schemas"]["ScopeType"];
-            /** @description 作用域實體的 ID */
-            scopeId: components["schemas"]["UUID"];
-            /** @description 文件標題 */
-            title: string;
-            /** @description 文件內容 */
-            content: string;
-        };
-        /** @description 記憶庫文件完整物件 */
-        memories_LibraryDocument: {
-            id: components["schemas"]["UUID"];
-            scopeType: components["schemas"]["ScopeType"];
-            scopeId: components["schemas"]["UUID"];
-            /** @description 文件標題 */
-            title: string;
-            /** @description 文件內容 */
-            content: string;
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 更新記憶庫文件請求 */
-        UpdateLibraryDocumentRequest: {
-            /** @description 文件標題 */
-            title?: string;
-            /** @description 文件內容 */
-            content?: string;
-        };
-        /** @description 記憶庫文件版本歷史記錄 */
-        LibraryDocumentVersion: {
-            /** @description 版本號（降冪排列，最新版本號最大） */
-            version: number;
-            /** @description 該版本的文件標題（null 表示該版本未變更標題） */
-            title?: string | null;
-            /** @description 該版本的文件內容 */
-            content: string;
-            /** @description 修改者帳號 ID */
-            editedBy: components["schemas"]["UUID"];
-            /**
-             * Format: date-time
-             * @description 修改時間（UTC）
-             */
-            editedAt: string;
-        };
-        /** @description 記憶繼承鏈中的單一作用域層級 */
-        MemoryChainScope: {
-            scopeType: components["schemas"]["ScopeType"];
-            scopeId: components["schemas"]["UUID"];
-            /** @description 作用域實體的顯示名稱 */
-            scopeName: string;
-            /** @description 該作用域下的記憶列表 */
-            memories: components["schemas"]["MemorySummary"][];
-        };
-        /**
-         * @description 任務的記憶繼承鏈聚合回應。沿著任務的 ownerTag 繼承路徑收集所有相關記憶：
-         *     帳號 → 組織 → 專案 → ownerTag → 任務模板 → 任務
-         */
-        MemoryChainResponse: {
-            /** @description 任務 ID */
-            taskId: components["schemas"]["UUID"];
-            /** @description 各作用域層級的記憶列表，按繼承順序排列 */
-            chain: components["schemas"]["MemoryChainScope"][];
-        };
-        /** @description 通知完整物件 */
-        notifications_Notification: {
-            id: components["schemas"]["UUID"];
-            /** @description 接收者帳號 ID */
-            accountId: components["schemas"]["UUID"];
-            type: components["schemas"]["NotificationType"];
-            /** @description 通知標題 */
-            title: string;
-            /** @description 通知內文 */
-            body?: string | null;
-            /**
-             * @description 參照資源類型
-             * @enum {string|null}
-             */
-            referenceType?: "task" | "todo" | "message" | null;
-            /** @description 參照資源 ID */
-            referenceId?: components["schemas"]["UUID"] | null;
-            /** @description 所屬專案 ID（系統級通知無專案） */
-            projectId?: components["schemas"]["UUID"] | null;
-            /** @description 所屬專案名稱 */
-            projectName?: string | null;
-            /** @description 相關任務 ID */
-            taskId?: components["schemas"]["UUID"] | null;
-            /** @description 相關任務名稱 */
-            taskName?: string | null;
-            /** @description 是否已讀 */
-            isRead: boolean;
-            /**
-             * Format: date-time
-             * @description 已讀時間（UTC）
-             */
-            readAt?: string | null;
-            /** @description 已投遞的頻道列表 */
-            deliveredChannels?: ("in_app" | "web_push" | "email")[];
-            /**
-             * Format: date-time
-             * @description 建立時間（UTC）
-             */
-            createdAt: string;
-        };
-        /** @description 單一通知頻道的偏好設定 */
-        ChannelPreference: {
-            /** @description 此頻道是否啟用 */
-            enabled: boolean;
-            /** @description 各通知類別的啟用狀態 */
-            categories: {
-                /** @description 任務更新通知 */
-                taskUpdates?: boolean;
-                /** @description 待辦指派通知 */
-                todoAssignments?: boolean;
-                /** @description AI 建議通知 */
-                aiSuggestions?: boolean;
-                /** @description 成員提及通知 */
-                mentions?: boolean;
-                /** @description 系統公告通知 */
-                systemAnnouncements?: boolean;
-            };
-        };
-        /** @description 通知偏好設定，以 channels 包裝各頻道的啟用與通知類別 */
-        NotificationPreferences: {
-            /** @description 各通知頻道設定 */
-            channels: {
-                email?: components["schemas"]["ChannelPreference"];
-                webPush?: components["schemas"]["ChannelPreference"];
-                inApp?: components["schemas"]["ChannelPreference"];
-            };
-        };
-        /** @description 單一通知頻道的偏好更新（部分更新） */
-        ChannelPreferenceUpdate: {
-            /** @description 此頻道是否啟用 */
-            enabled?: boolean;
-            /** @description 各通知類別的啟用狀態（僅傳入要修改的類別） */
-            categories?: {
-                taskUpdates?: boolean;
-                todoAssignments?: boolean;
-                aiSuggestions?: boolean;
-                mentions?: boolean;
-                systemAnnouncements?: boolean;
-            };
-        };
-        /** @description 更新通知偏好設定請求。僅需傳入要修改的部分，未傳入的設定維持不變。 */
-        UpdateNotificationPreferencesRequest: {
-            /** @description 各通知頻道設定（僅傳入要修改的頻道） */
-            channels?: {
-                email?: components["schemas"]["ChannelPreferenceUpdate"];
-                webPush?: components["schemas"]["ChannelPreferenceUpdate"];
-                inApp?: components["schemas"]["ChannelPreferenceUpdate"];
-            };
-        };
-        /** @description Web Push 訂閱請求，將瀏覽器的 push subscription 物件送至伺服器 */
-        WebPushSubscribeRequest: {
-            /** @description 瀏覽器 PushSubscription 物件 */
-            subscription: {
-                /**
-                 * Format: uri
-                 * @description Push service 的訂閱端點 URL
-                 */
-                endpoint: string;
-                /** @description 加密金鑰 */
-                keys: {
-                    /** @description P-256 Diffie-Hellman 公鑰（Base64 URL 編碼） */
-                    p256dh: string;
-                    /** @description 認證密鑰（Base64 URL 編碼） */
-                    auth: string;
-                };
-            };
-            /**
-             * @description 裝置名稱（用於使用者辨識不同訂閱）
-             * @example Chrome on MacBook
-             * @example Firefox on Desktop
-             */
-            deviceName?: string | null;
-        };
-        /** @description AI 建議群組摘要，用於列表顯示 */
-        SuggestionGroupSummary: {
-            id: components["schemas"]["UUID"];
-            /**
-             * @description 觸發此建議的事件類型
-             * @enum {string}
-             */
-            trigger: "task_created" | "todo_completed" | "message_sent" | "tool_error" | "source_data_changed" | "manual_request";
-            /** @description 觸發事件的訊息 ID */
-            triggerMessageId?: components["schemas"]["UUID"] | null;
-            /** @description 建議總數 */
-            suggestionsCount: number;
-            /** @description 已決策的建議數量 */
-            decidedCount: number;
-            /**
-             * Format: date-time
-             * @description 建議群組建立時間（UTC）
-             */
-            createdAt: string;
-        };
-        /** @description 建議生成時引用的記憶上下文 */
-        SuggestionContextRef: {
-            /** @description 記憶的作用域類型 */
-            scopeType?: components["schemas"]["ScopeType"];
-            /** @description 引用的記憶 ID */
-            memoryId?: components["schemas"]["UUID"];
-            /** @description 記憶內容摘要 */
-            content?: string;
-        };
-        /**
-         * @description AI 建議決策狀態
-         * @enum {string}
-         */
-        SuggestionDecisionType: "pending" | "accept" | "modify_and_accept" | "reject" | "re_suggest";
-        /** @description 單一 AI 建議的完整資訊 */
-        "ai-suggestions_Suggestion": {
-            id: components["schemas"]["UUID"];
-            /** @description 人類可讀的建議摘要 */
-            summary: string;
-            /** @description 建議執行的 MCP 工具名稱（如 'smtp/sendEmail'、'upsertDataEntry'） */
-            tool: string;
-            /** @description 工具呼叫參數（對應 MCP tool call 的 arguments） */
-            parameters: Record<string, never>;
-            /** @description AI 提出此建議的推理說明 */
-            reasoning: string;
-            /** @description 建議生成時參考的記憶與上下文引用 */
-            contextUsed?: components["schemas"]["SuggestionContextRef"][];
-            decision: components["schemas"]["SuggestionDecisionType"];
-            /** @description 做出決策的成員帳號 ID */
-            decidedBy?: components["schemas"]["UUID"] | null;
-            /**
-             * Format: date-time
-             * @description 決策時間（UTC）
-             */
-            decidedAt?: string | null;
-            /** @description 修改後的參數（decision = modify_and_accept 時有值） */
-            modifiedParameters?: Record<string, never> | null;
-            /** @description 工具執行結果（accept / modify_and_accept 後有值） */
-            executionResult?: Record<string, never> | null;
-        };
-        /** @description AI 建議群組完整資訊，包含所有建議的詳細內容與決策狀態 */
-        "ai-suggestions_SuggestionGroup": {
-            id: components["schemas"]["UUID"];
-            /** @description 所屬任務 ID */
-            taskId: components["schemas"]["UUID"];
-            /**
-             * @description 觸發此建議群組的事件類型
-             * @enum {string}
-             */
-            trigger: "task_created" | "todo_completed" | "message_sent" | "tool_error" | "source_data_changed" | "manual_request";
-            /** @description 觸發事件的訊息 ID（trigger = message_sent 時有值） */
-            triggerMessageId?: components["schemas"]["UUID"] | null;
-            /** @description 建議列表（1~5 個建議） */
-            suggestions: components["schemas"]["ai-suggestions_Suggestion"][];
-            /**
-             * Format: date-time
-             * @description 建議群組建立時間（UTC）
-             */
-            createdAt: string;
-        };
-        /** @description 對 AI 建議做出決策的請求主體 */
-        SuggestionDecisionRequest: {
-            /**
-             * @description 決策類型：
-             *     - accept：直接執行建議的工具呼叫
-             *     - modify_and_accept：修改參數後執行（需提供 modifiedParameters）
-             *     - reject：拒絕建議（可附帶 reason）
-             *     - re_suggest：要求 AI 重新生成建議（可附帶 reason 與 additionalInstructions）
-             * @enum {string}
-             */
-            decision: "accept" | "modify_and_accept" | "reject" | "re_suggest";
-            /** @description 修改後的工具參數（decision = modify_and_accept 時必填） */
-            modifiedParameters?: Record<string, never>;
-            /** @description 拒絕或要求重新建議的原因（decision = reject / re_suggest 時可選） */
-            reason?: string;
-            /** @description 給 AI 的額外指示（decision = re_suggest 時可選） */
-            additionalInstructions?: string;
-            /** @description 已讀保護：客戶端已讀的最後一則訊息 ID，確保決策者已閱讀最新對話 */
-            lastSeenMessageId: components["schemas"]["UUID"];
-        };
-        /** @description 建議決策結果回應，採納時包含工具執行結果 */
-        SuggestionDecisionResponse: {
-            /** @description 決策後的建議狀態 */
-            suggestion: {
-                id: components["schemas"]["UUID"];
-                /** @description 建議摘要 */
-                summary: string;
-                /** @description 建議使用的工具名稱 */
-                tool: string;
-                /**
-                 * @description 決策類型
-                 * @enum {string}
-                 */
-                decision: "accept" | "modify_and_accept" | "reject" | "re_suggest";
-                /** @description 做出決策的成員帳號 ID */
-                decidedBy: components["schemas"]["UUID"];
-                /**
-                 * Format: date-time
-                 * @description 決策時間（UTC）
-                 */
-                decidedAt: string;
-            };
-            /** @description 工具執行結果（accept / modify_and_accept 時有值） */
-            executionResult?: {
-                /** @description 執行是否成功 */
-                success?: boolean;
-                /** @description 工具回傳的結果資料 */
-                result?: Record<string, never>;
-                /** @description 執行錯誤訊息（success = false 時有值） */
-                error?: string | null;
-            } | null;
-            /** @description 決策結果產生的對話訊息 ID */
-            messageId?: components["schemas"]["UUID"] | null;
-        };
-        /** @description 手動觸發 AI 建議的請求主體 */
-        RequestSuggestionsBody: {
-            /** @description 給 AI 的額外指示，描述希望 AI 協助的內容 */
-            instructions?: string;
-            /** @description 已讀保護：客戶端已讀的最後一則訊息 ID */
-            lastSeenMessageId?: components["schemas"]["UUID"];
-        };
-        /** @description Inbound Email 處理結果回應 */
-        InboundEmailResponse: {
-            /**
-             * @description 處理狀態：
-             *     - matched：成功匹配到任務，信件已加入任務對話
-             *     - unmatched：無法匹配，已歸入專案的未分類收件匣
-             * @enum {string}
-             */
-            status: "matched" | "unmatched";
-            /** @description 匹配到的任務 ID（status = matched 時有值） */
-            taskId?: components["schemas"]["UUID"] | null;
-            /** @description 新增至任務對話的訊息 ID（status = matched 時有值） */
-            messageId?: components["schemas"]["UUID"] | null;
-            /** @description 匹配或建立的 Email Thread ID（status = matched 時有值） */
-            threadId?: components["schemas"]["UUID"] | null;
-            /** @description 未分類信件 ID（status = unmatched 時有值） */
-            emailId?: components["schemas"]["UUID"] | null;
-            /** @description 歸入的專案 ID（status = unmatched 時有值） */
-            projectId?: components["schemas"]["UUID"] | null;
-        };
-        /** @description 未分類收件匣中的信件項目，尚未匹配到任何任務 */
-        UnassignedEmail: {
-            id: components["schemas"]["UUID"];
-            /** @description 寄件者資訊 */
-            from: {
-                /** @description 寄件者顯示名稱 */
-                name?: string | null;
-                /**
-                 * Format: email
-                 * @description 寄件者 Email 地址
-                 */
-                address: string;
-            };
-            /** @description Email 主旨 */
-            subject: string;
-            /** @description Email 內容預覽片段 */
-            snippet?: string;
-            /**
-             * Format: date-time
-             * @description 收件時間（UTC）
-             */
-            receivedAt: string;
-            /** @description 是否包含附件 */
-            hasAttachments?: boolean;
-        };
-        /** @description Email 訊息記錄 */
-        EmailMessageResponse: {
-            id: components["schemas"]["UUID"];
-            threadId: components["schemas"]["UUID"];
-            /** @description Email Message-ID 標頭值 */
-            messageId: string;
-            inReplyTo?: string | null;
-            referencesHeader?: string | null;
-            /** Format: email */
-            fromAddress: string;
-            toAddresses: string[];
-            ccAddresses?: string[];
-            subject: string;
-            /**
-             * @description 方向：inbound（收到）或 outbound（發出）
-             * @enum {string}
-             */
-            direction: "inbound" | "outbound";
-            /** @description 原始郵件標頭（JSONB），僅在需要除錯時使用 */
-            rawHeaders?: {
-                [key: string]: string;
-            } | null;
-            /** @description 對應的任務對話訊息 ID */
-            conversationMessageId?: components["schemas"]["UUID"] | null;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        /** @description Email 對話串回應 */
-        EmailThreadResponse: {
-            id: components["schemas"]["UUID"];
-            taskId: components["schemas"]["UUID"];
-            /** @description Email 主旨 */
-            subject: string;
-            /** @description 參與者 Email 地址列表 */
-            participants: string[];
-            /** @description 此對話串中所有 Email 的 Message-ID 列表 */
-            messageIds: string[];
-            /** Format: date-time */
-            lastMessageAt?: string | null;
-            /** @description 對話串中的 Email 訊息 */
-            emailMessages?: components["schemas"]["EmailMessageResponse"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description Webhook 設定完整回應。Secret 欄位以遮蔽形式回傳（如 'whsec_****'），不顯示明文 */
-        webhooks_Webhook: {
-            id: components["schemas"]["UUID"];
-            /** @description 所屬專案 ID */
-            projectId: components["schemas"]["UUID"];
-            /** @description Webhook 名稱（便於識別用途） */
-            name: string;
-            /**
-             * Format: uri
-             * @description 目標推送 URL（生產環境必須為 HTTPS）
-             */
-            url: string;
-            /** @description 是否已設定 HMAC 簽名密鑰（不回傳明文） */
-            hasSecret?: boolean;
-            /**
-             * @description 訂閱的事件類型列表。支援的事件：
-             *     task.created, task.updated, task.completed, task.deleted,
-             *     todo.created, todo.completed, todo.updated,
-             *     data_entry.created, data_entry.updated, data_entry.deleted,
-             *     message.created, member.added, member.removed
-             */
-            events: string[];
-            /** @description 是否啟用 */
-            enabled: boolean;
-            /** @description 建立者帳號 ID */
-            createdBy: components["schemas"]["UUID"];
-            /**
-             * Format: date-time
-             * @description 建立時間（UTC）
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description 最後更新時間（UTC）
-             */
-            updatedAt: string;
-        };
-        /** @description 建立 Webhook 設定的請求主體 */
-        CreateWebhookRequest: {
-            /** @description Webhook 名稱（便於識別用途） */
-            name: string;
-            /**
-             * Format: uri
-             * @description 目標推送 URL（生產環境必須為 HTTPS）
-             */
-            url: string;
-            /** @description 訂閱的事件類型列表（至少一個） */
-            events: string[];
-            /**
-             * @description 是否啟用，預設為 true
-             * @default true
-             */
-            enabled: boolean;
-        };
-        /** @description 含完整 Secret 的 Webhook 回應，僅在建立時回傳一次。Secret 明文之後無法再次取得 */
-        WebhookWithSecret: {
-            id: components["schemas"]["UUID"];
-            /** @description 所屬專案 ID */
-            projectId: components["schemas"]["UUID"];
-            /** @description Webhook 名稱 */
-            name: string;
-            /**
-             * Format: uri
-             * @description 目標推送 URL
-             */
-            url: string;
-            /** @description 訂閱的事件類型列表 */
-            events: string[];
-            /** @description 是否啟用 */
-            enabled: boolean;
-            /** @description HMAC-SHA256 簽名密鑰明文（僅此一次顯示，請妥善保存） */
-            secret: string;
-            /** @description 建立者帳號 ID */
-            createdBy: components["schemas"]["UUID"];
-            /**
-             * Format: date-time
-             * @description 建立時間（UTC）
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description 最後更新時間（UTC）
-             */
-            updatedAt: string;
-        };
-        /** @description 更新 Webhook 設定的請求主體。無法透過此端點更新 secret，需刪除後重建 */
-        UpdateWebhookRequest: {
-            /** @description Webhook 名稱 */
-            name?: string;
-            /**
-             * Format: uri
-             * @description 目標推送 URL
-             */
-            url?: string;
-            /** @description 訂閱的事件類型列表（完整替換） */
-            events?: string[];
-            /** @description 是否啟用 */
-            enabled?: boolean;
-        };
-        /** @description Webhook 測試推送結果 */
-        WebhookTestResponse: {
-            /** @description 測試推送是否成功（目標端點回應 2xx） */
-            success: boolean;
-            /** @description 目標端點的 HTTP 回應狀態碼 */
-            statusCode: number;
-            /** @description 回應時間（毫秒） */
-            responseTime: number;
-            /** @description 目標端點的回應內容（截斷至 10KB） */
-            responseBody?: string | null;
-            /** @description 此次測試推送的事件日誌 ID，可用於查詢詳細紀錄 */
-            logId: components["schemas"]["UUID"];
-            /** @description 錯誤訊息（連線失敗、逾時等） */
-            error?: string | null;
-        };
-        /**
-         * @description Webhook 推送狀態
-         * @enum {string}
-         */
-        WebhookEventStatus: "pending" | "success" | "failed";
-        /** @description Webhook 事件推送紀錄，記錄每次推送的結果與重試狀態 */
-        WebhookLog: {
-            id: components["schemas"]["UUID"];
-            /** @description 所屬 Webhook ID */
-            webhookId: components["schemas"]["UUID"];
-            /** @description 事件類型（如 'task.completed'、'test'） */
-            event: string;
-            /** @description 推送的 JSON 資料 */
-            payload?: Record<string, never>;
-            /** @description 推送狀態：pending（等待/重試中）、success（成功）、failed（失敗） */
-            status: components["schemas"]["WebhookEventStatus"];
-            /** @description 目標端點的 HTTP 回應狀態碼 */
-            statusCode?: number | null;
-            /** @description 目標端點的 HTTP 回應內容（截斷至 10KB） */
-            responseBody?: string | null;
-            /** @description 回應時間（毫秒） */
-            responseTime?: number | null;
-            /** @description 已嘗試推送次數 */
-            attempts?: number;
-            /** @description 最大嘗試次數 */
-            maxAttempts?: number;
-            /**
-             * Format: date-time
-             * @description 下次重試時間（UTC）
-             */
-            nextRetryAt?: string | null;
-            /** @description 是否為測試事件 */
-            isTest?: boolean;
-            /**
-             * Format: date-time
-             * @description 建立時間（UTC）
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description 最終完成時間（成功或放棄重試）
-             */
-            completedAt?: string | null;
-        };
-        /** @description 通知頻道設定 */
-        ChannelConfig: {
-            enabled?: boolean;
-            categories?: {
-                taskUpdates?: boolean;
-                todoAssignments?: boolean;
-                aiSuggestions?: boolean;
-                mentions?: boolean;
-                systemAnnouncements?: boolean;
-            };
-        };
-        /** @description 通知偏好設定 */
-        entities_NotificationPreferences: {
-            channels?: {
-                email?: components["schemas"]["ChannelConfig"];
-                webPush?: components["schemas"]["ChannelConfig"];
-                inApp?: components["schemas"]["ChannelConfig"];
-            };
-        };
-        /** @description 帳號完整回應 */
-        entities_AccountResponse: {
-            id: components["schemas"]["UUID"];
-            /** @description 使用者名稱 */
-            name: string;
-            /**
-             * Format: email
-             * @description Email，系統唯一識別
-             */
-            email: string;
-            /** @description 頭像 URL */
-            avatarUrl?: string | null;
-            /** @description 公開的自我介紹文字 */
-            bio?: string | null;
-            /** @description 私人的結構化資料（僅帳號本人可查看） */
-            profileData?: {
-                [key: string]: unknown;
-            };
-            /** @description 個人欄位結構描述 */
-            profileSchema?: components["schemas"]["ProfileSchemaField"][];
-            notificationPreferences?: components["schemas"]["entities_NotificationPreferences"];
-            /**
-             * @description 使用者偏好語系
-             * @example zh-TW
-             */
-            locale: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 組織完整回應 */
-        entities_OrganizationResponse: {
-            id: components["schemas"]["UUID"];
-            /** @description 組織名稱 */
-            name: string;
-            /** @description 組織描述 */
-            description?: string | null;
-            /** @description 組織 Logo URL */
-            logoUrl?: string | null;
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 組織成員完整回應 */
-        OrganizationMemberResponse: {
-            id: components["schemas"]["UUID"];
-            organizationId: components["schemas"]["UUID"];
-            accountId: components["schemas"]["UUID"];
-            role: components["schemas"]["OrgRole"];
-            account?: components["schemas"]["AccountSummary"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 專案權限設定 */
-        PermissionSettings: {
-            taskVisibility?: components["schemas"]["PermissionRule"][];
-            toolPermissions?: components["schemas"]["PermissionRule"][];
-            memoryVisibility?: components["schemas"]["PermissionRule"][];
-            dataAccess?: components["schemas"]["PermissionRule"][];
-        };
-        /** @description 專案完整回應 */
-        entities_ProjectResponse: {
-            id: components["schemas"]["UUID"];
-            organizationId: components["schemas"]["UUID"];
-            /** @description 專案名稱 */
-            name: string;
-            /** @description 專案描述 */
-            description?: string | null;
-            status: components["schemas"]["ProjectStatus"];
-            /** @description 來源專案 ID（若為複製建立） */
-            sourceProjectId?: components["schemas"]["UUID"] | null;
-            permissionSettings?: components["schemas"]["PermissionSettings"];
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 專案成員完整回應 */
-        entities_MemberResponse: {
-            id: components["schemas"]["UUID"];
-            projectId: components["schemas"]["UUID"];
-            accountId: components["schemas"]["UUID"];
-            role: components["schemas"]["MemberRole"];
-            account?: components["schemas"]["AccountSummary"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 建議生成時參考的記憶引用 */
-        entities_SuggestionContextRef: {
-            /** @description 記憶範圍類型 */
-            scopeType: string;
-            /** @description 記憶 ID */
-            memoryId: components["schemas"]["UUID"];
-            /** @description 記憶內容摘要 */
-            content: string;
-        };
-        /** @description 單一 AI 建議 */
-        SuggestionResponse: {
-            id: components["schemas"]["UUID"];
-            /** @description 建議摘要 */
-            summary: string;
-            /** @description 建議執行的 MCP 工具名稱 */
-            tool: string;
-            /** @description 工具參數 */
-            parameters: Record<string, never>;
-            /** @description AI 提出此建議的理由 */
-            reasoning: string;
-            /** @description 建議生成時參考的記憶引用 */
-            contextUsed?: components["schemas"]["entities_SuggestionContextRef"][];
-            decision: components["schemas"]["SuggestionDecisionType"];
-            decidedBy?: components["schemas"]["UUID"] | null;
-            /** Format: date-time */
-            decidedAt?: string | null;
-            /** @description 修改後的參數（decision = modify_and_accept 時） */
-            modifiedParameters?: Record<string, never> | null;
-            /** @description 工具執行結果 */
-            executionResult?: Record<string, never> | null;
-        };
-        /** @description AI 建議群組 */
-        SuggestionGroupResponse: {
-            id: components["schemas"]["UUID"];
-            /**
-             * @description 觸發此建議的事件類型
-             * @enum {string}
-             */
-            trigger: "task_created" | "todo_completed" | "message_sent" | "tool_error" | "source_data_changed" | "manual_request";
-            suggestions: components["schemas"]["SuggestionResponse"][];
-            /** Format: date-time */
-            createdAt: string;
-        };
-        /** @description 工具設定完整回應 */
-        ToolConfigResponse: {
-            id: components["schemas"]["UUID"];
-            scopeType: components["schemas"]["ToolScopeType"];
-            scopeId: components["schemas"]["UUID"];
-            /**
-             * @description 工具類型：builtin（內建）或 external（外部 MCP Server）
-             * @enum {string}
-             */
-            toolType: "builtin" | "external";
-            /** @description 工具識別名稱（如 'smtp/sendEmail'） */
-            toolName: string;
-            /** @description 顯示名稱 */
-            displayName?: string | null;
-            /** @description 工具說明 */
-            description?: string | null;
-            /** @description 是否啟用 */
-            enabled: boolean;
-            /** @description 工具設定（敏感欄位以遮罩形式呈現） */
-            config: {
-                [key: string]: unknown;
-            };
-            /** @description 外部工具的 MCP Server 連線設定（僅 tool_type = external 時有值） */
-            mcpServerConfig?: components["schemas"]["McpServerConfig"] | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 記憶完整回應 */
-        MemoryResponse: {
-            id: components["schemas"]["UUID"];
-            scopeType: components["schemas"]["ScopeType"];
-            scopeId: components["schemas"]["UUID"];
-            /** @description 記憶摘要內容 */
-            content: string;
-            /** @description 關聯的記憶庫文件 ID */
-            libraryRef?: components["schemas"]["UUID"] | null;
-            source: components["schemas"]["MemorySource"];
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 記憶庫文件完整回應 */
-        LibraryDocumentResponse: {
-            id: components["schemas"]["UUID"];
-            scopeType: components["schemas"]["ScopeType"];
-            scopeId: components["schemas"]["UUID"];
-            /** @description 文件標題 */
-            title: string;
-            /** @description 文件內容 */
-            content: string;
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description 稽核日誌回應（不可變記錄） */
-        AuditLogResponse: {
-            id: components["schemas"]["UUID"];
-            /**
-             * @description 操作者類型
-             * @enum {string}
-             */
-            actorType: "account" | "system" | "ai";
-            /** @description 操作者帳號 ID（actorType = account 時有值） */
-            actorId?: components["schemas"]["UUID"] | null;
-            /** @description 操作類型（如 'task.create'、'todo.update'） */
-            action: string;
-            /** @description 被操作資源類型 */
-            resourceType: string;
-            resourceId: components["schemas"]["UUID"];
-            /**
-             * @description 操作上下文類型
-             * @enum {string|null}
-             */
-            contextType?: "organization" | "project" | "task" | null;
-            contextId?: components["schemas"]["UUID"] | null;
-            /** @description 操作細節（變更前後值、參數等） */
-            details: {
-                [key: string]: unknown;
-            };
-            /**
-             * @description 操作者 IP 位址（IPv4 或 IPv6，對應資料庫 INET 型別）
-             * @example 192.168.1.1
-             */
-            ipAddress?: string | null;
-            /** @description 操作者 User-Agent */
-            userAgent?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        /** @description 通知回應 */
-        NotificationResponse: {
-            id: components["schemas"]["UUID"];
-            accountId: components["schemas"]["UUID"];
-            type: components["schemas"]["NotificationType"];
-            /** @description 通知標題 */
-            title: string;
-            /** @description 通知內文 */
-            body?: string | null;
-            /**
-             * @description 參照資源類型
-             * @enum {string|null}
-             */
-            referenceType?: "task" | "todo" | "message" | null;
-            referenceId?: components["schemas"]["UUID"] | null;
-            projectId?: components["schemas"]["UUID"] | null;
-            isRead: boolean;
-            /** Format: date-time */
-            readAt?: string | null;
-            deliveredChannels?: ("in_app" | "web_push" | "email")[];
-            /** Format: date-time */
-            createdAt: string;
-        };
-        /** @description Webhook 設定完整回應 */
-        WebhookResponse: {
-            id: components["schemas"]["UUID"];
-            projectId: components["schemas"]["UUID"];
-            /** @description Webhook 名稱 */
-            name: string;
-            /**
-             * Format: uri
-             * @description 目標推送 URL
-             */
-            url: string;
-            /** @description 是否已設定 HMAC 簽名密鑰（不回傳明文） */
-            hasSecret?: boolean;
-            /** @description 訂閱的事件類型列表 */
-            events: string[];
-            enabled: boolean;
-            createdBy: components["schemas"]["UUID"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @description Webhook 事件日誌回應 */
-        WebhookEventLogResponse: {
-            id: components["schemas"]["UUID"];
-            webhookId: components["schemas"]["UUID"];
-            /** @description 事件類型 */
-            eventType: string;
-            /** @description 推送的 JSON 資料 */
-            payload: Record<string, never>;
-            status: components["schemas"]["WebhookEventStatus"];
-            /** @description HTTP 回應狀態碼 */
-            responseStatus?: number | null;
-            /** @description HTTP 回應內容（截斷至 10KB） */
-            responseBody?: string | null;
-            /** @description 已嘗試推送次數 */
-            attempts: number;
-            /** @description 最大嘗試次數 */
-            maxAttempts: number;
-            /** Format: date-time */
-            nextRetryAt?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            completedAt?: string | null;
-        };
-        /** @description 子系統健康檢查 */
-        HealthCheck: {
-            /**
-             * @description 子系統狀態
-             * @enum {string}
-             */
-            status: "healthy" | "degraded" | "unhealthy";
-            /** @description 回應延遲（毫秒） */
-            latencyMs?: number;
-            /** @description 附加訊息（異常時提供錯誤描述） */
-            message?: string;
+        /** @description A single field validation error. */
+        ValidationError: {
+            /** @description Error code for programmatic handling (e.g. "required", "`too_long`"). */
+            code: string;
+            /** @description Field path (e.g. "name", "config.apiKey"). */
+            field: string;
+            /** @description Human-readable error message. */
+            message: string;
         };
     };
-    responses: {
-        /** @description 401 Unauthorized — 未認證或 token 已過期 */
-        Unauthorized: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                /**
-                 * @example {
-                 *       "type": "https://api.conf-ops.dev/errors/unauthorized",
-                 *       "title": "Unauthorized",
-                 *       "status": 401,
-                 *       "detail": "存取 token 無效或已過期"
-                 *     }
-                 */
-                "application/json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description 400 Bad Request — 請求參數錯誤或驗證失敗 */
-        BadRequest: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                /**
-                 * @example {
-                 *       "type": "https://api.conf-ops.dev/errors/validation",
-                 *       "title": "Validation Error",
-                 *       "status": 400,
-                 *       "detail": "請求內容驗證失敗",
-                 *       "errors": [
-                 *         {
-                 *           "field": "name",
-                 *           "message": "名稱為必填欄位",
-                 *           "code": "required"
-                 *         }
-                 *       ]
-                 *     }
-                 */
-                "application/json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description 404 Not Found — 請求的資源不存在 */
-        NotFound: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                /**
-                 * @example {
-                 *       "type": "https://api.conf-ops.dev/errors/not-found",
-                 *       "title": "Not Found",
-                 *       "status": 404,
-                 *       "detail": "請求的資源不存在"
-                 *     }
-                 */
-                "application/json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description 403 Forbidden — 無權限執行此操作 */
-        Forbidden: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                /**
-                 * @example {
-                 *       "type": "https://api.conf-ops.dev/errors/forbidden",
-                 *       "title": "Forbidden",
-                 *       "status": 403,
-                 *       "detail": "您無權限執行此操作"
-                 *     }
-                 */
-                "application/json": components["schemas"]["ProblemDetails"];
-            };
-        };
-    };
+    responses: never;
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -6083,7 +848,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    passkeyRegisterBegin: {
+    get_me: {
         parameters: {
             query?: never;
             header?: never;
@@ -6092,486 +857,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description WebAuthn 註冊挑戰已產生 */
+            /** @description Current user account */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "challenge": "dGVzdC1jaGFsbGVuZ2U...",
-                     *       "rp": {
-                     *         "name": "Conf-Ops",
-                     *         "id": "conf-ops.example.com"
-                     *       },
-                     *       "user": {
-                     *         "id": "dXNlci1pZA...",
-                     *         "name": "user@example.com",
-                     *         "displayName": "Alice"
-                     *       },
-                     *       "pubKeyCredParams": [
-                     *         {
-                     *           "type": "public-key",
-                     *           "alg": -7
-                     *         }
-                     *       ],
-                     *       "timeout": 60000,
-                     *       "attestation": "none"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["PasskeyRegisterBeginResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    passkeyRegisterComplete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "id": "credential-id-base64url",
-                 *       "rawId": "credential-raw-id-base64url",
-                 *       "response": {
-                 *         "attestationObject": "attestation-object-base64url",
-                 *         "clientDataJSON": "client-data-json-base64url"
-                 *       },
-                 *       "type": "public-key"
-                 *     }
-                 */
-                "application/json": components["schemas"]["PasskeyRegisterCompleteRequest"];
-            };
-        };
-        responses: {
-            /** @description Passkey 註冊成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "credentialId": "credential-id-base64url",
-                     *       "createdAt": "2025-01-15T10:30:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["PasskeyRegisterCompleteResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    passkeyLoginBegin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                /**
-                 * @example {
-                 *       "email": "user@example.com"
-                 *     }
-                 */
-                "application/json": components["schemas"]["PasskeyLoginBeginRequest"];
-            };
-        };
-        responses: {
-            /** @description WebAuthn 認證挑戰已產生 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "challenge": "bG9naW4tY2hhbGxlbmdl...",
-                     *       "timeout": 60000,
-                     *       "rpId": "conf-ops.example.com",
-                     *       "allowCredentials": [
-                     *         {
-                     *           "type": "public-key",
-                     *           "id": "credential-id-base64url"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["PasskeyLoginBeginResponse"];
-                };
-            };
-        };
-    };
-    passkeyLoginComplete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "id": "credential-id-base64url",
-                 *       "rawId": "credential-raw-id-base64url",
-                 *       "response": {
-                 *         "authenticatorData": "authenticator-data-base64url",
-                 *         "clientDataJSON": "client-data-json-base64url",
-                 *         "signature": "signature-base64url"
-                 *       },
-                 *       "type": "public-key"
-                 *     }
-                 */
-                "application/json": components["schemas"]["PasskeyLoginCompleteRequest"];
-            };
-        };
-        responses: {
-            /** @description 登入成功，回傳 Token Pair */
-            200: {
-                headers: {
-                    /** @description HTTP-only cookie 包含 refresh token */
-                    "Set-Cookie"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "accessToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
-                     *       "refreshToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
-                     *       "expiresIn": 900,
-                     *       "tokenType": "Bearer"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["TokenPair"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            /** @description 認證失敗 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/authentication-failed",
-                     *       "title": "Authentication Failed",
-                     *       "status": 401,
-                     *       "detail": "Passkey 驗證失敗"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    magicLinkRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "email": "user@example.com"
-                 *     }
-                 */
-                "application/json": components["schemas"]["MagicLinkRequestBody"];
-            };
-        };
-        responses: {
-            /** @description Magic Link 已寄出（無論帳號是否存在，皆回傳成功以防止列舉攻擊） */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "若該 Email 已註冊，將收到登入連結"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MagicLinkRequestResponse"];
-                };
-            };
-            /** @description 請求過於頻繁 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/rate-limit-exceeded",
-                     *       "title": "Rate Limit Exceeded",
-                     *       "status": 429,
-                     *       "detail": "請求過於頻繁，請稍後再試"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    magicLinkVerify: {
-        parameters: {
-            query: {
-                /** @description Magic Link 中的一次性驗證 token */
-                token: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 驗證成功，回傳 Token Pair */
-            200: {
-                headers: {
-                    /** @description HTTP-only cookie 包含 refresh token */
-                    "Set-Cookie"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "accessToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
-                     *       "refreshToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
-                     *       "expiresIn": 900,
-                     *       "tokenType": "Bearer"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["TokenPair"];
-                };
-            };
-            /** @description Token 無效或已過期 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/invalid-token",
-                     *       "title": "Invalid Token",
-                     *       "status": 400,
-                     *       "detail": "登入連結無效或已過期"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    authRefresh: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                /** @description 包含 refresh_token 的 HTTP-only cookie */
-                Cookie?: string;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Token 重新整理成功 */
-            200: {
-                headers: {
-                    /** @description 新的 HTTP-only cookie 包含 refresh token */
-                    "Set-Cookie"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "accessToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
-                     *       "refreshToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
-                     *       "expiresIn": 900,
-                     *       "tokenType": "Bearer"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["TokenPair"];
-                };
-            };
-            /** @description Refresh token 無效或已過期 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/invalid-refresh-token",
-                     *       "title": "Invalid Refresh Token",
-                     *       "status": 401,
-                     *       "detail": "Refresh token 無效或已過期"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    authLogout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 登出成功，refresh token 已撤銷 */
-            204: {
-                headers: {
-                    /** @description 清除 refresh token cookie */
-                    "Set-Cookie"?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    listPasskeys: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 已註冊的 Passkey 列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "passkeys": [
-                     *         {
-                     *           "id": "018e4a2c-0001-7000-8000-000000000001",
-                     *           "name": "MacBook Pro Touch ID",
-                     *           "createdAt": "2026-01-15T10:00:00Z",
-                     *           "lastUsedAt": "2026-02-18T14:30:00Z"
-                     *         },
-                     *         {
-                     *           "id": "018e4a2c-0001-7000-8000-000000000002",
-                     *           "name": "YubiKey 5",
-                     *           "createdAt": "2026-01-20T09:00:00Z",
-                     *           "lastUsedAt": "2026-02-10T08:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        passkeys: {
-                            /** @description Passkey 識別碼 */
-                            id: components["schemas"]["UUID"];
-                            /**
-                             * @description 裝置名稱（由 authenticator 提供或使用者自訂）
-                             * @example MacBook Pro Touch ID
-                             */
-                            name: string;
-                            /**
-                             * Format: date-time
-                             * @description 註冊時間
-                             */
-                            createdAt: string;
-                            /**
-                             * Format: date-time
-                             * @description 最後使用時間
-                             */
-                            lastUsedAt: string | null;
-                        }[];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    deletePasskey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Passkey 識別碼 */
-                passkeyId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Passkey 已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            /** @description 無法刪除最後一個認證方式 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getCurrentAccount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 帳號資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "name": "Alice Chen",
-                     *       "email": "alice@example.com",
-                     *       "avatarUrl": "https://cdn.example.com/avatars/alice.jpg",
-                     *       "bio": "開源社群愛好者，專注於活動籌備",
-                     *       "locale": "zh-TW",
-                     *       "createdAt": "2025-01-01T00:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:30:00Z"
-                     *     }
-                     */
                     "application/json": components["schemas"]["AccountResponse"];
                 };
             };
-            401: components["responses"]["Unauthorized"];
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
-    updateCurrentAccount: {
+    update_me: {
         parameters: {
             query?: never;
             header?: never;
@@ -6580,4380 +886,20 @@ export interface operations {
         };
         requestBody: {
             content: {
-                /**
-                 * @example {
-                 *       "name": "Alice Chen",
-                 *       "bio": "開源社群愛好者，專注於活動籌備與社群經營",
-                 *       "locale": "zh-TW"
-                 *     }
-                 */
                 "application/json": components["schemas"]["UpdateAccountRequest"];
             };
         };
         responses: {
-            /** @description 帳號資訊更新成功 */
+            /** @description Account updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "name": "Alice Chen",
-                     *       "email": "alice@example.com",
-                     *       "avatarUrl": "https://cdn.example.com/avatars/alice.jpg",
-                     *       "bio": "開源社群愛好者，專注於活動籌備與社群經營",
-                     *       "locale": "zh-TW",
-                     *       "createdAt": "2025-01-01T00:00:00Z",
-                     *       "updatedAt": "2025-06-16T08:00:00Z"
-                     *     }
-                     */
                     "application/json": components["schemas"]["AccountResponse"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getCurrentAccountProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 個人資料表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "profileData": {
-                     *         "phone": "+886-912-345-678",
-                     *         "address": "台北市信義區...",
-                     *         "dietary_preference": "素食"
-                     *       },
-                     *       "profileSchema": [
-                     *         {
-                     *           "key": "phone",
-                     *           "label": "聯絡電話",
-                     *           "description": "個人手機號碼",
-                     *           "type": "string"
-                     *         },
-                     *         {
-                     *           "key": "address",
-                     *           "label": "通訊地址",
-                     *           "description": "收件地址",
-                     *           "type": "string"
-                     *         },
-                     *         {
-                     *           "key": "dietary_preference",
-                     *           "label": "飲食偏好",
-                     *           "description": "素食、葷食或其他飲食需求",
-                     *           "type": "string"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProfileResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    updateCurrentAccountProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "profileData": {
-                 *         "phone": "+886-912-345-678",
-                 *         "dietary_preference": "素食"
-                 *       },
-                 *       "profileSchema": [
-                 *         {
-                 *           "key": "phone",
-                 *           "label": "聯絡電話",
-                 *           "description": "個人手機號碼",
-                 *           "type": "string"
-                 *         },
-                 *         {
-                 *           "key": "dietary_preference",
-                 *           "label": "飲食偏好",
-                 *           "description": "素食、葷食或其他飲食需求",
-                 *           "type": "string"
-                 *         }
-                 *       ]
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateProfileRequest"];
-            };
-        };
-        responses: {
-            /** @description 個人資料表更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "profileData": {
-                     *         "phone": "+886-912-345-678",
-                     *         "address": "台北市信義區...",
-                     *         "dietary_preference": "素食"
-                     *       },
-                     *       "profileSchema": [
-                     *         {
-                     *           "key": "phone",
-                     *           "label": "聯絡電話",
-                     *           "description": "個人手機號碼",
-                     *           "type": "string"
-                     *         },
-                     *         {
-                     *           "key": "address",
-                     *           "label": "通訊地址",
-                     *           "description": "收件地址",
-                     *           "type": "string"
-                     *         },
-                     *         {
-                     *           "key": "dietary_preference",
-                     *           "label": "飲食偏好",
-                     *           "description": "素食、葷食或其他飲食需求",
-                     *           "type": "string"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProfileResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getCurrentAccountTodos: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標，用於取得下一頁資料 */
-                cursor?: string;
-                /** @description 每頁筆數，預設 20，最大 100 */
-                limit?: number;
-                /** @description 依專案 ID 篩選 */
-                projectId?: string;
-                /** @description 依待辦狀態篩選 */
-                status?: "open" | "completed";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 待辦事項列表（cursor 分頁） */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "items": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000010",
-                     *           "title": "確認贊助方案內容",
-                     *           "status": "open",
-                     *           "dueDate": "2025-07-01T00:00:00Z",
-                     *           "taskId": "019409a2-c5f2-7000-8000-000000000020",
-                     *           "taskName": "與 A 贊助商保持聯絡",
-                     *           "projectId": "019409a2-c5f2-7000-8000-000000000030",
-                     *           "projectName": "COSCUP 2025"
-                     *         }
-                     *       ],
-                     *       "nextCursor": "eyJpZCI6IjAxOTQwOWEyLWM1ZjItNzAwMC04MDAwLTAwMDAwMDAwMDAxMCJ9",
-                     *       "hasMore": true
-                     *     }
-                     */
-                    "application/json": components["schemas"]["TodoListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getCurrentAccountNotifications: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁筆數，預設 20，最大 100 */
-                limit?: number;
-                /** @description 依已讀狀態篩選 */
-                isRead?: boolean;
-                /** @description 依專案 ID 篩選 */
-                projectId?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 通知列表（cursor 分頁） */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "items": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000040",
-                     *           "type": "todo_assigned",
-                     *           "title": "你有一項新的待辦事項",
-                     *           "body": "「確認贊助方案內容」已指派給你",
-                     *           "referenceType": "todo",
-                     *           "referenceId": "019409a2-c5f2-7000-8000-000000000010",
-                     *           "projectId": "019409a2-c5f2-7000-8000-000000000030",
-                     *           "isRead": false,
-                     *           "createdAt": "2025-06-15T10:30:00Z"
-                     *         }
-                     *       ],
-                     *       "nextCursor": "eyJpZCI6IjAxOTQwOWEyLWM1ZjItNzAwMC04MDAwLTAwMDAwMDAwMDA0MCJ9",
-                     *       "hasMore": false
-                     *     }
-                     */
-                    "application/json": components["schemas"]["NotificationListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    listOrganizations: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 組織列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "items": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000100",
-                     *           "name": "COSCUP 籌備團隊",
-                     *           "description": "COSCUP 年度開源人年會籌備組織",
-                     *           "logoUrl": null,
-                     *           "role": "org_owner",
-                     *           "createdAt": "2025-06-15T10:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["OrganizationListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createOrganization: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "COSCUP 籌備團隊",
-                 *       "description": "COSCUP 年度開源人年會籌備組織"
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateOrganizationRequest"];
-            };
-        };
-        responses: {
-            /** @description 組織建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "COSCUP 籌備團隊",
-                     *       "description": "COSCUP 年度開源人年會籌備組織",
-                     *       "logoUrl": null,
-                     *       "createdBy": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["OrganizationResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getOrganization: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 組織詳細資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "COSCUP 籌備團隊",
-                     *       "description": "COSCUP 年度開源人年會籌備組織",
-                     *       "logoUrl": null,
-                     *       "createdBy": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "memberCount": 42,
-                     *       "projectCount": 3,
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["OrganizationDetailResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateOrganization: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "COSCUP 2025 籌備團隊",
-                 *       "description": "COSCUP 2025 年度開源人年會籌備組織"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateOrganizationRequest"];
-            };
-        };
-        responses: {
-            /** @description 組織更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "COSCUP 2025 籌備團隊",
-                     *       "description": "COSCUP 2025 年度開源人年會籌備組織",
-                     *       "logoUrl": null,
-                     *       "createdBy": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-16T08:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["OrganizationResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteOrganization: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 組織已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 組織仍有進行中的專案，無法刪除 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "組織仍有進行中的專案，請先完成或封存所有專案後再刪除"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listOrganizationMembers: {
-        parameters: {
-            query?: {
-                /** @description 依角色篩選 */
-                role?: "org_owner" | "org_admin" | "org_member";
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 組織成員列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "items": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000200",
-                     *           "accountId": "019409a2-c5f2-7000-8000-000000000001",
-                     *           "name": "Alice Chen",
-                     *           "email": "alice@example.com",
-                     *           "avatarUrl": "https://cdn.example.com/avatars/alice.jpg",
-                     *           "role": "org_owner",
-                     *           "createdAt": "2025-06-15T10:00:00Z"
-                     *         },
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000201",
-                     *           "accountId": "019409a2-c5f2-7000-8000-000000000002",
-                     *           "name": "Bob Wang",
-                     *           "email": "bob@example.com",
-                     *           "avatarUrl": null,
-                     *           "role": "org_member",
-                     *           "createdAt": "2025-06-16T08:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["OrgMemberListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    inviteOrganizationMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "email": "newmember@example.com",
-                 *       "role": "org_member"
-                 *     }
-                 */
-                "application/json": components["schemas"]["InviteMemberRequest"];
-            };
-        };
-        responses: {
-            /** @description 邀請已送出（已有帳號則直接加入） */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "status": "invited",
-                     *       "email": "newmember@example.com",
-                     *       "message": "邀請信已寄出"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["InviteMemberResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            /** @description 該成員已在組織中 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "該 Email 已是組織成員"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateOrganizationMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-                /** @description 組織成員 ID */
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "role": "org_admin"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateOrgMemberRequest"];
-            };
-        };
-        responses: {
-            /** @description 成員角色更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000201",
-                     *       "accountId": "019409a2-c5f2-7000-8000-000000000002",
-                     *       "name": "Bob Wang",
-                     *       "email": "bob@example.com",
-                     *       "role": "org_admin",
-                     *       "updatedAt": "2025-06-17T09:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["OrgMemberResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 無法降級最後一位組織擁有者 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "組織必須至少有一位擁有者"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    removeOrganizationMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-                /** @description 組織成員 ID */
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成員已從組織中移除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 無法移除最後一位組織擁有者 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "組織必須至少有一位擁有者"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    restoreOrganization: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 組織還原成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 組織未處於已刪除狀態 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listContacts: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁筆數（預設 20，最大 100） */
-                limit?: number;
-                /** @description 搜尋關鍵字（搜尋 name 與 email） */
-                search?: string;
-            };
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 聯絡人列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items?: components["schemas"]["ContactResponse"][];
-                        nextCursor?: string | null;
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    createContact: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "Sponsor Corp",
-                 *       "email": "contact@sponsor.com"
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateContactRequest"];
-            };
-        };
-        responses: {
-            /** @description 聯絡人建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000300",
-                     *       "organizationId": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "Sponsor Corp",
-                     *       "email": "contact@sponsor.com",
-                     *       "mergedIntoId": null,
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ContactResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getContact: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-                /** @description 聯絡人 ID */
-                contactId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 聯絡人詳細資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000300",
-                     *       "organizationId": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "Sponsor Corp",
-                     *       "email": "contact@sponsor.com",
-                     *       "mergedIntoId": null,
-                     *       "tagAssignments": [
-                     *         {
-                     *           "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *           "projectName": "COSCUP 2025",
-                     *           "tags": [
-                     *             {
-                     *               "id": "019409a2-c5f2-7000-8000-000000000610",
-                     *               "name": "贊助商"
-                     *             }
-                     *           ]
-                     *         }
-                     *       ],
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ContactDetailResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateContact: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-                /** @description 聯絡人 ID */
-                contactId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "Sponsor Corp (renamed)",
-                 *       "email": "new-contact@sponsor.com"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateContactRequest"];
-            };
-        };
-        responses: {
-            /** @description 聯絡人更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000300",
-                     *       "organizationId": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "Sponsor Corp (renamed)",
-                     *       "email": "new-contact@sponsor.com",
-                     *       "mergedIntoId": null,
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-16T08:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ContactResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteContact: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-                /** @description 聯絡人 ID */
-                contactId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 聯絡人已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    mergeContacts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "sourceIds": [
-                 *         "019409a2-c5f2-7000-8000-000000000301",
-                 *         "019409a2-c5f2-7000-8000-000000000302"
-                 *       ],
-                 *       "targetId": "019409a2-c5f2-7000-8000-000000000300"
-                 *     }
-                 */
-                "application/json": components["schemas"]["MergeContactsRequest"];
-            };
-        };
-        responses: {
-            /** @description 聯絡人合併成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "target": {
-                     *         "id": "019409a2-c5f2-7000-8000-000000000300",
-                     *         "name": "Sponsor Corp",
-                     *         "email": "contact@sponsor.com"
-                     *       },
-                     *       "mergedCount": 2,
-                     *       "message": "已成功合併 2 位聯絡人"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MergeContactsResponse"];
-                };
-            };
-            /** @description 合併請求無效（如 sourceIds 包含 targetId、聯絡人不屬於同一組織等） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/bad-request",
-                     *       "title": "Bad Request",
-                     *       "status": 400,
-                     *       "detail": "sourceIds 不可包含 targetId"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listProjectContacts: {
-        parameters: {
-            query?: {
-                /** @description 是否包含 Contact 在此專案中的成員標籤指派資訊 */
-                includeTags?: boolean;
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁筆數（預設 20，最大 100） */
-                limit?: number;
-                /** @description 搜尋關鍵字（搜尋 name 與 email） */
-                search?: string;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案聯絡人列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items: components["schemas"]["ContactResponse"][];
-                        meta: components["schemas"]["CursorPaginationMeta"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listOrgToolConfigs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 組織工具設定列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "toolConfigs": [
-                     *         {
-                     *           "id": "018e4a2c-2222-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeType": "organization",
-                     *           "scopeId": "018e4a2c-0000-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "toolName": "hackmd/createDocument",
-                     *           "enabled": true,
-                     *           "config": {
-                     *             "apiKey": "****"
-                     *           },
-                     *           "createdAt": "2025-01-10T08:00:00Z",
-                     *           "updatedAt": "2025-01-10T08:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        toolConfigs: components["schemas"]["tools_ToolConfig"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listOrganizationProjects: {
-        parameters: {
-            query?: {
-                /** @description 依專案狀態篩選 */
-                status?: "preparing" | "active" | "completed" | "archived";
-            };
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "items": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000400",
-                     *           "name": "COSCUP 2025",
-                     *           "description": "COSCUP 2025 年度開源人年會",
-                     *           "status": "active",
-                     *           "memberCount": 35,
-                     *           "createdAt": "2025-06-15T10:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProjectListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    createProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "COSCUP 2025",
-                 *       "description": "COSCUP 2025 年度開源人年會"
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description 專案建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "organizationId": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "COSCUP 2025",
-                     *       "description": "COSCUP 2025 年度開源人年會",
-                     *       "status": "preparing",
-                     *       "sourceProjectId": null,
-                     *       "createdBy": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProjectResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    copyProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "sourceProjectId": "019409a2-c5f2-7000-8000-000000000400",
-                 *       "name": "COSCUP 2026",
-                 *       "description": "COSCUP 2026 年度開源人年會"
-                 *     }
-                 */
-                "application/json": components["schemas"]["CopyProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description 專案複製成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000401",
-                     *       "organizationId": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "COSCUP 2026",
-                     *       "description": "COSCUP 2026 年度開源人年會",
-                     *       "status": "preparing",
-                     *       "sourceProjectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "createdBy": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "createdAt": "2025-12-01T10:00:00Z",
-                     *       "updatedAt": "2025-12-01T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProjectResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            /** @description 來源專案不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案詳細資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "organizationId": "019409a2-c5f2-7000-8000-000000000100",
-                     *       "name": "COSCUP 2025",
-                     *       "description": "COSCUP 2025 年度開源人年會",
-                     *       "status": "active",
-                     *       "sourceProjectId": null,
-                     *       "createdBy": "019409a2-c5f2-7000-8000-000000000001",
-                     *       "memberCount": 35,
-                     *       "taskCount": 120,
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-07-01T08:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProjectDetailResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "COSCUP 2025 — 二十週年",
-                 *       "description": "COSCUP 2025 年度開源人年會，慶祝二十週年"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description 專案更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateProjectStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "status": "active"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateProjectStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description 專案狀態更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectResponse"];
-                };
-            };
-            /** @description 不允許的狀態轉換 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/invalid-status-transition",
-                     *       "title": "Invalid Status Transition",
-                     *       "status": 400,
-                     *       "detail": "不允許從 preparing 直接轉換到 completed"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getProjectPermissionSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案權限設定 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "taskVisibility": [
-                     *         {
-                     *           "tag": "贊助組",
-                     *           "allow": [
-                     *             "own_tag_tasks"
-                     *           ],
-                     *           "deny": []
-                     *         },
-                     *         {
-                     *           "tag": "資訊組",
-                     *           "allow": [
-                     *             "own_tag_tasks",
-                     *             "cross_tag_linked_tasks"
-                     *           ],
-                     *           "deny": []
-                     *         }
-                     *       ],
-                     *       "toolPermissions": [
-                     *         {
-                     *           "tag": "贊助組",
-                     *           "allow": [
-                     *             "smtp/sendEmail"
-                     *           ],
-                     *           "deny": []
-                     *         }
-                     *       ],
-                     *       "memoryVisibility": [
-                     *         {
-                     *           "tag": "*",
-                     *           "allow": [
-                     *             "project_memories",
-                     *             "own_tag_memories"
-                     *           ],
-                     *           "deny": [
-                     *             "other_tag_memories"
-                     *           ]
-                     *         }
-                     *       ],
-                     *       "dataAccess": [
-                     *         {
-                     *           "tag": "贊助組",
-                     *           "allow": [
-                     *             "own_tag_data"
-                     *           ],
-                     *           "deny": [
-                     *             "other_tag_data"
-                     *           ]
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["PermissionSettingsResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateProjectPermissionSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "taskVisibility": [
-                 *         {
-                 *           "tag": "*",
-                 *           "allow": [
-                 *             "own_tag_tasks"
-                 *           ],
-                 *           "deny": []
-                 *         }
-                 *       ],
-                 *       "toolPermissions": [
-                 *         {
-                 *           "tag": "*",
-                 *           "allow": [
-                 *             "smtp/sendEmail"
-                 *           ],
-                 *           "deny": []
-                 *         }
-                 *       ],
-                 *       "memoryVisibility": [
-                 *         {
-                 *           "tag": "*",
-                 *           "allow": [
-                 *             "project_memories",
-                 *             "own_tag_memories"
-                 *           ],
-                 *           "deny": []
-                 *         }
-                 *       ],
-                 *       "dataAccess": [
-                 *         {
-                 *           "tag": "*",
-                 *           "allow": [
-                 *             "own_tag_data"
-                 *           ],
-                 *           "deny": []
-                 *         }
-                 *       ]
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdatePermissionSettingsRequest"];
-            };
-        };
-        responses: {
-            /** @description 權限設定更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PermissionSettingsResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getProjectStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案統計資料 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        projectId: components["schemas"]["UUID"];
-                        /** @description 任務數量統計 */
-                        taskCounts: {
-                            total?: number;
-                            byStatus?: {
-                                [key: string]: number;
-                            };
-                        };
-                        /** @description 待辦事項統計 */
-                        todoCounts: {
-                            total?: number;
-                            completed?: number;
-                            overdue?: number;
-                        };
-                        /** @description 專案成員數量 */
-                        memberCount: number;
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listProjectReminders: {
-        parameters: {
-            query?: {
-                /** @description 篩選已觸發或未觸發的提醒 */
-                fired?: boolean;
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 排程提醒列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    createProjectReminder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "todoId": "018e4a2c-0006-7000-8000-000000000001",
-                 *       "type": "due_date_approaching",
-                 *       "triggerAt": "2026-02-28T09:00:00Z",
-                 *       "config": {
-                 *         "channels": [
-                 *           "in_app",
-                 *           "email"
-                 *         ]
-                 *       }
-                 *     }
-                 */
-                "application/json": {
-                    /** @description 關聯的待辦事項 ID（可選） */
-                    todoId?: components["schemas"]["UUID"];
-                    /**
-                     * @description 提醒類型（與 ReminderResponse 及 scheduled_reminders 表一致）
-                     * @enum {string}
-                     */
-                    type: "due_date_approaching" | "due_date_overdue" | "todo_stale";
-                    /**
-                     * Format: date-time
-                     * @description 觸發時間（UTC）
-                     */
-                    triggerAt: string;
-                    /** @description 提醒設定（如重複規則、通知管道等） */
-                    config?: {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description 提醒建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReminderResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteProjectReminder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 提醒 ID */
-                reminderId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 提醒已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    restoreProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案還原成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 專案未處於已刪除狀態 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    leaveProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 已成功退出專案 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            /** @description 專案擁有者無法自行退出 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listProjectMembers: {
-        parameters: {
-            query?: {
-                /** @description 依專案角色篩選 */
-                role?: "owner" | "tag_admin" | "member";
-                /** @description 依成員標籤 ID 篩選 */
-                tagId?: string;
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案成員列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "items": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000500",
-                     *           "accountId": "019409a2-c5f2-7000-8000-000000000001",
-                     *           "name": "Alice Chen",
-                     *           "email": "alice@example.com",
-                     *           "avatarUrl": "https://cdn.example.com/avatars/alice.jpg",
-                     *           "bio": "開源社群愛好者",
-                     *           "role": "owner",
-                     *           "tags": [
-                     *             {
-                     *               "id": "019409a2-c5f2-7000-8000-000000000600",
-                     *               "name": "總召"
-                     *             }
-                     *           ],
-                     *           "createdAt": "2025-06-15T10:00:00Z"
-                     *         },
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000501",
-                     *           "accountId": "019409a2-c5f2-7000-8000-000000000002",
-                     *           "name": "Bob Wang",
-                     *           "email": "bob@example.com",
-                     *           "avatarUrl": null,
-                     *           "bio": null,
-                     *           "role": "tag_admin",
-                     *           "tags": [
-                     *             {
-                     *               "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *               "name": "贊助組"
-                     *             }
-                     *           ],
-                     *           "createdAt": "2025-06-16T08:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    inviteProjectMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "accountId": "019409a2-c5f2-7000-8000-000000000003",
-                 *       "role": "member",
-                 *       "tagIds": [
-                 *         "019409a2-c5f2-7000-8000-000000000601"
-                 *       ]
-                 *     }
-                 */
-                "application/json": components["schemas"]["InviteProjectMemberRequest"];
-            };
-        };
-        responses: {
-            /** @description 成員已加入專案 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000502",
-                     *       "accountId": "019409a2-c5f2-7000-8000-000000000003",
-                     *       "name": "Carol Liu",
-                     *       "email": "carol@example.com",
-                     *       "role": "member",
-                     *       "tags": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *           "name": "贊助組"
-                     *         }
-                     *       ],
-                     *       "createdAt": "2025-06-17T09:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 該帳號已是專案成員 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "該帳號已是專案成員"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getProjectMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 專案成員 ID */
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 專案成員詳細資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000501",
-                     *       "accountId": "019409a2-c5f2-7000-8000-000000000002",
-                     *       "name": "Bob Wang",
-                     *       "email": "bob@example.com",
-                     *       "avatarUrl": null,
-                     *       "bio": "贊助組組長",
-                     *       "role": "tag_admin",
-                     *       "tags": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *           "name": "贊助組",
-                     *           "description": "負責贊助商聯絡與贊助方案管理"
-                     *         }
-                     *       ],
-                     *       "todoStats": {
-                     *         "open": 5,
-                     *         "completed": 12
-                     *       },
-                     *       "createdAt": "2025-06-16T08:00:00Z",
-                     *       "updatedAt": "2025-06-16T08:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberDetailResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateProjectMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 專案成員 ID */
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "role": "tag_admin"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateMemberRequest"];
-            };
-        };
-        responses: {
-            /** @description 成員角色更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000502",
-                     *       "accountId": "019409a2-c5f2-7000-8000-000000000003",
-                     *       "name": "Carol Liu",
-                     *       "email": "carol@example.com",
-                     *       "role": "tag_admin",
-                     *       "tags": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *           "name": "贊助組"
-                     *         }
-                     *       ],
-                     *       "createdAt": "2025-06-17T09:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 無法降級最後一位專案擁有者 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "專案必須至少有一位擁有者"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    removeProjectMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 專案成員 ID */
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成員已從專案中移除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 無法移除最後一位專案擁有者 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "專案必須至少有一位擁有者"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listMemberTags: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成員標籤列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "items": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000600",
-                     *           "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *           "name": "總召",
-                     *           "description": "專案總召集人",
-                     *           "memberCount": 2,
-                     *           "contactCount": 0,
-                     *           "createdAt": "2025-06-15T10:00:00Z"
-                     *         },
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *           "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *           "name": "贊助組",
-                     *           "description": "負責贊助商聯絡與贊助方案管理",
-                     *           "memberCount": 5,
-                     *           "contactCount": 12,
-                     *           "createdAt": "2025-06-15T10:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberTagListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    createMemberTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "贊助組",
-                 *       "description": "負責贊助商聯絡與贊助方案管理"
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateMemberTagRequest"];
-            };
-        };
-        responses: {
-            /** @description 成員標籤建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *       "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "name": "贊助組",
-                     *       "description": "負責贊助商聯絡與贊助方案管理",
-                     *       "externalTaskCreation": [],
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberTagResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getMemberTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成員標籤詳細資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *       "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "name": "贊助組",
-                     *       "description": "負責贊助商聯絡與贊助方案管理",
-                     *       "externalTaskCreation": [
-                     *         {
-                     *           "taskTemplateId": "019409a2-c5f2-7000-8000-000000000700",
-                     *           "taskTemplateName": "技術支援請求",
-                     *           "allowedFromTags": [
-                     *             "資訊組"
-                     *           ]
-                     *         }
-                     *       ],
-                     *       "members": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000501",
-                     *           "assignmentId": "019409a2-c5f2-7000-8000-000000000800",
-                     *           "name": "Bob Wang",
-                     *           "email": "bob@example.com"
-                     *         }
-                     *       ],
-                     *       "contacts": [
-                     *         {
-                     *           "id": "019409a2-c5f2-7000-8000-000000000300",
-                     *           "assignmentId": "019409a2-c5f2-7000-8000-000000000801",
-                     *           "name": "Sponsor Corp",
-                     *           "email": "contact@sponsor.com"
-                     *         }
-                     *       ],
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberTagDetailResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateMemberTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "贊助組",
-                 *       "description": "負責贊助商聯絡、贊助方案管理與款項追蹤"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateMemberTagRequest"];
-            };
-        };
-        responses: {
-            /** @description 成員標籤更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *       "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "name": "贊助組",
-                     *       "description": "負責贊助商聯絡、贊助方案管理與款項追蹤",
-                     *       "externalTaskCreation": [],
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-17T09:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberTagResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteMemberTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成員標籤已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    assignMemberTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AssignTagRequest"];
-            };
-        };
-        responses: {
-            /** @description 指派成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000802",
-                     *       "tagId": "019409a2-c5f2-7000-8000-000000000601",
-                     *       "memberId": "019409a2-c5f2-7000-8000-000000000502",
-                     *       "contactId": null,
-                     *       "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "createdAt": "2025-06-17T09:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["TagAssignmentResponse"];
-                };
-            };
-            /** @description 請求無效（如同時提供 memberId 與 contactId） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/bad-request",
-                     *       "title": "Bad Request",
-                     *       "status": 400,
-                     *       "detail": "必須提供 memberId 或 contactId 其中之一"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 該成員或聯絡人已被指派到此標籤 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/conflict",
-                     *       "title": "Conflict",
-                     *       "status": 409,
-                     *       "detail": "該成員已被指派到此標籤"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    removeTagAssignment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-                /** @description 指派記錄 ID */
-                assignmentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 標籤指派已取消 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateExternalTaskCreation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: string;
-                /** @description 成員標籤 ID */
-                tagId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "externalTaskCreation": [
-                 *         {
-                 *           "taskTemplateId": "019409a2-c5f2-7000-8000-000000000700",
-                 *           "allowedFromTags": "*"
-                 *         },
-                 *         {
-                 *           "taskTemplateId": "019409a2-c5f2-7000-8000-000000000701",
-                 *           "allowedFromTags": [
-                 *             "贊助組",
-                 *             "行銷組"
-                 *           ]
-                 *         }
-                 *       ]
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateExternalTaskCreationRequest"];
-            };
-        };
-        responses: {
-            /** @description 外部建立任務設定更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000601",
-                     *       "projectId": "019409a2-c5f2-7000-8000-000000000400",
-                     *       "name": "資訊組",
-                     *       "description": "負責網站、系統與技術支援",
-                     *       "externalTaskCreation": [
-                     *         {
-                     *           "taskTemplateId": "019409a2-c5f2-7000-8000-000000000700",
-                     *           "allowedFromTags": "*"
-                     *         },
-                     *         {
-                     *           "taskTemplateId": "019409a2-c5f2-7000-8000-000000000701",
-                     *           "allowedFromTags": [
-                     *             "贊助組",
-                     *             "行銷組"
-                     *           ]
-                     *         }
-                     *       ],
-                     *       "createdAt": "2025-06-15T10:00:00Z",
-                     *       "updatedAt": "2025-06-17T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemberTagResponse"];
-                };
-            };
-            /** @description 請求無效（如 taskTemplateId 不屬於此標籤） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/bad-request",
-                     *       "title": "Bad Request",
-                     *       "status": 400,
-                     *       "detail": "taskTemplateId 必須屬於此成員標籤"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listTaskTemplates: {
-        parameters: {
-            query?: {
-                /** @description 依成員標籤篩選 */
-                tagId?: components["schemas"]["UUID"];
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 任務模板列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTemplateListResponse"];
-                };
-            };
-        };
-    };
-    createTaskTemplate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTaskTemplate"];
-            };
-        };
-        responses: {
-            /** @description 任務模板建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTemplateResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限建立任務模板或設定指定的成員標籤 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getTaskTemplate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 任務模板詳情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTemplateDetailResponse"];
-                };
-            };
-            /** @description 任務模板不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateTaskTemplate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTaskTemplate"];
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTemplateResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限更新此任務模板 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務模板不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    deleteTaskTemplate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 刪除成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限刪除此任務模板 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務模板不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    addTodoTemplate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTodoTemplate"];
-            };
-        };
-        responses: {
-            /** @description 待辦事項模板新增成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoTemplateResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限操作此任務模板 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateTodoTemplate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 待辦事項模板 ID */
-                todoTemplateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTodoTemplate"];
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoTemplateResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 待辦事項模板不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    deleteTodoTemplate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 待辦事項模板 ID */
-                todoTemplateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 刪除成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限刪除 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 待辦事項模板不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    addDataSchema: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDataSchema"];
-            };
-        };
-        responses: {
-            /** @description 資料表定義新增成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataSchemaResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗（如欄位 key 重複、type 無效等） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限操作此任務模板 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateDataSchema: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDataSchema"];
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataSchemaResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 資料表定義不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    deleteDataSchema: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 刪除成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限刪除 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 資料表定義不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getTaskTemplateDataSheet: {
-        parameters: {
-            query?: {
-                /** @description 依資料表定義篩選 */
-                schemaId?: components["schemas"]["UUID"];
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 聚合資料表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataSheetResponse"];
-                };
-            };
-            /** @description 無權限查看此資料表 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務模板不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listTasks: {
-        parameters: {
-            query?: {
-                /** @description 依任務狀態篩選 */
-                status?: components["schemas"]["TaskStatus"];
-                /** @description 依 ownerTag 成員標籤篩選 */
-                tagId?: components["schemas"]["UUID"];
-                /** @description 僅顯示自己參與的任務 */
-                participatingOnly?: boolean;
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-                /** @description 排序欄位 */
-                sortBy?: "createdAt" | "updatedAt" | "name";
-                /** @description 排序方向 */
-                sortOrder?: components["schemas"]["SortOrder"];
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 任務列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskListResponse"];
-                };
-            };
-        };
-    };
-    createTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTask"];
-            };
-        };
-        responses: {
-            /** @description 任務建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限從此任務模板建立任務，或無權限指定此 ownerTag */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 任務詳情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDetailResponse"];
-                };
-            };
-            /** @description 無權限查看此任務 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限更新此任務 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    deleteTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 刪除成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限刪除此任務 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateTaskStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTaskStatus"];
-            };
-        };
-        responses: {
-            /** @description 狀態更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskResponse"];
-                };
-            };
-            /** @description 無效的狀態轉換 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限更新此任務狀態 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 衝突 — 例如嘗試標記完成但仍有未完成的待辦事項 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    restoreTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 任務還原成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            /** @description 無權限還原此任務 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務未處於已刪除狀態 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getConversation: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標，用於取得更早的訊息 */
-                cursor?: string;
-                /** @description 每頁訊息數量 */
-                limit?: number;
-                /** @description 依訊息來源類型篩選 */
-                sourceType?: components["schemas"]["MessageSourceType"];
-            };
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 對話訊息列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConversationResponse"];
-                };
-            };
-            /** @description 無權限查看此對話 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    sendMessage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SendMessage"];
-                "multipart/form-data": components["schemas"]["SendMessageMultipartRequest"];
-            };
-        };
-        responses: {
-            /** @description 訊息發送成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限在此對話中發送訊息 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 已讀保護驗證失敗 — 有新的未讀訊息 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StaleConversationErrorResponse"];
-                };
-            };
-        };
-    };
-    syncConversation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/octet-stream": string;
-            };
-        };
-        responses: {
-            /** @description CRDT 更新資料 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/octet-stream": string;
-                };
-            };
-            /** @description 無權限同步此對話 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    createConversationWsToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 一次性 WebSocket token */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "token": "ws_tok_abc123...",
-                     *       "expiresIn": 30
-                     *     }
-                     */
-                    "application/json": {
-                        /** @description 一次性 WebSocket 認證 token */
-                        token: string;
-                        /**
-                         * @description Token 有效秒數
-                         * @example 30
-                         */
-                        expiresIn: number;
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    conversationWebSocket: {
-        parameters: {
-            query: {
-                /** @description 一次性 WebSocket 認證 token（從 REST API 取得） */
-                token: string;
-            };
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description WebSocket 升級成功 */
-            101: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getAttachment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 附件 ID */
-                attachmentId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 重導向至預簽署下載 URL */
-            302: {
-                headers: {
-                    /** @description 預簽署的附件下載 URL（有效期 15 分鐘） */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限下載此附件 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 附件不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listTodos: {
-        parameters: {
-            query?: {
-                /** @description 依狀態篩選 */
-                status?: components["schemas"]["TodoStatus"];
-                /** @description 依指派成員篩選 */
-                assigneeId?: components["schemas"]["UUID"];
-            };
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 待辦事項列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["responses_TodoListResponse"];
-                };
-            };
-        };
-    };
-    createTodo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTodo"];
-            };
-        };
-        responses: {
-            /** @description 待辦事項建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗（如超過子待辦層數限制） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限在此任務中建立待辦 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getTodo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 待辦事項詳情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoDetailResponse"];
-                };
-            };
-            /** @description 待辦事項不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateTodo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTodo"];
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 待辦事項不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateTodoStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTodoStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description 狀態更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoResponse"];
-                };
-            };
-            /** @description 無權限更新此待辦狀態 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 衝突 — 關聯任務尚未完成，或已讀保護驗證失敗 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    assignTodoMembers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AssignTodo"];
-            };
-        };
-        responses: {
-            /** @description 指派成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗（如成員不存在於專案中） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限指派成員 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    unassignTodoMember: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-                /** @description 成員 ID */
-                memberId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 取消指派成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限取消指派 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 指派關係不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    linkTodoToTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LinkTodoToTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description 關聯成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodoResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗（如目標任務不存在或已有關聯） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限建立關聯 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    unlinkTodoFromTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 待辦事項 ID */
-                todoId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 解除關聯成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限解除關聯 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 待辦事項無關聯任務 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listDataEntries: {
-        parameters: {
-            query?: {
-                /** @description 依資料表定義篩選特定 schema 的資料 */
-                schemaId?: components["schemas"]["UUID"];
-            };
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 資料列列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataEntryListResponse"];
-                };
-            };
-            /** @description 無權限查看此任務的資料 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    upsertDataEntry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpsertDataEntry"];
-            };
-        };
-        responses: {
-            /** @description 資料列更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataEntryResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗（如值不符合 schema 定義的類型或限制） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限編輯此任務的資料 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務或 DataSchema 不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    deleteDataEntry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 刪除成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 無權限刪除此任務的資料 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 資料列不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    shareDataToTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 來源任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 來源資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ShareDataToTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description 資料分享成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ShareDataResponse"];
-                };
-            };
-            /** @description 請求參數驗證失敗（如目標 schema 無對應欄位） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 無權限分享資料 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 來源或目標任務/schema 不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getAggregatedDataSheet: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-                /** @description 排序欄位（資料表的 field key 或 taskName、createdAt） */
-                sortBy?: string;
-                /** @description 排序方向 */
-                sortOrder?: components["schemas"]["SortOrder"];
-            };
-            header?: never;
-            path: {
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-                /** @description 資料表定義 ID */
-                schemaId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 聚合資料表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AggregatedDataSheetResponse"];
-                };
-            };
-            /** @description 無權限查看此資料表 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務模板或 DataSchema 不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    externalListTaskTemplates: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 任務模板列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExternalTaskTemplateListResponse"];
-                };
-            };
-            /** @description API Key 無效或缺失 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description API Key 無權限存取此專案 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    externalGetTemplateData: {
-        parameters: {
-            query?: {
-                /** @description 依資料表定義 ID 篩選 */
-                schemaId?: components["schemas"]["UUID"];
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務模板 ID */
-                templateId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 聚合資料列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExternalDataResponse"];
-                };
-            };
-            /** @description API Key 無效或缺失 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務模板不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    externalListTasks: {
-        parameters: {
-            query?: {
-                /** @description 依任務模板篩選 */
-                templateId?: components["schemas"]["UUID"];
-                /** @description 依狀態篩選 */
-                status?: components["schemas"]["TaskStatus"];
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 任務列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExternalTaskListResponse"];
-                };
-            };
-            /** @description API Key 無效或缺失 */
+            /** @description Unauthorized */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -10964,30 +910,25 @@ export interface operations {
             };
         };
     };
-    externalGetTaskData: {
+    get_notification_preferences: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description 任務資料列 */
+            /** @description Notification preferences */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ExternalTaskDataResponse"];
+                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
                 };
             };
-            /** @description API Key 無效或缺失 */
+            /** @description Unauthorized */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -10996,551 +937,9 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description 任務不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
         };
     };
-    externalUpdateTaskData: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "schemaId": "018e4a2c-0003-7000-8000-000000000001",
-                 *       "values": {
-                 *         "companyName": "X 科技股份有限公司",
-                 *         "amount": 120000
-                 *       }
-                 *     }
-                 */
-                "application/json": {
-                    /** @description 資料表定義 ID */
-                    schemaId: components["schemas"]["UUID"];
-                    /** @description 資料欄位值，key 對應 DataSchema 中的欄位 key */
-                    values: {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description 資料更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        taskId: components["schemas"]["UUID"];
-                        schemaId: components["schemas"]["UUID"];
-                        values: {
-                            [key: string]: unknown;
-                        };
-                        /** Format: date-time */
-                        updatedAt: string;
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            /** @description API Key 無效或缺失 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description API Key 無 write 權限 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description 任務不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listTools: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 可用工具列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "tools": [
-                     *         {
-                     *           "name": "createTask",
-                     *           "displayName": "建立任務",
-                     *           "category": "core",
-                     *           "type": "write",
-                     *           "description": "從任務模板建立新任務"
-                     *         },
-                     *         {
-                     *           "name": "smtp/sendEmail",
-                     *           "displayName": "寄送 Email",
-                     *           "category": "builtin",
-                     *           "type": "write",
-                     *           "description": "透過 SMTP 發送 Email"
-                     *         },
-                     *         {
-                     *           "name": "queryMemories",
-                     *           "displayName": "查詢記憶",
-                     *           "category": "core",
-                     *           "type": "read",
-                     *           "description": "搜尋各層級的記憶條目"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        tools: components["schemas"]["ToolSummary"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getToolDetails: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /**
-                 * @description 工具名稱（如 `createTask`、`smtp/sendEmail`）
-                 * @example createTask
-                 */
-                toolName: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 工具詳細定義 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "name": "createTask",
-                     *       "displayName": "建立任務",
-                     *       "category": "core",
-                     *       "type": "write",
-                     *       "description": "從任務模板建立新任務",
-                     *       "inputSchema": {
-                     *         "type": "object",
-                     *         "properties": {
-                     *           "taskTemplateId": {
-                     *             "type": "string",
-                     *             "format": "uuid",
-                     *             "description": "任務模板 ID"
-                     *           },
-                     *           "name": {
-                     *             "type": "string",
-                     *             "description": "任務名稱"
-                     *           },
-                     *           "ownerTagId": {
-                     *             "type": "string",
-                     *             "format": "uuid",
-                     *             "description": "歸屬成員標籤 ID"
-                     *           },
-                     *           "parentTodoId": {
-                     *             "type": "string",
-                     *             "format": "uuid",
-                     *             "description": "關聯的待辦事項 ID（可選，跨組協作用）"
-                     *           }
-                     *         },
-                     *         "required": [
-                     *           "taskTemplateId",
-                     *           "name",
-                     *           "ownerTagId"
-                     *         ]
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ToolDefinition"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    executeTool: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /**
-                 * @description 工具名稱
-                 * @example upsertDataEntry
-                 */
-                toolName: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "taskId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                 *       "parameters": {
-                 *         "schemaId": "018e4a2c-aaaa-7d8e-9a1b-2c3d4e5f6a7b",
-                 *         "fields": {
-                 *           "companyName": "ACME Corp",
-                 *           "contactEmail": "sponsor@acme.com"
-                 *         }
-                 *       },
-                 *       "lastSeenMessageId": "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
-                 *     }
-                 */
-                "application/json": components["schemas"]["ToolExecuteRequest"];
-            };
-        };
-        responses: {
-            /** @description 工具執行成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": true,
-                     *       "result": {
-                     *         "entryId": "018e4a2c-bbbb-7d8e-9a1b-2c3d4e5f6a7b",
-                     *         "updatedFields": [
-                     *           "companyName",
-                     *           "contactEmail"
-                     *         ]
-                     *       },
-                     *       "messageId": "018e4a2c-cccc-7d8e-9a1b-2c3d4e5f6a7b"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ToolExecuteResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 對話已有新訊息，需先閱讀最新內容 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://api.conf-ops.dev/errors/stale-conversation",
-                     *       "title": "Conversation Has New Messages",
-                     *       "status": 409,
-                     *       "detail": "對話中有未讀訊息，請先閱讀最新內容後再操作"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listProjectToolConfigs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 工具設定列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "toolConfigs": [
-                     *         {
-                     *           "id": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeType": "project",
-                     *           "scopeId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "toolName": "smtp/sendEmail",
-                     *           "enabled": true,
-                     *           "config": {
-                     *             "host": "smtp.example.com",
-                     *             "port": 587,
-                     *             "senderAddress": "noreply@coscup.org"
-                     *           },
-                     *           "createdAt": "2025-01-15T10:00:00Z",
-                     *           "updatedAt": "2025-01-15T10:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        toolConfigs: components["schemas"]["tools_ToolConfig"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    createProjectToolConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "toolName": "smtp/sendEmail",
-                 *       "enabled": true,
-                 *       "config": {
-                 *         "host": "smtp.example.com",
-                 *         "port": 587,
-                 *         "username": "api-user",
-                 *         "password": "api-key-here",
-                 *         "senderAddress": "noreply@coscup.org"
-                 *       }
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateToolConfigRequest"];
-            };
-        };
-        responses: {
-            /** @description 工具設定建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "scopeType": "project",
-                     *       "scopeId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "toolName": "smtp/sendEmail",
-                     *       "enabled": true,
-                     *       "config": {
-                     *         "host": "smtp.example.com",
-                     *         "port": 587,
-                     *         "senderAddress": "noreply@coscup.org"
-                     *       },
-                     *       "createdAt": "2025-01-15T10:00:00Z",
-                     *       "updatedAt": "2025-01-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["tools_ToolConfig"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            /** @description 該工具設定已存在 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://api.conf-ops.dev/errors/duplicate",
-                     *       "title": "Tool Config Already Exists",
-                     *       "status": 409,
-                     *       "detail": "專案中已存在此工具的設定"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    updateProjectToolConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 工具設定 ID */
-                configId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "enabled": false,
-                 *       "config": {
-                 *         "host": "smtp.new-provider.com",
-                 *         "port": 465
-                 *       }
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateToolConfigRequest"];
-            };
-        };
-        responses: {
-            /** @description 工具設定更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["tools_ToolConfig"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteProjectToolConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 工具設定 ID */
-                configId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 工具設定已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listMemories: {
-        parameters: {
-            query?: {
-                /** @description 作用域類型過濾 */
-                scopeType?: components["schemas"]["ScopeType"];
-                /** @description 作用域 ID 過濾（需搭配 scopeType） */
-                scopeId?: components["schemas"]["UUID"];
-                /** @description 全文搜尋關鍵字 */
-                search?: string;
-                /** @description 記憶來源過濾 */
-                source?: components["schemas"]["MemorySource"];
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 記憶列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "memories": [
-                     *         {
-                     *           "id": "018e4a2c-aaa1-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeType": "project",
-                     *           "scopeId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "content": "贊助商初次聯絡應在活動前 6 個月開始，先寄正式邀請信",
-                     *           "source": "auto_extracted",
-                     *           "libraryRef": "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "createdAt": "2025-01-15T10:00:00Z",
-                     *           "updatedAt": "2025-01-15T10:00:00Z"
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": false,
-                     *         "nextCursor": null
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        memories: components["schemas"]["MemorySummary"][];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createMemory: {
+    update_notification_preferences: {
         parameters: {
             query?: never;
             header?: never;
@@ -11549,740 +948,60 @@ export interface operations {
         };
         requestBody: {
             content: {
-                /**
-                 * @example {
-                 *       "scopeType": "member_tag",
-                 *       "scopeId": "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b",
-                 *       "content": "贊助商聯絡時需同時 CC 組長與財務窗口",
-                 *       "libraryRef": null
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateMemoryRequest"];
-            };
-        };
-        responses: {
-            /** @description 記憶建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "018e4a2c-aaa2-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "scopeType": "member_tag",
-                     *       "scopeId": "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "content": "贊助商聯絡時需同時 CC 組長與財務窗口",
-                     *       "source": "manual",
-                     *       "libraryRef": null,
-                     *       "createdAt": "2025-02-01T08:00:00Z",
-                     *       "updatedAt": "2025-02-01T08:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["memories_Memory"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getMemory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記憶 ID */
-                memoryId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 記憶詳情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["memories_Memory"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateMemory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記憶 ID */
-                memoryId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "content": "贊助商聯絡時需同時 CC 組長、財務窗口與行政組",
-                 *       "libraryRef": "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b"
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateMemoryRequest"];
-            };
-        };
-        responses: {
-            /** @description 記憶更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["memories_Memory"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteMemory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記憶 ID */
-                memoryId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 記憶已軟刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listMemoryVersions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記憶 ID */
-                memoryId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 版本歷史列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "versions": [
-                     *         {
-                     *           "version": 2,
-                     *           "content": "贊助商聯絡時需同時 CC 組長、財務窗口與行政組",
-                     *           "editedBy": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "editedAt": "2025-02-10T14:00:00Z"
-                     *         },
-                     *         {
-                     *           "version": 1,
-                     *           "content": "贊助商聯絡時需同時 CC 組長與財務窗口",
-                     *           "editedBy": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "editedAt": "2025-02-01T08:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        versions: components["schemas"]["MemoryVersion"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listLibraryDocuments: {
-        parameters: {
-            query?: {
-                /** @description 作用域類型過濾 */
-                scopeType?: components["schemas"]["ScopeType"];
-                /** @description 作用域 ID 過濾（需搭配 scopeType） */
-                scopeId?: components["schemas"]["UUID"];
-                /** @description 全文搜尋關鍵字 */
-                search?: string;
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 記憶庫文件列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "documents": [
-                     *         {
-                     *           "id": "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeType": "member_tag",
-                     *           "scopeId": "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "title": "贊助商初次聯絡信範本",
-                     *           "createdAt": "2025-01-10T08:00:00Z",
-                     *           "updatedAt": "2025-01-15T10:00:00Z"
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": false,
-                     *         "nextCursor": null
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        documents: components["schemas"]["LibraryDocumentSummary"][];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createLibraryDocument: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "scopeType": "member_tag",
-                 *       "scopeId": "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b",
-                 *       "title": "贊助商初次聯絡信範本",
-                 *       "content": "主旨：COSCUP 2026 贊助合作邀請\n\n{{data.contactName}} 您好，\n\n我是 COSCUP 2026 贊助組的 {{profile.name}}，\n感謝貴公司過往對開源社群的支持...\n"
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateLibraryDocumentRequest"];
-            };
-        };
-        responses: {
-            /** @description 文件建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["memories_LibraryDocument"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getLibraryDocument: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文件 ID */
-                docId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 文件完整內容 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "scopeType": "member_tag",
-                     *       "scopeId": "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "title": "贊助商初次聯絡信範本",
-                     *       "content": "主旨：COSCUP 2026 贊助合作邀請\n\n{{data.contactName}} 您好...",
-                     *       "createdAt": "2025-01-10T08:00:00Z",
-                     *       "updatedAt": "2025-01-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["memories_LibraryDocument"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateLibraryDocument: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文件 ID */
-                docId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "title": "贊助商初次聯絡信範本（2026 更新版）",
-                 *       "content": "主旨：COSCUP 2026 贊助合作邀請\n\n{{data.contactName}} 您好..."
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateLibraryDocumentRequest"];
-            };
-        };
-        responses: {
-            /** @description 文件更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["memories_LibraryDocument"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteLibraryDocument: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文件 ID */
-                docId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 文件已軟刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listLibraryDocumentVersions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文件 ID */
-                docId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 文件版本歷史 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "versions": [
-                     *         {
-                     *           "version": 2,
-                     *           "title": "贊助商初次聯絡信範本（2026 更新版）",
-                     *           "content": "主旨：COSCUP 2026 贊助合作邀請...",
-                     *           "editedBy": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "editedAt": "2025-01-15T10:00:00Z"
-                     *         },
-                     *         {
-                     *           "version": 1,
-                     *           "title": "贊助商初次聯絡信範本",
-                     *           "content": "主旨：COSCUP 2025 贊助合作邀請...",
-                     *           "editedBy": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "editedAt": "2025-01-10T08:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        versions: components["schemas"]["LibraryDocumentVersion"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getTaskMemoryChain: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 記憶繼承鏈 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "taskId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "chain": [
-                     *         {
-                     *           "scopeType": "account",
-                     *           "scopeId": "018e4a2c-0001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeName": "Alice",
-                     *           "memories": [
-                     *             {
-                     *               "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *               "content": "請用臺灣正體中文與我溝通",
-                     *               "source": "manual"
-                     *             }
-                     *           ]
-                     *         },
-                     *         {
-                     *           "scopeType": "organization",
-                     *           "scopeId": "018e4a2c-0002-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeName": "COSCUP",
-                     *           "memories": [
-                     *             {
-                     *               "id": "018e4a2c-a002-7d8e-9a1b-2c3d4e5f6a7b",
-                     *               "content": "所有對外信件需使用正式稱謂",
-                     *               "source": "manual"
-                     *             }
-                     *           ]
-                     *         },
-                     *         {
-                     *           "scopeType": "project",
-                     *           "scopeId": "018e4a2c-0003-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeName": "COSCUP 2026",
-                     *           "memories": []
-                     *         },
-                     *         {
-                     *           "scopeType": "member_tag",
-                     *           "scopeId": "018e4a2c-3333-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeName": "贊助組",
-                     *           "memories": [
-                     *             {
-                     *               "id": "018e4a2c-a003-7d8e-9a1b-2c3d4e5f6a7b",
-                     *               "content": "贊助商初次聯絡應在活動前 6 個月開始",
-                     *               "source": "auto_extracted",
-                     *               "libraryRef": "018e4a2c-ddd1-7d8e-9a1b-2c3d4e5f6a7b"
-                     *             }
-                     *           ]
-                     *         },
-                     *         {
-                     *           "scopeType": "task_template",
-                     *           "scopeId": "018e4a2c-4444-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeName": "贊助商聯絡",
-                     *           "memories": []
-                     *         },
-                     *         {
-                     *           "scopeType": "task",
-                     *           "scopeId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "scopeName": "與 A 公司聯絡",
-                     *           "memories": []
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["MemoryChainResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listNotifications: {
-        parameters: {
-            query?: {
-                /** @description 已讀狀態過濾（`true` 僅已讀、`false` 僅未讀、不帶則全部） */
-                isRead?: boolean;
-                /** @description 通知類型過濾 */
-                type?: components["schemas"]["NotificationType"];
-                /** @description 依專案過濾 */
-                projectId?: components["schemas"]["UUID"];
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 通知列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "notifications": [
-                     *         {
-                     *           "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "type": "todo_assigned",
-                     *           "isRead": false,
-                     *           "title": "你被指派了待辦事項",
-                     *           "body": "Alice 指派你「確認贊助金額」待辦事項",
-                     *           "projectId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "projectName": "COSCUP 2026",
-                     *           "taskId": "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "taskName": "與 A 公司聯絡",
-                     *           "createdAt": "2025-02-15T09:00:00Z"
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": true,
-                     *         "nextCursor": "eyJpZCI6IjAxOGU0YTJjLW4wMDEifQ"
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        notifications: components["schemas"]["notifications_Notification"][];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    markNotificationRead: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 通知 ID */
-                notificationId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 已標記為已讀 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    markAllNotificationsRead: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                /**
-                 * @example {
-                 *       "projectId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
-                 *     }
-                 */
-                "application/json": {
-                    /** @description 僅標記此專案的通知為已讀（可選） */
-                    projectId?: components["schemas"]["UUID"];
-                };
-            };
-        };
-        responses: {
-            /** @description 已全部標記為已讀 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getUnreadNotificationCount: {
-        parameters: {
-            query?: {
-                /** @description 依專案過濾 */
-                projectId?: components["schemas"]["UUID"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 未讀通知數量 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "unreadCount": 5
-                     *     }
-                     */
-                    "application/json": {
-                        /** @description 未讀通知數量 */
-                        unreadCount: number;
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getNotificationPreferences: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 通知偏好設定 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "channels": {
-                     *         "email": {
-                     *           "enabled": true,
-                     *           "categories": {
-                     *             "taskUpdates": true,
-                     *             "todoAssignments": true,
-                     *             "aiSuggestions": true,
-                     *             "mentions": true,
-                     *             "systemAnnouncements": true
-                     *           }
-                     *         },
-                     *         "webPush": {
-                     *           "enabled": true,
-                     *           "categories": {
-                     *             "taskUpdates": false,
-                     *             "todoAssignments": true,
-                     *             "aiSuggestions": false,
-                     *             "mentions": true,
-                     *             "systemAnnouncements": false
-                     *           }
-                     *         },
-                     *         "inApp": {
-                     *           "enabled": true,
-                     *           "categories": {
-                     *             "taskUpdates": true,
-                     *             "todoAssignments": true,
-                     *             "aiSuggestions": true,
-                     *             "mentions": true,
-                     *             "systemAnnouncements": true
-                     *           }
-                     *         }
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["NotificationPreferences"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    updateNotificationPreferences: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "channels": {
-                 *         "email": {
-                 *           "categories": {
-                 *             "aiSuggestions": false
-                 *           }
-                 *         },
-                 *         "webPush": {
-                 *           "enabled": false
-                 *         }
-                 *       }
-                 *     }
-                 */
                 "application/json": components["schemas"]["UpdateNotificationPreferencesRequest"];
             };
         };
         responses: {
-            /** @description 偏好設定更新成功 */
+            /** @description Notification preferences updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotificationPreferences"];
+                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
-    webPushSubscribe: {
+    get_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User profile data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_profile: {
         parameters: {
             query?: never;
             header?: never;
@@ -12291,258 +1010,21 @@ export interface operations {
         };
         requestBody: {
             content: {
-                /**
-                 * @example {
-                 *       "subscription": {
-                 *         "endpoint": "https://fcm.googleapis.com/fcm/send/abc123...",
-                 *         "keys": {
-                 *           "p256dh": "BNcRd...",
-                 *           "auth": "tBHI..."
-                 *         }
-                 *       },
-                 *       "deviceName": "Chrome on MacBook"
-                 *     }
-                 */
-                "application/json": components["schemas"]["WebPushSubscribeRequest"];
+                "application/json": components["schemas"]["UpdateProfileRequest"];
             };
         };
         responses: {
-            /** @description Web Push 訂閱成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "subscriptionId": "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b"
-                     *     }
-                     */
-                    "application/json": {
-                        /** @description 訂閱 ID，用於管理此訂閱 */
-                        subscriptionId: components["schemas"]["UUID"];
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    webPushUnsubscribe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Web Push subscription endpoint URL */
-                endpoint: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 訂閱已取消 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listSuggestionGroups: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 建議群組列表 */
+            /** @description Profile updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "suggestionGroups": [
-                     *         {
-                     *           "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "trigger": "message_sent",
-                     *           "triggerMessageId": "018e4a2c-b010-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "suggestionsCount": 2,
-                     *           "decidedCount": 1,
-                     *           "createdAt": "2025-02-15T14:30:00Z"
-                     *         },
-                     *         {
-                     *           "id": "018e4a2c-a002-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "trigger": "task_created",
-                     *           "triggerMessageId": null,
-                     *           "suggestionsCount": 3,
-                     *           "decidedCount": 3,
-                     *           "createdAt": "2025-02-15T10:00:00Z"
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": false,
-                     *         "nextCursor": null
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        suggestionGroups: components["schemas"]["SuggestionGroupSummary"][];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
+                    "application/json": components["schemas"]["ProfileResponse"];
                 };
             };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getSuggestionGroup: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 建議群組 ID */
-                groupId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 建議群組詳情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "taskId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "trigger": "message_sent",
-                     *       "triggerMessageId": "018e4a2c-b010-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "suggestions": [
-                     *         {
-                     *           "id": "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "summary": "回覆贊助商確認信",
-                     *           "tool": "smtp/sendEmail",
-                     *           "parameters": {
-                     *             "threadId": "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *             "to": [
-                     *               "{{data.contactEmail}}"
-                     *             ],
-                     *             "subject": "Re: COSCUP 2026 贊助合作",
-                     *             "body": "{{data.contactName}} 您好，感謝確認贊助意願..."
-                     *           },
-                     *           "reasoning": "贊助商回信確認贊助意願，應儘速回覆感謝並提供後續流程資訊",
-                     *           "contextUsed": [
-                     *             {
-                     *               "scopeType": "member_tag",
-                     *               "memoryId": "018e4a2c-a003-7d8e-9a1b-2c3d4e5f6a7b",
-                     *               "content": "收到贊助商確認後，24 小時內回覆感謝信"
-                     *             }
-                     *           ],
-                     *           "decision": "pending"
-                     *         },
-                     *         {
-                     *           "id": "018e4a2c-c002-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "summary": "更新贊助狀態為已確認",
-                     *           "tool": "upsertDataEntry",
-                     *           "parameters": {
-                     *             "schemaId": "018e4a2c-aaaa-7d8e-9a1b-2c3d4e5f6a7b",
-                     *             "fields": {
-                     *               "sponsorStatus": "confirmed"
-                     *             }
-                     *           },
-                     *           "reasoning": "贊助商已確認，應更新資料表中的狀態欄位",
-                     *           "contextUsed": [],
-                     *           "decision": "accept",
-                     *           "decidedBy": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "decidedAt": "2025-02-15T14:35:00Z"
-                     *         }
-                     *       ],
-                     *       "createdAt": "2025-02-15T14:30:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ai-suggestions_SuggestionGroup"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    decideSuggestion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description 建議群組 ID */
-                groupId: components["schemas"]["UUID"];
-                /** @description 建議 ID */
-                suggestionId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SuggestionDecisionRequest"];
-            };
-        };
-        responses: {
-            /** @description 決策已記錄（採納時包含工具執行結果） */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "suggestion": {
-                     *         "id": "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *         "summary": "回覆贊助商確認信",
-                     *         "tool": "smtp/sendEmail",
-                     *         "decision": "accept",
-                     *         "decidedBy": "018e4a2c-1111-7d8e-9a1b-2c3d4e5f6a7b",
-                     *         "decidedAt": "2025-02-15T14:40:00Z"
-                     *       },
-                     *       "executionResult": {
-                     *         "success": true,
-                     *         "result": {
-                     *           "emailId": "018e4a2c-e001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "threadId": "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
-                     *         },
-                     *         "messageId": "018e4a2c-m011-7d8e-9a1b-2c3d4e5f6a7b"
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["SuggestionDecisionResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 對話已有新訊息，需先閱讀最新內容；或建議已被決策 */
-            409: {
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12552,852 +1034,56 @@ export interface operations {
             };
         };
     };
-    requestAISuggestions: {
+    logout: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                /**
-                 * @example {
-                 *       "instructions": "請幫我草擬一封跟進信，詢問贊助商是否收到合約並確認簽約時程",
-                 *       "lastSeenMessageId": "018e4a2c-ffff-7d8e-9a1b-2c3d4e5f6a7b"
-                 *     }
-                 */
-                "application/json": components["schemas"]["RequestSuggestionsBody"];
-            };
-        };
-        responses: {
-            /** @description 建議請求已接受，AI 正在生成建議 */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "groupId": "018e4a2c-a003-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "status": "generating"
-                     *     }
-                     */
-                    "application/json": {
-                        /** @description 建議群組 ID，可用於輪詢建議狀態 */
-                        groupId: components["schemas"]["UUID"];
-                        /**
-                         * @description 建議生成狀態
-                         * @enum {string}
-                         */
-                        status: "generating";
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description 對話已有新訊息 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    resolvePlaceholders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "templateText": "親愛的 {{data.contactName}} 您好，感謝 {{data.companyName}} 確認贊助。"
-                 *     }
-                 */
-                "application/json": {
-                    /** @description 含佔位符的文字（如 `親愛的 {{data.contactName}} 您好`） */
-                    templateText: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 佔位符解析結果 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "resolvedText": "親愛的 王大明 您好，感謝 X 科技公司 確認贊助。",
-                     *       "placeholders": [
-                     *         {
-                     *           "placeholder": "{{data.contactName}}",
-                     *           "resolvedValue": "王大明"
-                     *         },
-                     *         {
-                     *           "placeholder": "{{data.companyName}}",
-                     *           "resolvedValue": "X 科技公司"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        /** @description 解析後的文字（佔位符已替換為實際值） */
-                        resolvedText: string;
-                        /** @description 所有佔位符的解析結果列表 */
-                        placeholders: {
-                            /** @description 原始佔位符（如 `{{data.contactName}}`） */
-                            placeholder: string;
-                            /** @description 解析後的實際值（無對應值時為 null） */
-                            resolvedValue: string | null;
-                        }[];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    receiveInboundEmail: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 收信轉發函式的認證 token（格式：`Bearer {EMAIL_INBOUND_API_KEY}`） */
-                Authorization: string;
-                /** @description AWS SES Message ID（路線 A 提供，用於除錯與冪等處理） */
-                "X-SES-Message-Id"?: string;
-                /** @description AWS SES 垃圾郵件檢查結果：PASS / FAIL（路線 A 提供） */
-                "X-SES-Spam-Verdict"?: "PASS" | "FAIL";
-                /** @description AWS SES 病毒檢查結果：PASS / FAIL（路線 A 提供） */
-                "X-SES-Virus-Verdict"?: "PASS" | "FAIL";
-                /** @description Cloudflare Email Worker 提供的寄件者地址（路線 B 提供） */
-                "X-CF-Mail-From"?: string;
-                /** @description Cloudflare Email Worker 提供的收件者地址（路線 B 提供） */
-                "X-CF-Mail-To"?: string;
-                /** @description Cloudflare Email Worker 提供的原始郵件大小（bytes）（路線 B 提供） */
-                "X-CF-Raw-Size"?: number;
-            };
             path?: never;
             cookie?: never;
         };
-        /** @description 原始 MIME 郵件（RFC 5322 格式），以二進位串流傳送 */
-        requestBody: {
-            content: {
-                "message/rfc822": string;
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Email 處理完成 */
-            200: {
+            /** @description Logged out successfully */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["InboundEmailResponse"];
-                };
+                content?: never;
             };
-            /** @description MIME 格式錯誤或無法解析 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "type": "https://api.conf-ops.dev/errors/invalid-email",
-                     *       "title": "Invalid Email Format",
-                     *       "status": 400,
-                     *       "detail": "無法解析 MIME 郵件內容"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Authorization token 驗證失敗 */
+            /** @description Unauthorized */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "type": "https://api.conf-ops.dev/errors/unauthorized",
-                     *       "title": "Unauthorized",
-                     *       "status": 401,
-                     *       "detail": "Inbound API key 驗證失敗"
-                     *     }
-                     */
                     "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
     };
-    listUnassignedEmails: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 未分類信件列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "emails": [
-                     *         {
-                     *           "id": "018e4a2c-c001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "from": {
-                     *             "name": "Unknown Sender",
-                     *             "address": "unknown@example.com"
-                     *           },
-                     *           "subject": "詢問贊助方案",
-                     *           "snippet": "您好，我們想了解 COSCUP 2026 的贊助方案...",
-                     *           "receivedAt": "2025-02-15T16:00:00Z",
-                     *           "hasAttachments": false
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": false,
-                     *         "nextCursor": null
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        emails: components["schemas"]["UnassignedEmail"][];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    assignUnassignedEmail: {
+    request_magic_link: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description 未分類信件 ID */
-                emailId: components["schemas"]["UUID"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                /**
-                 * @example {
-                 *       "taskId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b"
-                 *     }
-                 */
-                "application/json": {
-                    /** @description 指派目標任務 ID */
-                    taskId: components["schemas"]["UUID"];
-                };
+                "application/json": components["schemas"]["MagicLinkRequest"];
             };
         };
         responses: {
-            /** @description 信件已指派到任務 */
+            /** @description Magic link email sent */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "messageId": "018e4a2c-a013-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "taskId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "threadId": "018e4a2c-b002-7d8e-9a1b-2c3d4e5f6a7b"
-                     *     }
-                     */
-                    "application/json": {
-                        /** @description 新增至任務對話的訊息 ID */
-                        messageId: components["schemas"]["UUID"];
-                        /** @description 指派的目標任務 ID */
-                        taskId: components["schemas"]["UUID"];
-                        /** @description 匹配或建立的 Email Thread ID */
-                        threadId?: components["schemas"]["UUID"];
-                    };
+                    "application/json": components["schemas"]["MagicLinkResponse"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listEmailThreads: {
-        parameters: {
-            query?: {
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Email 對話串列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "threads": [
-                     *         {
-                     *           "id": "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "taskId": "018e4a2c-0004-7000-8000-000000000001",
-                     *           "subject": "贊助方案討論",
-                     *           "participants": [
-                     *             "alice@example.com",
-                     *             "bob@example.com"
-                     *           ],
-                     *           "messageCount": 5,
-                     *           "lastMessageAt": "2026-02-18T14:30:00Z",
-                     *           "createdAt": "2026-02-15T10:00:00Z",
-                     *           "updatedAt": "2026-02-18T14:30:00Z"
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": false,
-                     *         "nextCursor": null
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        threads: components["schemas"]["EmailThreadResponse"][];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    createEmailThread: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "subject": "贊助方案討論",
-                 *       "participants": [
-                 *         "sponsor@example.com",
-                 *         "team@coscup.org"
-                 *       ]
-                 *     }
-                 */
-                "application/json": {
-                    /** @description Email 對話串主旨 */
-                    subject: string;
-                    /** @description 參與者 Email 地址列表 */
-                    participants?: string[];
-                };
-            };
-        };
-        responses: {
-            /** @description Email 對話串建立成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmailThreadResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteEmailThread: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description Email 對話串 ID */
-                threadId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Email 對話串已刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateEmailThread: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 任務 ID */
-                taskId: components["schemas"]["UUID"];
-                /** @description Email 對話串 ID */
-                threadId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "subject": "贊助方案討論（更新）",
-                 *       "participants": [
-                 *         "sponsor@example.com",
-                 *         "team@coscup.org",
-                 *         "finance@coscup.org"
-                 *       ]
-                 *     }
-                 */
-                "application/json": {
-                    /** @description Email 對話串主旨 */
-                    subject?: string;
-                    /** @description 參與者 Email 地址列表 */
-                    participants?: string[];
-                };
-            };
-        };
-        responses: {
-            /** @description Email 對話串更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmailThreadResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listWebhooks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Webhook 設定列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "webhooks": [
-                     *         {
-                     *           "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "projectId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "name": "Slack 通知",
-                     *           "url": "https://hooks.slack.com/services/T00/B00/xxx",
-                     *           "events": [
-                     *             "task.completed",
-                     *             "todo.completed"
-                     *           ],
-                     *           "enabled": true,
-                     *           "secret": "whsec_****",
-                     *           "createdAt": "2025-01-15T10:00:00Z",
-                     *           "updatedAt": "2025-01-15T10:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        webhooks: components["schemas"]["webhooks_Webhook"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    createWebhook: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "Slack 通知",
-                 *       "url": "https://hooks.slack.com/services/T00/B00/xxx",
-                 *       "events": [
-                 *         "task.completed",
-                 *         "todo.completed"
-                 *       ],
-                 *       "enabled": true
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateWebhookRequest"];
-            };
-        };
-        responses: {
-            /** @description Webhook 建立成功（回傳包含完整 secret，僅此一次顯示） */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "projectId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "name": "Slack 通知",
-                     *       "url": "https://hooks.slack.com/services/T00/B00/xxx",
-                     *       "events": [
-                     *         "task.completed",
-                     *         "todo.completed"
-                     *       ],
-                     *       "enabled": true,
-                     *       "secret": "whsec_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
-                     *       "createdAt": "2025-01-15T10:00:00Z",
-                     *       "updatedAt": "2025-01-15T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["WebhookWithSecret"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getWebhook: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description Webhook ID */
-                webhookId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Webhook 詳情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["webhooks_Webhook"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateWebhook: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description Webhook ID */
-                webhookId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "Slack 通知（含完成事件）",
-                 *       "events": [
-                 *         "task.completed",
-                 *         "todo.completed",
-                 *         "data_entry.updated"
-                 *       ],
-                 *       "enabled": true
-                 *     }
-                 */
-                "application/json": components["schemas"]["UpdateWebhookRequest"];
-            };
-        };
-        responses: {
-            /** @description Webhook 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["webhooks_Webhook"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteWebhook: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description Webhook ID */
-                webhookId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Webhook 已軟刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    testWebhook: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description Webhook ID */
-                webhookId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 測試事件發送結果 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": true,
-                     *       "statusCode": 200,
-                     *       "responseTime": 120,
-                     *       "logId": "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["WebhookTestResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listWebhookLogs: {
-        parameters: {
-            query?: {
-                /** @description 依推送狀態過濾 */
-                status?: components["schemas"]["WebhookEventStatus"];
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description Webhook ID */
-                webhookId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 推送紀錄列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "logs": [
-                     *         {
-                     *           "id": "018e4a2c-b001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "webhookId": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "event": "task.completed",
-                     *           "status": "success",
-                     *           "statusCode": 200,
-                     *           "responseTime": 85,
-                     *           "isTest": false,
-                     *           "createdAt": "2025-02-15T14:00:00Z"
-                     *         },
-                     *         {
-                     *           "id": "018e4a2c-b002-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "webhookId": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "event": "test",
-                     *           "status": "success",
-                     *           "statusCode": 200,
-                     *           "responseTime": 120,
-                     *           "isTest": true,
-                     *           "createdAt": "2025-02-15T10:00:00Z"
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": false,
-                     *         "nextCursor": null
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        logs: components["schemas"]["WebhookLog"][];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    receiveInboundWebhook: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description HMAC-SHA256 請求簽章（若端點設定需要簽章驗證） */
-                "X-Webhook-Signature"?: string;
-            };
-            path: {
-                /** @description Inbound Webhook 端點 ID（系統產生的唯一識別碼） */
-                endpointId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "event": "deployment.completed",
-                 *       "repository": "conf-ops/frontend",
-                 *       "status": "success",
-                 *       "timestamp": "2025-02-15T14:00:00Z",
-                 *       "details": {
-                 *         "commit": "abc1234",
-                 *         "environment": "production"
-                 *       }
-                 *     }
-                 */
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description 事件接收成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "received": true,
-                     *       "taskId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "messageId": "018e4a2c-c014-7d8e-9a1b-2c3d4e5f6a7b"
-                     *     }
-                     */
-                    "application/json": {
-                        /** @description 是否成功接收 */
-                        received: boolean;
-                        /** @description 路由到的任務 ID（若成功匹配） */
-                        taskId?: components["schemas"]["UUID"];
-                        /** @description 新增至對話的訊息 ID（若成功匹配） */
-                        messageId?: components["schemas"]["UUID"];
-                    };
-                };
-            };
-            /** @description 請求格式錯誤 */
+            /** @description Invalid request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -13406,370 +1092,289 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description 簽章驗證失敗 */
+        };
+    };
+    verify_magic_link: {
+        parameters: {
+            query: {
+                /** @description Magic link token */
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentication successful */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokenResponse"];
+                };
+            };
+            /** @description Invalid or expired token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "type": "https://api.conf-ops.dev/errors/unauthorized",
-                     *       "title": "Unauthorized",
-                     *       "status": 401,
-                     *       "detail": "Webhook 簽章驗證失敗"
-                     *     }
-                     */
                     "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description 端點不存在 */
+        };
+    };
+    passkey_login_begin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Login challenge created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyLoginBeginResponse"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    passkey_login_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyLoginCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Login successful */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokenResponse"];
+                };
+            };
+            /** @description Invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    passkey_register_begin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registration challenge created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    passkey_register_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyRegisterCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Passkey registered */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_passkeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of passkeys */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_passkey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Passkey credential ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Passkey deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Passkey not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "type": "https://api.conf-ops.dev/errors/not-found",
-                     *       "title": "Endpoint Not Found",
-                     *       "status": 404,
-                     *       "detail": "找不到指定的 Inbound Webhook 端點"
-                     *     }
-                     */
                     "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
     };
-    listApiKeys: {
+    refresh: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description API Key 列表 */
+            /** @description Tokens refreshed */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "apiKeys": [
-                     *         {
-                     *           "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "name": "外部系統整合",
-                     *           "keyPrefix": "sk_****a1b2",
-                     *           "permissions": {
-                     *             "scopes": [
-                     *               "read",
-                     *               "write"
-                     *             ],
-                     *             "dataAccess": {
-                     *               "templateIds": [],
-                     *               "schemaIds": []
-                     *             }
-                     *           },
-                     *           "createdBy": "018e4a2c-0001-7000-8000-000000000001",
-                     *           "lastUsedAt": "2026-02-17T10:30:00Z",
-                     *           "createdAt": "2026-01-10T08:00:00Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": {
-                        apiKeys: {
-                            id: components["schemas"]["UUID"];
-                            /** @description API Key 名稱 */
-                            name: string;
-                            /** @description 金鑰前綴（遮蔽格式，如 sk_****abcd） */
-                            keyPrefix: string;
-                            /** @description 權限設定 */
-                            permissions: {
-                                scopes?: ("read" | "write")[];
-                                dataAccess?: {
-                                    templateIds?: components["schemas"]["UUID"][];
-                                    schemaIds?: components["schemas"]["UUID"][];
-                                };
-                            };
-                            createdBy: components["schemas"]["UUID"];
-                            /** Format: date-time */
-                            lastUsedAt?: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["AuthTokenResponse"];
                 };
             };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    createApiKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "name": "外部系統整合",
-                 *       "permissions": {
-                 *         "scopes": [
-                 *           "read",
-                 *           "write"
-                 *         ],
-                 *         "dataAccess": {
-                 *           "templateIds": [],
-                 *           "schemaIds": []
-                 *         }
-                 *       }
-                 *     }
-                 */
-                "application/json": {
-                    /** @description API Key 名稱（便於識別用途） */
-                    name: string;
-                    permissions: {
-                        /** @description 權限範圍 */
-                        scopes: ("read" | "write")[];
-                        /** @description 資料表存取範圍限制（空陣列表示不限制） */
-                        dataAccess?: {
-                            templateIds?: components["schemas"]["UUID"][];
-                            schemaIds?: components["schemas"]["UUID"][];
-                        };
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description API Key 建立成功（完整金鑰僅此一次回傳） */
-            201: {
+            /** @description Invalid refresh token */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "id": "018e4a2c-a001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *       "name": "外部系統整合",
-                     *       "key": "sk_live_a1b2c3d4e5f6g7h8i9j0...",
-                     *       "permissions": {
-                     *         "scopes": [
-                     *           "read",
-                     *           "write"
-                     *         ],
-                     *         "dataAccess": {
-                     *           "templateIds": [],
-                     *           "schemaIds": []
-                     *         }
-                     *       },
-                     *       "createdAt": "2026-02-18T08:00:00Z"
-                     *     }
-                     */
-                    "application/json": {
-                        id: components["schemas"]["UUID"];
-                        name: string;
-                        /** @description 完整 API Key（僅此一次回傳，請妥善保存） */
-                        key: string;
-                        permissions: Record<string, never>;
-                        /** Format: date-time */
-                        createdAt: string;
-                    };
+                    "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
         };
     };
-    revokeApiKey: {
+    list_organizations: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-                /** @description API Key ID */
-                keyId: components["schemas"]["UUID"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description API Key 已撤銷 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listOrganizationAuditLogs: {
-        parameters: {
-            query?: {
-                /** @description 依操作者帳號 ID 過濾 */
-                actorId?: components["schemas"]["UUID"];
-                /** @description 依操作者類型過濾 */
-                actorType?: "account" | "system" | "ai" | "api_key";
-                /** @description 依動作類型過濾（如 create, update, delete） */
-                action?: string;
-                /** @description 依資源類型過濾（如 organization, project, task） */
-                resourceType?: string;
-                /** @description 起始時間（UTC） */
-                startTime?: string;
-                /** @description 結束時間（UTC） */
-                endTime?: string;
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 組織 ID */
-                orgId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 審計日誌列表 */
+            /** @description List of user's organizations */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "auditLogs": [
-                     *         {
-                     *           "id": "018e4a2c-al01-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "actorType": "account",
-                     *           "actorId": "018e4a2c-0001-7000-8000-000000000001",
-                     *           "action": "member.added",
-                     *           "resourceType": "project",
-                     *           "resourceId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "contextType": "project",
-                     *           "contextId": "018e4a2c-5f6b-7d8e-9a1b-2c3d4e5f6a7b",
-                     *           "details": {
-                     *             "memberId": "018e4a2c-m001-7d8e-9a1b-2c3d4e5f6a7b",
-                     *             "role": "member"
-                     *           },
-                     *           "ipAddress": "203.0.113.50",
-                     *           "createdAt": "2026-02-15T09:00:00Z"
-                     *         }
-                     *       ],
-                     *       "pagination": {
-                     *         "hasMore": true,
-                     *         "nextCursor": "eyJpZCI6IjAxOGU0YTJjLWFsMDEifQ"
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        auditLogs: {
-                            id: components["schemas"]["UUID"];
-                            /** @enum {string} */
-                            actorType: "account" | "system" | "ai" | "api_key";
-                            actorId?: components["schemas"]["UUID"] | null;
-                            /** @description 動作名稱 */
-                            action: string;
-                            /** @description 資源類型 */
-                            resourceType: string;
-                            resourceId: components["schemas"]["UUID"];
-                            /** @description 上下文類型（organization/project/task） */
-                            contextType?: string | null;
-                            contextId?: components["schemas"]["UUID"] | null;
-                            /** @description 變更詳情（含前後值） */
-                            details?: Record<string, never>;
-                            ipAddress?: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                        }[];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
+                    "application/json": components["schemas"]["OrganizationListResponse"];
                 };
             };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    listProjectAuditLogs: {
-        parameters: {
-            query?: {
-                /** @description 依操作者帳號 ID 過濾 */
-                actorId?: components["schemas"]["UUID"];
-                /** @description 依操作者類型過濾 */
-                actorType?: "account" | "system" | "ai" | "api_key";
-                /** @description 依動作類型過濾 */
-                action?: string;
-                /** @description 依資源類型過濾 */
-                resourceType?: string;
-                /** @description 起始時間（UTC） */
-                startTime?: string;
-                /** @description 結束時間（UTC） */
-                endTime?: string;
-                /** @description 分頁游標 */
-                cursor?: string;
-                /** @description 每頁數量 */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description 專案 ID */
-                projectId: components["schemas"]["UUID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 審計日誌列表 */
-            200: {
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        auditLogs: {
-                            id: components["schemas"]["UUID"];
-                            /** @enum {string} */
-                            actorType: "account" | "system" | "ai" | "api_key";
-                            actorId?: components["schemas"]["UUID"] | null;
-                            action: string;
-                            resourceType: string;
-                            resourceId: components["schemas"]["UUID"];
-                            contextType?: string | null;
-                            contextId?: components["schemas"]["UUID"] | null;
-                            details?: Record<string, never>;
-                            ipAddress?: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                        }[];
-                        pagination: components["schemas"]["CursorPaginationMeta"];
-                    };
+                    "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
         };
     };
-    uploadFile: {
+    create_organization: {
         parameters: {
             query?: never;
             header?: never;
@@ -13778,123 +1383,816 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": {
-                    /**
-                     * Format: binary
-                     * @description 要上傳的檔案
-                     */
-                    file: string;
-                    /**
-                     * Format: uuid
-                     * @description 關聯的專案 ID（用於權限檢查和配額管理）
-                     */
-                    projectId?: string;
-                };
+                "application/json": components["schemas"]["CreateOrganizationRequest"];
             };
         };
         responses: {
-            /** @description 檔案上傳成功 */
+            /** @description Organization created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "id": "019409a2-c5f2-7000-8000-000000000900",
-                     *       "filename": "sponsorship-agreement.pdf",
-                     *       "mimeType": "application/pdf",
-                     *       "size": 1048576,
-                     *       "createdAt": "2025-07-01T10:00:00Z"
-                     *     }
-                     */
-                    "application/json": {
-                        id: components["schemas"]["UUID"];
-                        /** @example sponsorship-agreement.pdf */
-                        filename: string;
-                        /** @example application/pdf */
-                        mimeType: string;
-                        /**
-                         * @description 檔案大小（bytes）
-                         * @example 1048576
-                         */
-                        size: number;
-                        /** Format: date-time */
-                        createdAt: string;
-                    };
+                    "application/json": components["schemas"]["OrganizationResponse"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            /** @description 檔案過大 */
-            413: {
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "type": "https://conf-ops.io/errors/file-too-large",
-                     *       "title": "Payload Too Large",
-                     *       "status": 413,
-                     *       "detail": "檔案大小超過 50MB 限制"
-                     *     }
-                     */
                     "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
     };
-    downloadFile: {
+    get_organization: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description 檔案 ID */
-                fileId: string;
+                /** @description Organization ID */
+                orgId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description 重導向到檔案下載 URL */
-            302: {
+            /** @description Organization details */
+            200: {
                 headers: {
-                    /** @description 檔案下載 URL */
-                    Location?: string;
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
             };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
-    deleteFile: {
+    update_organization: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description 檔案 ID */
-                fileId: string;
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrganizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Organization updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_organization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description 檔案已刪除 */
+            /** @description Organization deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Has active projects */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
-    healthCheck: {
+    list_members: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Member list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgMemberListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    invite_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Member invited */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteMemberResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Already a member */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_member_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+                /** @description Member ID */
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrgMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Member role updated */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Last owner removal */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    remove_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+                /** @description Member ID */
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Member removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Last owner removal */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_projects: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ProjectStatus"];
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Project created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    copy_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Project copied */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Source project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Project updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_permission_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Permission settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionSettingsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_permission_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePermissionSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Permission settings updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionSettingsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_project_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Status updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Invalid status transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    healthz: {
         parameters: {
             query?: never;
             header?: never;
@@ -13903,26 +2201,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 服務存活 */
+            /** @description Service is healthy */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "status": "ok"
-                     *     }
-                     */
-                    "application/json": {
-                        /** @enum {string} */
-                        status: "ok";
-                    };
+                    "application/json": components["schemas"]["HealthResponse"];
                 };
             };
         };
     };
-    readinessCheck: {
+    readyz: {
         parameters: {
             query?: never;
             header?: never;
@@ -13931,61 +2221,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 服務就緒 */
+            /** @description Service is ready */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "status": "ok",
-                     *       "checks": {
-                     *         "database": "ok"
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        /** @enum {string} */
-                        status: "ok";
-                        checks: {
-                            /** @enum {string} */
-                            database?: "ok" | "error";
-                        };
-                    };
+                    "application/json": components["schemas"]["ReadyResponse"];
                 };
             };
-            /** @description 服務未就緒 */
+            /** @description Service is not ready */
             503: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        status?: "error";
-                        checks?: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    getMetrics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Prometheus metrics */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/plain": string;
+                    "application/json": components["schemas"]["ReadyResponse"];
                 };
             };
         };
