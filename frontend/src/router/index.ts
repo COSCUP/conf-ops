@@ -64,6 +64,26 @@ const router = createRouter({
           component: () => import('@/views/projects/ProjectSettingsView.vue'),
         },
         {
+          path: 'projects/:projectId/members',
+          name: 'project-members',
+          component: () => import('@/views/projects/ProjectMembersView.vue'),
+        },
+        {
+          path: 'projects/:projectId/member-tags',
+          name: 'project-member-tags',
+          component: () => import('@/views/projects/MemberTagsView.vue'),
+        },
+        {
+          path: 'projects/:projectId/contacts',
+          name: 'project-contacts',
+          component: () => import('@/views/projects/ProjectContactsView.vue'),
+        },
+        {
+          path: 'organizations/:orgId/contacts',
+          name: 'org-contacts',
+          component: () => import('@/views/organizations/ContactsView.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/settings/AccountSettingsView.vue'),

@@ -1,5 +1,8 @@
 pub mod accounts;
 pub mod auth;
+pub mod contacts;
 pub mod health;
+pub mod member_tags;
+pub mod members;
 pub mod organizations;
 pub mod projects;

@@ -364,11 +364,12 @@ pub fn require_permission(action_factory: impl Fn(RouteParams) -> Action) -> Per
 ### 7.1 權限快取
 
 - 使用者的權限計算結果可快取於 in-memory cache（`moka` crate，TTL 5 分鐘），key 為 `perm:{project_id}:{account_id}`
-- 當以下事件發生時，清除對應的快取（透過 PostgreSQL LISTEN/NOTIFY 通知所有節點）：
-  - `permissionSettings` 變更
-  - 使用者的 `member_tags` 變更
-  - 使用者的專案角色變更
+- 當以下事件發生時，透過 `EventBus`（Tokio broadcast channel）清除對應的快取：
+  - `permissionSettings` 變更（`PermissionSettingsUpdated`）
+  - 使用者的 `member_tags` 變更（`TagAssigned` / `TagUnassigned`）
+  - 使用者的專案角色變更（`ProjectMemberRoleChanged`）
 - 快取 TTL：5 分鐘（即使未收到清除事件，也會定期重新計算）
+- **未來擴展**：當系統需要多節點部署時，改用 PostgreSQL `LISTEN/NOTIFY`（透過 `sqlx::PgListener`）取代 `EventBus`，實現跨節點的快取清除通知
 
 ### 7.2 permissionSettings 版本控制
 

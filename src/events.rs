@@ -39,6 +39,48 @@ pub enum DomainEvent {
         old_status: String,
         new_status: String,
     },
+    ProjectMemberJoined {
+        project_id: uuid::Uuid,
+        account_id: uuid::Uuid,
+        role: String,
+    },
+    ProjectMemberRemoved {
+        project_id: uuid::Uuid,
+        account_id: uuid::Uuid,
+    },
+    ProjectMemberRoleChanged {
+        project_id: uuid::Uuid,
+        account_id: uuid::Uuid,
+        old_role: String,
+        new_role: String,
+    },
+    ContactCreated {
+        contact_id: uuid::Uuid,
+        organization_id: uuid::Uuid,
+    },
+    ContactsMerged {
+        target_id: uuid::Uuid,
+        source_ids: Vec<uuid::Uuid>,
+        organization_id: uuid::Uuid,
+    },
+    MemberTagCreated {
+        tag_id: uuid::Uuid,
+        project_id: uuid::Uuid,
+    },
+    MemberTagDeleted {
+        tag_id: uuid::Uuid,
+        project_id: uuid::Uuid,
+    },
+    TagAssigned {
+        tag_id: uuid::Uuid,
+        assignment_id: uuid::Uuid,
+        project_id: uuid::Uuid,
+    },
+    TagUnassigned {
+        tag_id: uuid::Uuid,
+        assignment_id: uuid::Uuid,
+        project_id: uuid::Uuid,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.

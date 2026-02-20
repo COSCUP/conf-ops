@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mta.id as assignment_id, c.id as contact_id,\n                      c.name, c.email\n             FROM member_tag_assignments mta\n             JOIN contacts c ON c.id = mta.contact_id\n             WHERE mta.tag_id = $1 AND mta.contact_id IS NOT NULL\n             ORDER BY mta.created_at ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "assignment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "contact_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "email",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b93bbd1dd46571148d4232bb05e20d498b84c81d0b049010f885f07ceab8c9bd"
+}

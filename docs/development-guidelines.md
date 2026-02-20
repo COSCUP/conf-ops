@@ -209,6 +209,45 @@ pub struct AiModule {
 - Migration 使用 `sqlx-cli`，所有 schema 變更透過 migration 檔案管理
 - 禁止跨模組 JOIN（遵循模組邊界）
 
+### 3.6 sqlx 離線模式（Offline Mode）
+
+專案預設啟用 `SQLX_OFFLINE=true`（設定於 `.cargo/config.toml`），編譯時不需要連線 PostgreSQL。sqlx proc macro 改為讀取 `.sqlx/` 目錄中的快取檔案進行類型驗證。
+
+#### 日常開發
+
+不需要 `DATABASE_URL` 即可執行 `cargo check`、`cargo clippy`、`cargo build`：
+
+```bash
+cargo clippy -- -D warnings   # 使用 .sqlx/ 快取，無需 DB
+cargo build                    # 同上
+```
+
+#### 更新 `.sqlx/` 快取
+
+當新增或修改 `sqlx::query!` / `sqlx::query_as!` 巨集中的 SQL 時，必須更新離線快取：
+
+```bash
+# 需要一個可連線的 PostgreSQL（Docker 或其他）
+DATABASE_URL=postgres://confops:devpassword@localhost:5432/confops_dev \
+  cargo xtask sqlx-prepare
+```
+
+此指令會自動執行 migration 並重新產生 `.sqlx/` 快取。更新後須將 `.sqlx/` 目錄的變更一併提交至 Git。
+
+#### CI 驗證
+
+使用 `--check` 旗標驗證快取是否與程式碼同步：
+
+```bash
+DATABASE_URL=... cargo xtask sqlx-prepare --check
+```
+
+#### 注意事項
+
+- `.sqlx/` 目錄必須提交至 Git（已排除在 `.gitignore` 之外）
+- `cargo test`（整合測試）仍需要真實 PostgreSQL，因為測試執行期間會連線資料庫
+- 若快取過期（SQL 有變更但未更新快取），編譯會失敗並提示類型不匹配
+
 ---
 
 ## 4. Vue / TypeScript 最佳實踐
@@ -363,19 +402,28 @@ Rust 類型（utoipa 註解）
 # .github/workflows/ci.yml（概念）
 jobs:
   backend:
+    services:
+      postgres:  # cargo test 和 sqlx-prepare --check 需要真實 DB
+        image: postgres:16
+        env:
+          POSTGRES_DB: confops_dev
+          POSTGRES_USER: confops
+          POSTGRES_PASSWORD: devpassword
     steps:
       - cargo fmt -- --check
-      - cargo clippy -- -D warnings
-      - cargo test
+      - cargo clippy -- -D warnings    # 使用 .sqlx/ 離線快取，不需 DB
+      - cargo test                      # 需要 DB（整合測試）
+      # 驗證 .sqlx/ 離線快取是否與程式碼同步
+      - DATABASE_URL=... cargo xtask sqlx-prepare --check
       # 驗證 utoipa 匯出的 OpenAPI spec 是否與程式碼同步
       - cargo xtask generate-openapi --check
 
   frontend:
     steps:
-      - npm ci
-      - npm run lint -- --max-warnings 0
-      - npm run typecheck
-      - npm run test
+      - pnpm install
+      - pnpm run lint
+      - pnpm run typecheck
+      - pnpm run test
       # 驗證生成的 API 類型是否與 spec 同步
       - npx openapi-typescript docs/api/openapi-generated.yaml -o src/api/schema.d.ts
       - git diff --exit-code src/api/schema.d.ts

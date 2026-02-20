@@ -3,6 +3,8 @@ use uuid::Uuid;
 
 use crate::events::{DomainEvent, EventBus};
 use crate::id::generate_id;
+use crate::modules::core::member::models::MemberRole;
+use crate::modules::core::member::repository::MemberRepository;
 
 use super::error::ProjectError;
 use super::models::{Project, ProjectListItem, ProjectStatus};
@@ -42,6 +44,26 @@ impl ProjectService {
         )
         .await?;
 
+        let member_id = generate_id();
+        MemberRepository::create(
+            &self.pool,
+            member_id,
+            project_id,
+            created_by,
+            MemberRole::Owner,
+        )
+        .await
+        .map_err(|e| {
+            ProjectError::Database(match e {
+                crate::modules::core::member::error::MemberError::Database(db_err) => db_err,
+                _ => {
+                    return ProjectError::Database(sqlx::Error::Protocol(
+                        "Failed to create owner member".into(),
+                    ))
+                }
+            })
+        })?;
+
         self.event_bus.publish(DomainEvent::ProjectCreated {
             project_id,
             organization_id: org_id,
@@ -77,6 +99,26 @@ impl ProjectService {
             created_by,
         )
         .await?;
+
+        let member_id = generate_id();
+        MemberRepository::create(
+            &self.pool,
+            member_id,
+            project_id,
+            created_by,
+            MemberRole::Owner,
+        )
+        .await
+        .map_err(|e| {
+            ProjectError::Database(match e {
+                crate::modules::core::member::error::MemberError::Database(db_err) => db_err,
+                _ => {
+                    return ProjectError::Database(sqlx::Error::Protocol(
+                        "Failed to create owner member".into(),
+                    ))
+                }
+            })
+        })?;
 
         self.event_bus.publish(DomainEvent::ProjectCopied {
             project_id,

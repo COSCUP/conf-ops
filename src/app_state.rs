@@ -5,6 +5,9 @@ use sqlx::PgPool;
 use crate::events::EventBus;
 use crate::modules::auth::jwt::JwtConfig;
 use crate::modules::auth::service::AuthService;
+use crate::modules::core::contact::service::ContactService;
+use crate::modules::core::member::service::MemberService;
+use crate::modules::core::member_tag::service::MemberTagService;
 use crate::modules::core::organization::service::OrganizationService;
 use crate::modules::core::permission::service::PermissionService;
 use crate::modules::core::project::service::ProjectService;
@@ -17,6 +20,9 @@ pub struct AppState {
     pub app_base_url: String,
     pub auth_service: Arc<AuthService>,
     pub org_service: Arc<OrganizationService>,
+    pub member_service: Arc<MemberService>,
+    pub member_tag_service: Arc<MemberTagService>,
+    pub contact_service: Arc<ContactService>,
     pub project_service: Arc<ProjectService>,
     pub permission_service: Arc<PermissionService>,
 }

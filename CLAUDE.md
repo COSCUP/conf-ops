@@ -26,9 +26,10 @@ Modular Monolith 架構，單一 Rust binary，9 個內部模組。
 **Lint 修復原則：** 禁止以 `#[allow(...)]`、`// eslint-disable`、`@ts-ignore` 等忽略方式修復 lint 問題。必須使用時先詢問確認。
 
 **後端：**
-- `cargo clippy -- -D warnings` — 零錯誤、零警告（含 info 層級）
+- `cargo clippy -- -D warnings` — 零錯誤、零警告（含 info 層級，使用 `.sqlx/` 離線快取，不需 DB）
 - `cargo fmt -- --check` — 格式檢查通過
-- `cargo test` — 所有測試通過
+- `cargo test` — 所有測試通過（需要真實 PostgreSQL）
+- 若修改了 SQL query：`DATABASE_URL=... cargo xtask sqlx-prepare` 更新 `.sqlx/` 快取並提交
 
 **前端：**
 - `pnpm run lint` — 零錯誤、零警告
@@ -49,6 +50,7 @@ Modular Monolith 架構，單一 Rust binary，9 個內部模組。
 - 模組間依賴透過 trait 注入（`Arc<dyn Trait>`）
 - 資料庫使用 `sqlx` compile-time query checking，禁止跨模組 JOIN
 - HTTP 錯誤回應使用 RFC 7807 Problem Details
+- sqlx 離線模式：預設 `SQLX_OFFLINE=true`，編譯不需 DB。修改 SQL 後須執行 `DATABASE_URL=... cargo xtask sqlx-prepare` 更新 `.sqlx/` 快取並提交
 
 ### TypeScript / Vue 規範
 
