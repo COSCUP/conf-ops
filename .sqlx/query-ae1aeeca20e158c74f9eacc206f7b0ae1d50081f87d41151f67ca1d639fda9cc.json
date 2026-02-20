@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE data_entries SET deleted_at = NOW(), updated_at = NOW()\n             WHERE task_id = $1 AND data_schema_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ae1aeeca20e158c74f9eacc206f7b0ae1d50081f87d41151f67ca1d639fda9cc"
+}

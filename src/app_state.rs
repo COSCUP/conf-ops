@@ -6,6 +6,7 @@ use crate::events::EventBus;
 use crate::modules::auth::jwt::JwtConfig;
 use crate::modules::auth::service::AuthService;
 use crate::modules::core::contact::service::ContactService;
+use crate::modules::core::data_sheet::service::DataSheetService;
 use crate::modules::core::member::service::MemberService;
 use crate::modules::core::member_tag::service::MemberTagService;
 use crate::modules::core::organization::service::OrganizationService;
@@ -31,4 +32,5 @@ pub struct AppState {
     pub task_template_service: Arc<TaskTemplateService>,
     pub task_service: Arc<TaskService>,
     pub todo_service: Arc<TodoService>,
+    pub data_sheet_service: Arc<DataSheetService>,
 }

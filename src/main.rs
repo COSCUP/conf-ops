@@ -8,7 +8,7 @@ use tracing_subscriber::EnvFilter;
 
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::{
-    accounts, auth, contacts, health, member_tags, members, organizations, projects,
+    accounts, auth, contacts, data_entries, health, member_tags, members, organizations, projects,
     task_templates, tasks, todos,
 };
 use conf_ops::app_state::AppState;
@@ -19,6 +19,7 @@ use conf_ops::modules::auth::jwt::JwtConfig;
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::service::AuthService;
 use conf_ops::modules::core::contact::service::ContactService;
+use conf_ops::modules::core::data_sheet::service::DataSheetService;
 use conf_ops::modules::core::member::service::MemberService;
 use conf_ops::modules::core::member_tag::service::MemberTagService;
 use conf_ops::modules::core::organization::service::OrganizationService;
@@ -79,6 +80,8 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
 
     let todo_service = Arc::new(TodoService::new(pool.clone(), event_bus.clone()));
 
+    let data_sheet_service = Arc::new(DataSheetService::new(pool.clone(), event_bus.clone()));
+
     AppState {
         pool,
         event_bus,
@@ -94,6 +97,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         task_template_service,
         task_service,
         todo_service,
+        data_sheet_service,
     }
 }
 
@@ -198,6 +202,13 @@ fn task_routes() -> Router<AppState> {
             "/{taskId}/todos/{todoId}/assignees/{memberId}",
             delete(todos::remove_assignee),
         )
+        .route("/{taskId}/data-entries", get(data_entries::list_entries))
+        .route(
+            "/{taskId}/data-entries/{schemaId}",
+            get(data_entries::get_entry)
+                .put(data_entries::upsert_entry)
+                .delete(data_entries::delete_entry),
+        )
 }
 
 fn project_routes() -> Router<AppState> {
@@ -292,6 +303,10 @@ fn project_routes() -> Router<AppState> {
         .nest("/{projectId}/member-tags", member_tag_routes)
         .nest("/{projectId}/task-templates", task_template_routes)
         .nest("/{projectId}/tasks", task_routes())
+        .route(
+            "/{projectId}/task-templates/{templateId}/data-sheets/{schemaId}",
+            get(data_entries::get_aggregated_sheet),
+        )
 }
 
 fn build_router(state: AppState) -> Router {

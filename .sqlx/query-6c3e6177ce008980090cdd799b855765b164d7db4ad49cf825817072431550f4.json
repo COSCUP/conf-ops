@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, task_id, data_schema_id, values,\n                      source_links, created_at, updated_at, deleted_at\n             FROM data_entries\n             WHERE task_id = $1 AND deleted_at IS NULL\n             ORDER BY created_at ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "data_schema_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "values",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "source_links",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "6c3e6177ce008980090cdd799b855765b164d7db4ad49cf825817072431550f4"
+}

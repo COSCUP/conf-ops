@@ -6,7 +6,7 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use super::routes::{
-    accounts, auth, contacts, health, member_tags, members, organizations, projects,
+    accounts, auth, contacts, data_entries, health, member_tags, members, organizations, projects,
     task_templates, tasks, todos,
 };
 
@@ -106,6 +106,11 @@ use super::routes::{
         todos::update_todo_status,
         todos::add_assignee,
         todos::remove_assignee,
+        data_entries::list_entries,
+        data_entries::upsert_entry,
+        data_entries::get_entry,
+        data_entries::delete_entry,
+        data_entries::get_aggregated_sheet,
     ),
     modifiers(&SecurityAddon),
     tags(
@@ -119,7 +124,8 @@ use super::routes::{
         (name = "member-tags", description = "Member tag management endpoints"),
         (name = "task-templates", description = "Task template management endpoints"),
         (name = "tasks", description = "Task management endpoints"),
-        (name = "todos", description = "Todo management endpoints")
+        (name = "todos", description = "Todo management endpoints"),
+        (name = "data-entries", description = "Data entry management endpoints")
     )
 )]
 pub struct ApiDoc;

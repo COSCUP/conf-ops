@@ -12,6 +12,7 @@ use conf_ops::modules::auth::repository::AccountRepository;
 use conf_ops::modules::auth::service::AuthService;
 use conf_ops::modules::core::contact::repository::ContactRepository;
 use conf_ops::modules::core::contact::service::ContactService;
+use conf_ops::modules::core::data_sheet::service::DataSheetService;
 use conf_ops::modules::core::member::models::MemberRole;
 use conf_ops::modules::core::member::repository::MemberRepository;
 use conf_ops::modules::core::member::service::MemberService;
@@ -178,6 +179,9 @@ impl TestContext {
 
         let todo_service = Arc::new(TodoService::new(self.pool.clone(), event_bus.clone()));
 
+        let data_sheet_service =
+            Arc::new(DataSheetService::new(self.pool.clone(), event_bus.clone()));
+
         AppState {
             pool: self.pool.clone(),
             event_bus,
@@ -193,6 +197,7 @@ impl TestContext {
             task_template_service,
             task_service,
             todo_service,
+            data_sheet_service,
         }
     }
 
@@ -316,6 +321,25 @@ impl TestContext {
             .await
             .expect("should link tag to template");
         id
+    }
+
+    pub async fn create_test_data_schema(
+        &self,
+        task_template_id: Uuid,
+        name: &str,
+        fields: &serde_json::Value,
+    ) -> Uuid {
+        let schema_id = generate_id();
+        TaskTemplateRepository::create_data_schema(
+            &self.pool,
+            schema_id,
+            task_template_id,
+            name,
+            fields,
+        )
+        .await
+        .expect("should create test data schema");
+        schema_id
     }
 
     pub async fn assign_tag_to_contact(

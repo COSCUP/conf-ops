@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod auth;
 pub mod contacts;
+pub mod data_entries;
 pub mod health;
 pub mod member_tags;
 pub mod members;

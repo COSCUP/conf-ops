@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO data_entries (id, task_id, data_schema_id, values)\n             VALUES ($1, $2, $3, $4)\n             ON CONFLICT (task_id, data_schema_id)\n             DO UPDATE SET values = $4, updated_at = NOW()\n             RETURNING id, task_id, data_schema_id, values,\n                       source_links, created_at, updated_at, deleted_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "data_schema_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "values",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "source_links",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "92112df624dbe7c2fe3f912d5851f202fe11162a5631e8ba4bafa36e680aa594"
+}
