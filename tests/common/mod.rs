@@ -24,6 +24,7 @@ use conf_ops::modules::core::organization::repository::{
 use conf_ops::modules::core::organization::service::OrganizationService;
 use conf_ops::modules::core::permission::service::PermissionService;
 use conf_ops::modules::core::project::service::ProjectService;
+use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::repository::TaskTemplateRepository;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::email::EmailService;
@@ -172,6 +173,8 @@ impl TestContext {
             event_bus.clone(),
         ));
 
+        let task_service = Arc::new(TaskService::new(self.pool.clone(), event_bus.clone()));
+
         AppState {
             pool: self.pool.clone(),
             event_bus,
@@ -185,6 +188,7 @@ impl TestContext {
             project_service,
             permission_service,
             task_template_service,
+            task_service,
         }
     }
 

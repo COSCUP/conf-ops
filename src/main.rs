@@ -8,7 +8,8 @@ use tracing_subscriber::EnvFilter;
 
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::{
-    accounts, auth, contacts, health, member_tags, members, organizations, projects, task_templates,
+    accounts, auth, contacts, health, member_tags, members, organizations, projects,
+    task_templates, tasks,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -23,6 +24,7 @@ use conf_ops::modules::core::member_tag::service::MemberTagService;
 use conf_ops::modules::core::organization::service::OrganizationService;
 use conf_ops::modules::core::permission::service::PermissionService;
 use conf_ops::modules::core::project::service::ProjectService;
+use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
 
@@ -72,6 +74,8 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
 
     let task_template_service = Arc::new(TaskTemplateService::new(pool.clone(), event_bus.clone()));
 
+    let task_service = Arc::new(TaskService::new(pool.clone(), event_bus.clone()));
+
     AppState {
         pool,
         event_bus,
@@ -85,6 +89,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         project_service,
         permission_service,
         task_template_service,
+        task_service,
     }
 }
 
@@ -248,6 +253,18 @@ fn project_routes() -> Router<AppState> {
         .nest("/{projectId}/members", member_routes)
         .nest("/{projectId}/member-tags", member_tag_routes)
         .nest("/{projectId}/task-templates", task_template_routes)
+        .nest(
+            "/{projectId}/tasks",
+            Router::new()
+                .route("/", get(tasks::list_tasks).post(tasks::create_task))
+                .route(
+                    "/{taskId}",
+                    get(tasks::get_task)
+                        .put(tasks::update_task)
+                        .delete(tasks::delete_task),
+                )
+                .route("/{taskId}/status", put(tasks::update_task_status)),
+        )
 }
 
 fn build_router(state: AppState) -> Router {

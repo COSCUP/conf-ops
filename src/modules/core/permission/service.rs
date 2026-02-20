@@ -48,6 +48,11 @@ pub enum Action {
     CreateTaskTemplate,
     UpdateTaskTemplate,
     DeleteTaskTemplate,
+    // Task operations
+    ViewTasks,
+    CreateTask,
+    UpdateTask,
+    UpdateTaskStatus,
 }
 
 impl Action {
@@ -85,11 +90,15 @@ impl Action {
             Self::CreateTaskTemplate => 29,
             Self::UpdateTaskTemplate => 30,
             Self::DeleteTaskTemplate => 31,
+            Self::ViewTasks => 32,
+            Self::CreateTask => 33,
+            Self::UpdateTask => 34,
+            Self::UpdateTaskStatus => 35,
         }
     }
 }
 
-const ACTION_COUNT: u8 = 32;
+const ACTION_COUNT: u8 = 36;
 
 #[derive(Debug, Clone)]
 pub enum Resource {
@@ -332,6 +341,10 @@ fn is_allowed_project_role(role: MemberRole, action: Action) -> bool {
                 | Action::CreateTaskTemplate
                 | Action::UpdateTaskTemplate
                 | Action::DeleteTaskTemplate
+                | Action::ViewTasks
+                | Action::CreateTask
+                | Action::UpdateTask
+                | Action::UpdateTaskStatus
         ),
         MemberRole::Member => matches!(
             action,
@@ -339,6 +352,10 @@ fn is_allowed_project_role(role: MemberRole, action: Action) -> bool {
                 | Action::ViewTags
                 | Action::CreateTag
                 | Action::ViewTaskTemplates
+                | Action::ViewTasks
+                | Action::CreateTask
+                | Action::UpdateTask
+                | Action::UpdateTaskStatus
         ),
     }
 }
@@ -382,6 +399,10 @@ mod tests {
             Action::CreateTaskTemplate,
             Action::UpdateTaskTemplate,
             Action::DeleteTaskTemplate,
+            Action::ViewTasks,
+            Action::CreateTask,
+            Action::UpdateTask,
+            Action::UpdateTaskStatus,
         ];
         for action in actions {
             assert!(
@@ -440,6 +461,11 @@ mod tests {
         assert!(is_allowed(OrgRole::OrgAdmin, Action::CreateTaskTemplate));
         assert!(is_allowed(OrgRole::OrgAdmin, Action::UpdateTaskTemplate));
         assert!(is_allowed(OrgRole::OrgAdmin, Action::DeleteTaskTemplate));
+        // Task actions — OrgAdmin can do these
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::ViewTasks));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::CreateTask));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::UpdateTask));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::UpdateTaskStatus));
     }
 
     #[test]
@@ -488,6 +514,10 @@ mod tests {
             Action::CreateTaskTemplate,
             Action::UpdateTaskTemplate,
             Action::DeleteTaskTemplate,
+            Action::ViewTasks,
+            Action::CreateTask,
+            Action::UpdateTask,
+            Action::UpdateTaskStatus,
         ];
         for action in actions {
             assert!(
@@ -547,6 +577,22 @@ mod tests {
         assert!(is_allowed_project_role(
             MemberRole::TagAdmin,
             Action::DeleteTaskTemplate
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::ViewTasks
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::CreateTask
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::UpdateTask
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::UpdateTaskStatus
         ));
         // Denied
         assert!(!is_allowed_project_role(
@@ -627,6 +673,23 @@ mod tests {
         assert!(!is_allowed_project_role(
             MemberRole::Member,
             Action::DeleteTaskTemplate
+        ));
+        // Task — Member can view, create, update, and update status
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::ViewTasks
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::CreateTask
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::UpdateTask
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::UpdateTaskStatus
         ));
     }
 
@@ -727,6 +790,10 @@ mod tests {
             Action::CreateTaskTemplate,
             Action::UpdateTaskTemplate,
             Action::DeleteTaskTemplate,
+            Action::ViewTasks,
+            Action::CreateTask,
+            Action::UpdateTask,
+            Action::UpdateTaskStatus,
         ];
         let mut seen = std::collections::HashSet::new();
         for action in actions {

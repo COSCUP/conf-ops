@@ -7,3 +7,4 @@ pub mod members;
 pub mod organizations;
 pub mod projects;
 pub mod task_templates;
+pub mod tasks;

@@ -4,4 +4,5 @@ pub mod member_tag;
 pub mod organization;
 pub mod permission;
 pub mod project;
+pub mod task;
 pub mod task_template;
