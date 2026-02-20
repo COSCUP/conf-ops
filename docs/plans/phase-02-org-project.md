@@ -14,7 +14,7 @@
 
 **說明：**
 1. 遵循 TDD 流程：先撰寫失敗的測試定義預期行為 → 實作最少量程式碼使測試通過 → 重構改善品質
-2. 建立 migration `0003_organizations.sql`：
+2. 建立 migration `0006_organizations.sql`：
    - `organizations` 表：id, name, description, logo_url (VARCHAR, nullable), created_by (FK → accounts), created_at, updated_at, deleted_at
    - `organization_members` 表：id, organization_id (FK), account_id (FK), org_role (ENUM: org_owner/org_admin/org_member), created_at, updated_at
    - 成員退出時直接刪除記錄（非軟刪除）
@@ -52,14 +52,14 @@
 - 整合測試：非 org_owner 無法邀請成員
 
 **驗收標準：**
-- [ ] 組織 CRUD 完整
-- [ ] 組織成員管理（邀請、角色、移除）正確
-- [ ] 組織角色權限基礎驗證
-- [ ] 組織刪除時若仍有進行中的專案（status != archived），回傳 409 Conflict（與 `docs/api/paths/organizations.yaml` 一致）
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 組織 CRUD 完整
+- [x] 組織成員管理（邀請、角色、移除）正確
+- [x] 組織角色權限基礎驗證
+- [x] 組織刪除時若仍有進行中的專案（status != archived），回傳 409 Conflict（與 `docs/api/paths/organizations.yaml` 一致）
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -69,7 +69,7 @@
 
 **說明：**
 1. 遵循 TDD 流程：先撰寫失敗的測試定義預期行為 → 實作最少量程式碼使測試通過 → 重構改善品質
-2. 建立 migration `0004_projects.sql`：
+2. 建立 migration `0007_projects.sql`：
    - `projects` 表：id, organization_id (FK), name, description, status (ENUM: preparing/active/completed/archived), source_project_id (FK, nullable), permission_settings (JSONB, DEFAULT '{}'), created_by (FK → accounts), created_at, updated_at, deleted_at
 3. 建立 `ProjectService`：
    - `create_project(actor, org_id, name, description)` → 建立空白專案
@@ -112,13 +112,13 @@
 - API 測試：所有專案端點
 
 **驗收標準：**
-- [ ] 專案 CRUD 完整
-- [ ] 專案狀態轉換規則正確
-- [ ] 專案複製基礎邏輯可運作
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 專案 CRUD 完整
+- [x] 專案狀態轉換規則正確
+- [x] 專案複製基礎邏輯可運作
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -151,13 +151,13 @@
 - API 測試：無權限時回傳 403
 
 **驗收標準：**
-- [ ] 權限檢查基礎架構就緒
-- [ ] 組織層級角色權限正確
-- [ ] 權限檢查基礎架構就緒（Phase 3 再加入快取）
-- [ ] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
-- [ ] `cargo fmt -- --check` 通過
-- [ ] 錯誤回應符合 RFC 7807 Problem Details 格式
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 權限檢查基礎架構就緒
+- [x] 組織層級角色權限正確
+- [x] 權限檢查基礎架構就緒（Phase 3 再加入快取）
+- [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
+- [x] `cargo fmt -- --check` 通過
+- [x] 錯誤回應符合 RFC 7807 Problem Details 格式
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -191,11 +191,11 @@
 - 單元測試：organizationStore
 
 **驗收標準：**
-- [ ] 組織 CRUD 頁面完整
-- [ ] 成員邀請與管理可操作
-- [ ] `npm run lint -- --max-warnings 0` 零警告
-- [ ] `npm run typecheck` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 組織 CRUD 頁面完整
+- [x] 成員邀請與管理可操作
+- [x] `npm run lint -- --max-warnings 0` 零警告
+- [x] `npm run typecheck` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
@@ -226,12 +226,12 @@
 - 單元測試：projectStore
 
 **驗收標準：**
-- [ ] 專案 CRUD 頁面完整
-- [ ] 從現有專案複製的 UI 流程可操作
-- [ ] 專案狀態變更可操作
-- [ ] `npm run lint -- --max-warnings 0` 零警告
-- [ ] `npm run typecheck` 通過
-- [ ] 所有 commit 遵循 Conventional Commits 格式
+- [x] 專案 CRUD 頁面完整
+- [x] 從現有專案複製的 UI 流程可操作
+- [x] 專案狀態變更可操作
+- [x] `npm run lint -- --max-warnings 0` 零警告
+- [x] `npm run typecheck` 通過
+- [x] 所有 commit 遵循 Conventional Commits 格式
 
 ---
 
