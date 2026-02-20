@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::error::TodoError;
-use super::models::{Todo, TodoAssignee, TodoStatus, TodoType};
+use super::models::{MyTodoItem, Todo, TodoAssignee, TodoStatus, TodoType};
 
 pub struct CreateTodoParams<'a> {
     pub id: Uuid,
@@ -314,5 +314,52 @@ impl TodoRepository {
         .await?;
 
         Ok(assignees)
+    }
+
+    // ── My Todos ────────────────────────────────────────────
+
+    /// List todos assigned to a specific account across all projects.
+    ///
+    /// Joins through `todo_assignees` → `members` → `account_id` and
+    /// includes project and task context.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TodoError::Database` on database failure.
+    pub async fn list_my_todos(
+        pool: &PgPool,
+        account_id: Uuid,
+        status_filter: Option<&TodoStatus>,
+        project_id_filter: Option<Uuid>,
+    ) -> Result<Vec<MyTodoItem>, TodoError> {
+        let items = sqlx::query_as!(
+            MyTodoItem,
+            r#"SELECT
+                t.id, t.task_id, t.title, t.description,
+                t.status AS "status: TodoStatus",
+                t.type AS "todo_type: TodoType",
+                t.due_date,
+                p.id AS project_id,
+                p.name AS project_name,
+                tk.name AS task_name,
+                t.created_at, t.updated_at
+             FROM todos t
+             INNER JOIN todo_assignees ta ON ta.todo_id = t.id
+             INNER JOIN members m ON m.id = ta.member_id AND m.deleted_at IS NULL
+             INNER JOIN tasks tk ON tk.id = t.task_id AND tk.deleted_at IS NULL
+             INNER JOIN projects p ON p.id = tk.project_id AND p.deleted_at IS NULL
+             WHERE m.account_id = $1
+               AND t.deleted_at IS NULL
+               AND ($2::todo_status IS NULL OR t.status = $2)
+               AND ($3::UUID IS NULL OR p.id = $3)
+             ORDER BY t.due_date ASC NULLS LAST, t.created_at ASC"#,
+            account_id,
+            status_filter as Option<&TodoStatus>,
+            project_id_filter,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(items)
     }
 }

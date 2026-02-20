@@ -1,8 +1,8 @@
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::api::error::ProblemDetails;
@@ -11,7 +11,7 @@ use crate::api::middleware::auth::AuthUser;
 use crate::app_state::AppState;
 use crate::modules::core::permission::service::{Action, Resource};
 use crate::modules::core::project::repository::ProjectRepository;
-use crate::modules::core::todo::models::{Todo, TodoAssignee, TodoStatus, TodoType};
+use crate::modules::core::todo::models::{MyTodoItem, Todo, TodoAssignee, TodoStatus, TodoType};
 
 // ── Request/Response Types ────────────────────────────────────
 
@@ -101,6 +101,54 @@ fn todo_to_response(todo: &Todo) -> TodoResponse {
         completed_by: todo.completed_by,
         created_at: todo.created_at.to_rfc3339(),
         updated_at: todo.updated_at.to_rfc3339(),
+    }
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MyTodoResponse {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub status: TodoStatus,
+    pub todo_type: TodoType,
+    pub due_date: Option<String>,
+    pub project_id: Uuid,
+    pub project_name: String,
+    pub task_name: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MyTodoListResponse {
+    pub items: Vec<MyTodoResponse>,
+}
+
+#[derive(Deserialize, IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct MyTodosQuery {
+    pub status: Option<TodoStatus>,
+    pub project_id: Option<Uuid>,
+}
+
+fn my_todo_to_response(item: &MyTodoItem) -> MyTodoResponse {
+    MyTodoResponse {
+        id: item.id,
+        task_id: item.task_id,
+        title: item.title.clone(),
+        description: item.description.clone(),
+        status: item.status.clone(),
+        todo_type: item.todo_type.clone(),
+        due_date: item.due_date.map(|d| d.to_rfc3339()),
+        project_id: item.project_id,
+        project_name: item.project_name.clone(),
+        task_name: item.task_name.clone(),
+        created_at: item.created_at.to_rfc3339(),
+        updated_at: item.updated_at.to_rfc3339(),
     }
 }
 
@@ -497,4 +545,35 @@ pub async fn remove_assignee(
         .map_err(ProblemDetails::from)?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// List todos assigned to the current user across all projects.
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on database failure.
+#[utoipa::path(
+    get,
+    path = "/api/v1/accounts/me/todos",
+    responses(
+        (status = 200, body = MyTodoListResponse),
+    ),
+    params(MyTodosQuery),
+    tag = "todos",
+    operation_id = "list_my_todos",
+)]
+pub async fn list_my_todos(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Query(query): Query<MyTodosQuery>,
+) -> Result<Json<MyTodoListResponse>, ProblemDetails> {
+    let items = state
+        .todo_service
+        .list_my_todos(user.account_id, query.status.as_ref(), query.project_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    Ok(Json(MyTodoListResponse {
+        items: items.iter().map(my_todo_to_response).collect(),
+    }))
 }

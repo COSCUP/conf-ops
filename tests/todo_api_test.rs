@@ -123,10 +123,13 @@ fn build_app(ctx: &common::TestContext) -> Router {
         .nest("/{projectId}/task-templates", task_template_routes)
         .nest("/{projectId}/tasks", task_routes);
 
+    let account_routes = Router::new().route("/me/todos", get(todos::list_my_todos));
+
     Router::new()
         .nest("/api/v1/organizations", org_routes)
         .nest("/api/v1/organizations/{orgId}/projects", project_nested)
         .nest("/api/v1/projects", project_top)
+        .nest("/api/v1/accounts", account_routes)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -601,4 +604,104 @@ async fn task_cannot_complete_with_incomplete_todos() {
     assert_eq!(resp.status(), StatusCode::OK);
     let body = body_json(resp).await;
     assert_eq!(body["status"], "completed");
+}
+
+#[tokio::test]
+async fn my_todos_cross_project() {
+    let ctx = common::TestContext::new().await;
+    let setup = setup_task(&ctx).await;
+    let app = build_app(&ctx);
+
+    let todo_base = format!(
+        "/api/v1/projects/{}/tasks/{}/todos",
+        setup.project_id, setup.task_id
+    );
+
+    // Create a todo and assign it to the member
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&todo_base)
+                .header("Authorization", auth_header(&setup.token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(json!({"title": "My assigned todo"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let todo_id = body_json(resp).await["id"].as_str().unwrap().to_string();
+
+    // Assign to member
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("{todo_base}/{todo_id}/assignees"))
+                .header("Authorization", auth_header(&setup.token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(json!({"memberId": setup.member_id}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    // List my todos — should include the assigned todo
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/accounts/me/todos")
+                .header("Authorization", auth_header(&setup.token))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = body_json(resp).await;
+    let items = body["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["title"], "My assigned todo");
+    assert!(items[0]["projectName"].as_str().is_some());
+    assert!(items[0]["taskName"].as_str().is_some());
+
+    // Filter by status — open should return 1
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/accounts/me/todos?status=open")
+                .header("Authorization", auth_header(&setup.token))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = body_json(resp).await;
+    assert_eq!(body["items"].as_array().unwrap().len(), 1);
+
+    // Filter by status — completed should return 0
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/accounts/me/todos?status=completed")
+                .header("Authorization", auth_header(&setup.token))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = body_json(resp).await;
+    assert_eq!(body["items"].as_array().unwrap().len(), 0);
 }

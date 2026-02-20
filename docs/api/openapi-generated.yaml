@@ -698,6 +698,60 @@ components:
       required:
       - mergedCount
       type: object
+    MyTodoListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MyTodoResponse'
+          type: array
+      required:
+      - items
+      type: object
+    MyTodoResponse:
+      properties:
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        dueDate:
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        projectName:
+          type: string
+        status:
+          $ref: '#/components/schemas/TodoStatus'
+        taskId:
+          format: uuid
+          type: string
+        taskName:
+          type: string
+        title:
+          type: string
+        todoType:
+          $ref: '#/components/schemas/TodoType'
+        updatedAt:
+          type: string
+      required:
+      - id
+      - taskId
+      - title
+      - status
+      - todoType
+      - projectId
+      - projectName
+      - taskName
+      - createdAt
+      - updatedAt
+      type: object
     NotificationChannels:
       properties:
         email:
@@ -1755,6 +1809,35 @@ paths:
       summary: Update the current user's profile data.
       tags:
       - accounts
+  /api/v1/accounts/me/todos:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_my_todos
+      parameters:
+      - in: query
+        name: status
+        required: false
+        schema:
+          $ref: '#/components/schemas/TodoStatus'
+      - in: query
+        name: projectId
+        required: false
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTodoListResponse'
+          description: ''
+      summary: List todos assigned to the current user across all projects.
+      tags:
+      - todos
   /api/v1/auth/logout:
     post:
       description: |-

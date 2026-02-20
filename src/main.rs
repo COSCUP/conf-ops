@@ -320,7 +320,8 @@ fn build_router(state: AppState) -> Router {
             "/me/notification-preferences",
             get(accounts::get_notification_preferences)
                 .put(accounts::update_notification_preferences),
-        );
+        )
+        .route("/me/todos", get(todos::list_my_todos));
 
     let api_v1 = Router::new()
         .nest("/auth", auth_routes())

@@ -9,6 +9,7 @@ import { RouterView } from 'vue-router'
         <RouterLink to="/" class="app-brand">Conf-Ops</RouterLink>
         <div class="nav-links">
           <RouterLink to="/">Dashboard</RouterLink>
+          <RouterLink to="/my-todos">My Todos</RouterLink>
           <RouterLink to="/organizations">Organizations</RouterLink>
           <RouterLink to="/settings">Settings</RouterLink>
         </div>

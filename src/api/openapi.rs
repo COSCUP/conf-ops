@@ -106,6 +106,7 @@ use super::routes::{
         todos::update_todo_status,
         todos::add_assignee,
         todos::remove_assignee,
+        todos::list_my_todos,
         data_entries::list_entries,
         data_entries::upsert_entry,
         data_entries::get_entry,

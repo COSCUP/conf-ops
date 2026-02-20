@@ -8,7 +8,7 @@ use super::error::TodoError;
 
 /// Entry for creating todos from templates.
 pub type TemplateTodoEntry = (Uuid, Option<Uuid>, String, Option<String>, i32);
-use super::models::{Todo, TodoAssignee, TodoStatus, TodoType};
+use super::models::{MyTodoItem, Todo, TodoAssignee, TodoStatus, TodoType};
 use super::repository::{CreateTodoParams, TodoRepository};
 use crate::modules::core::task::models::TaskStatus;
 use crate::modules::core::task::repository::TaskRepository;
@@ -257,5 +257,20 @@ impl TodoService {
     /// Returns `TodoError::Database` on database failure.
     pub async fn list_assignees(&self, todo_id: Uuid) -> Result<Vec<TodoAssignee>, TodoError> {
         TodoRepository::list_assignees(&self.pool, todo_id).await
+    }
+
+    /// List todos assigned to the current account across all projects.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TodoError::Database` on database failure.
+    pub async fn list_my_todos(
+        &self,
+        account_id: Uuid,
+        status_filter: Option<&TodoStatus>,
+        project_id_filter: Option<Uuid>,
+    ) -> Result<Vec<MyTodoItem>, TodoError> {
+        TodoRepository::list_my_todos(&self.pool, account_id, status_filter, project_id_filter)
+            .await
     }
 }

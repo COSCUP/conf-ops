@@ -1,0 +1,120 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                t.id, t.task_id, t.title, t.description,\n                t.status AS \"status: TodoStatus\",\n                t.type AS \"todo_type: TodoType\",\n                t.due_date,\n                p.id AS project_id,\n                p.name AS project_name,\n                tk.name AS task_name,\n                t.created_at, t.updated_at\n             FROM todos t\n             INNER JOIN todo_assignees ta ON ta.todo_id = t.id\n             INNER JOIN members m ON m.id = ta.member_id AND m.deleted_at IS NULL\n             INNER JOIN tasks tk ON tk.id = t.task_id AND tk.deleted_at IS NULL\n             INNER JOIN projects p ON p.id = tk.project_id AND p.deleted_at IS NULL\n             WHERE m.account_id = $1\n               AND t.deleted_at IS NULL\n               AND ($2::todo_status IS NULL OR t.status = $2)\n               AND ($3::UUID IS NULL OR p.id = $3)\n             ORDER BY t.due_date ASC NULLS LAST, t.created_at ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "status: TodoStatus",
+        "type_info": {
+          "Custom": {
+            "name": "todo_status",
+            "kind": {
+              "Enum": [
+                "open",
+                "completed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "todo_type: TodoType",
+        "type_info": {
+          "Custom": {
+            "name": "todo_type",
+            "kind": {
+              "Enum": [
+                "template",
+                "ad_hoc"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "due_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "project_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "task_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "todo_status",
+            "kind": {
+              "Enum": [
+                "open",
+                "completed"
+              ]
+            }
+          }
+        },
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f4b7ca73588900620148e2ca521cfe32983b201407fa005890c11ee4d0532f54"
+}

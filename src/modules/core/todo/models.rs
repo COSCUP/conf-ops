@@ -46,3 +46,21 @@ pub struct TodoAssignee {
     pub member_id: Uuid,
     pub created_at: DateTime<Utc>,
 }
+
+/// A todo item with project context, used for cross-project "my todos" queries.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct MyTodoItem {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub status: TodoStatus,
+    #[sqlx(rename = "type")]
+    pub todo_type: TodoType,
+    pub due_date: Option<DateTime<Utc>>,
+    pub project_id: Uuid,
+    pub project_name: String,
+    pub task_name: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

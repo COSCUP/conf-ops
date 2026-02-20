@@ -88,6 +88,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/accounts/me/todos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List todos assigned to the current user across all projects.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_my_todos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -1718,6 +1740,26 @@ export interface components {
         MergeContactsResponse: {
             mergedCount: number;
         };
+        MyTodoListResponse: {
+            items: components["schemas"]["MyTodoResponse"][];
+        };
+        MyTodoResponse: {
+            createdAt: string;
+            description?: string | null;
+            dueDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            projectName: string;
+            status: components["schemas"]["TodoStatus"];
+            /** Format: uuid */
+            taskId: string;
+            taskName: string;
+            title: string;
+            todoType: components["schemas"]["TodoType"];
+            updatedAt: string;
+        };
         NotificationChannels: {
             email: components["schemas"]["ChannelPreference"];
             inApp: components["schemas"]["ChannelPreference"];
@@ -2258,6 +2300,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_my_todos: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["TodoStatus"];
+                projectId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTodoListResponse"];
                 };
             };
         };
