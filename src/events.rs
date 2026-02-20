@@ -7,8 +7,38 @@ use tokio::sync::broadcast;
 pub enum DomainEvent {
     SystemStarted,
     SystemHealthCheck,
-    AccountCreated { account_id: uuid::Uuid },
-    AccountUpdated { account_id: uuid::Uuid },
+    AccountCreated {
+        account_id: uuid::Uuid,
+    },
+    AccountUpdated {
+        account_id: uuid::Uuid,
+    },
+    OrganizationCreated {
+        organization_id: uuid::Uuid,
+        created_by: uuid::Uuid,
+    },
+    MemberInvited {
+        organization_id: uuid::Uuid,
+        account_id: uuid::Uuid,
+    },
+    MemberJoined {
+        organization_id: uuid::Uuid,
+        account_id: uuid::Uuid,
+    },
+    ProjectCreated {
+        project_id: uuid::Uuid,
+        organization_id: uuid::Uuid,
+    },
+    ProjectCopied {
+        project_id: uuid::Uuid,
+        source_project_id: uuid::Uuid,
+        organization_id: uuid::Uuid,
+    },
+    ProjectStatusChanged {
+        project_id: uuid::Uuid,
+        old_status: String,
+        new_status: String,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.
@@ -73,6 +103,32 @@ mod tests {
 
         assert!(matches!(e1, DomainEvent::SystemHealthCheck));
         assert!(matches!(e2, DomainEvent::SystemHealthCheck));
+    }
+
+    #[tokio::test]
+    async fn member_joined_event() {
+        let bus = EventBus::default();
+        let mut rx = bus.subscribe();
+
+        let org_id = uuid::Uuid::new_v4();
+        let account_id = uuid::Uuid::new_v4();
+
+        bus.publish(DomainEvent::MemberJoined {
+            organization_id: org_id,
+            account_id,
+        });
+
+        let event = rx.recv().await.expect("should receive event");
+        match event {
+            DomainEvent::MemberJoined {
+                organization_id,
+                account_id: received_account_id,
+            } => {
+                assert_eq!(organization_id, org_id);
+                assert_eq!(received_account_id, account_id);
+            }
+            _ => panic!("expected MemberJoined event"),
+        }
     }
 
     #[tokio::test]
