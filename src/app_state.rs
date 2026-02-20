@@ -13,6 +13,7 @@ use crate::modules::core::permission::service::PermissionService;
 use crate::modules::core::project::service::ProjectService;
 use crate::modules::core::task::service::TaskService;
 use crate::modules::core::task_template::service::TaskTemplateService;
+use crate::modules::core::todo::service::TodoService;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -29,4 +30,5 @@ pub struct AppState {
     pub permission_service: Arc<PermissionService>,
     pub task_template_service: Arc<TaskTemplateService>,
     pub task_service: Arc<TaskService>,
+    pub todo_service: Arc<TodoService>,
 }

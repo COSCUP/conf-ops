@@ -7,7 +7,7 @@ use utoipa::{Modify, OpenApi};
 
 use super::routes::{
     accounts, auth, contacts, health, member_tags, members, organizations, projects,
-    task_templates, tasks,
+    task_templates, tasks, todos,
 };
 
 #[derive(OpenApi)]
@@ -98,6 +98,14 @@ use super::routes::{
         tasks::update_task,
         tasks::delete_task,
         tasks::update_task_status,
+        todos::list_todos,
+        todos::create_todo,
+        todos::get_todo,
+        todos::update_todo,
+        todos::delete_todo,
+        todos::update_todo_status,
+        todos::add_assignee,
+        todos::remove_assignee,
     ),
     modifiers(&SecurityAddon),
     tags(
@@ -110,7 +118,8 @@ use super::routes::{
         (name = "contacts", description = "Contact management endpoints"),
         (name = "member-tags", description = "Member tag management endpoints"),
         (name = "task-templates", description = "Task template management endpoints"),
-        (name = "tasks", description = "Task management endpoints")
+        (name = "tasks", description = "Task management endpoints"),
+        (name = "todos", description = "Todo management endpoints")
     )
 )]
 pub struct ApiDoc;

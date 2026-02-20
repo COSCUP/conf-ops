@@ -27,6 +27,7 @@ use conf_ops::modules::core::project::service::ProjectService;
 use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::repository::TaskTemplateRepository;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
+use conf_ops::modules::core::todo::service::TodoService;
 use conf_ops::modules::email::EmailService;
 use postgresql_embedded::PostgreSQL;
 use sqlx::PgPool;
@@ -175,6 +176,8 @@ impl TestContext {
 
         let task_service = Arc::new(TaskService::new(self.pool.clone(), event_bus.clone()));
 
+        let todo_service = Arc::new(TodoService::new(self.pool.clone(), event_bus.clone()));
+
         AppState {
             pool: self.pool.clone(),
             event_bus,
@@ -189,6 +192,7 @@ impl TestContext {
             permission_service,
             task_template_service,
             task_service,
+            todo_service,
         }
     }
 

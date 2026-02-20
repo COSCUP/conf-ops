@@ -104,6 +104,10 @@ pub enum DomainEvent {
         task_id: uuid::Uuid,
         project_id: uuid::Uuid,
     },
+    TodoCompleted {
+        todo_id: uuid::Uuid,
+        task_id: uuid::Uuid,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.

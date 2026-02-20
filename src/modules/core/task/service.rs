@@ -8,6 +8,7 @@ use super::error::TaskError;
 use super::models::{Task, TaskStatus};
 use super::repository::{CreateTaskParams, TaskRepository};
 use crate::modules::core::task_template::repository::TaskTemplateRepository;
+use crate::modules::core::todo::repository::TodoRepository;
 
 pub struct TaskService {
     pool: PgPool,
@@ -138,8 +139,19 @@ impl TaskService {
 
         validate_status_transition(&current.status, new_status)?;
 
-        // TODO: When Step 3 (Todos) is implemented, add check for incomplete todos
-        // before allowing transition to Completed.
+        if *new_status == TaskStatus::Completed {
+            let incomplete = TodoRepository::count_incomplete_by_task(&self.pool, id)
+                .await
+                .map_err(|e| {
+                    TaskError::Database(match e {
+                        crate::modules::core::todo::error::TodoError::Database(db_err) => db_err,
+                        _ => sqlx::Error::RowNotFound,
+                    })
+                })?;
+            if incomplete > 0 {
+                return Err(TaskError::IncompleteTodos(incomplete));
+            }
+        }
 
         let task = TaskRepository::update_status(&self.pool, id, new_status).await?;
 

@@ -6,3 +6,4 @@ pub mod permission;
 pub mod project;
 pub mod task;
 pub mod task_template;
+pub mod todo;

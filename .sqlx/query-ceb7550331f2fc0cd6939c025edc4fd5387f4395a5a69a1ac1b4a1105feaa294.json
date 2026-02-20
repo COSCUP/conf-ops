@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM todo_assignees WHERE todo_id = $1 AND member_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ceb7550331f2fc0cd6939c025edc4fd5387f4395a5a69a1ac1b4a1105feaa294"
+}

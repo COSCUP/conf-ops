@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE todos SET deleted_at = NOW(), updated_at = NOW()\n             WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "728f4863b2fc4405f84d5ce6e71baa0182b97406a20b41ce653cab6011129a3c"
+}

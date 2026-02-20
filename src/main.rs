@@ -9,7 +9,7 @@ use tracing_subscriber::EnvFilter;
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::{
     accounts, auth, contacts, health, member_tags, members, organizations, projects,
-    task_templates, tasks,
+    task_templates, tasks, todos,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -26,6 +26,7 @@ use conf_ops::modules::core::permission::service::PermissionService;
 use conf_ops::modules::core::project::service::ProjectService;
 use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
+use conf_ops::modules::core::todo::service::TodoService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
 
 fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
@@ -76,6 +77,8 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
 
     let task_service = Arc::new(TaskService::new(pool.clone(), event_bus.clone()));
 
+    let todo_service = Arc::new(TodoService::new(pool.clone(), event_bus.clone()));
+
     AppState {
         pool,
         event_bus,
@@ -90,6 +93,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         permission_service,
         task_template_service,
         task_service,
+        todo_service,
     }
 }
 
@@ -160,6 +164,40 @@ fn org_routes() -> Router<AppState> {
                 .route("/copy", post(projects::copy_project)),
         )
         .nest("/{orgId}/contacts", contact_routes)
+}
+
+fn task_routes() -> Router<AppState> {
+    Router::new()
+        .route("/", get(tasks::list_tasks).post(tasks::create_task))
+        .route(
+            "/{taskId}",
+            get(tasks::get_task)
+                .put(tasks::update_task)
+                .delete(tasks::delete_task),
+        )
+        .route("/{taskId}/status", put(tasks::update_task_status))
+        .route(
+            "/{taskId}/todos",
+            get(todos::list_todos).post(todos::create_todo),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}",
+            get(todos::get_todo)
+                .put(todos::update_todo)
+                .delete(todos::delete_todo),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}/status",
+            put(todos::update_todo_status),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}/assignees",
+            post(todos::add_assignee),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}/assignees/{memberId}",
+            delete(todos::remove_assignee),
+        )
 }
 
 fn project_routes() -> Router<AppState> {
@@ -253,18 +291,7 @@ fn project_routes() -> Router<AppState> {
         .nest("/{projectId}/members", member_routes)
         .nest("/{projectId}/member-tags", member_tag_routes)
         .nest("/{projectId}/task-templates", task_template_routes)
-        .nest(
-            "/{projectId}/tasks",
-            Router::new()
-                .route("/", get(tasks::list_tasks).post(tasks::create_task))
-                .route(
-                    "/{taskId}",
-                    get(tasks::get_task)
-                        .put(tasks::update_task)
-                        .delete(tasks::delete_task),
-                )
-                .route("/{taskId}/status", put(tasks::update_task_status)),
-        )
+        .nest("/{projectId}/tasks", task_routes())
 }
 
 fn build_router(state: AppState) -> Router {

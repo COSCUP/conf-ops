@@ -53,6 +53,9 @@ pub enum Action {
     CreateTask,
     UpdateTask,
     UpdateTaskStatus,
+    // Todo operations
+    ViewTodos,
+    ManageTodos,
 }
 
 impl Action {
@@ -94,11 +97,13 @@ impl Action {
             Self::CreateTask => 33,
             Self::UpdateTask => 34,
             Self::UpdateTaskStatus => 35,
+            Self::ViewTodos => 36,
+            Self::ManageTodos => 37,
         }
     }
 }
 
-const ACTION_COUNT: u8 = 36;
+const ACTION_COUNT: u8 = 38;
 
 #[derive(Debug, Clone)]
 pub enum Resource {
@@ -345,6 +350,8 @@ fn is_allowed_project_role(role: MemberRole, action: Action) -> bool {
                 | Action::CreateTask
                 | Action::UpdateTask
                 | Action::UpdateTaskStatus
+                | Action::ViewTodos
+                | Action::ManageTodos
         ),
         MemberRole::Member => matches!(
             action,
@@ -356,6 +363,8 @@ fn is_allowed_project_role(role: MemberRole, action: Action) -> bool {
                 | Action::CreateTask
                 | Action::UpdateTask
                 | Action::UpdateTaskStatus
+                | Action::ViewTodos
+                | Action::ManageTodos
         ),
     }
 }
@@ -403,6 +412,8 @@ mod tests {
             Action::CreateTask,
             Action::UpdateTask,
             Action::UpdateTaskStatus,
+            Action::ViewTodos,
+            Action::ManageTodos,
         ];
         for action in actions {
             assert!(
@@ -466,6 +477,9 @@ mod tests {
         assert!(is_allowed(OrgRole::OrgAdmin, Action::CreateTask));
         assert!(is_allowed(OrgRole::OrgAdmin, Action::UpdateTask));
         assert!(is_allowed(OrgRole::OrgAdmin, Action::UpdateTaskStatus));
+        // Todo actions — OrgAdmin can do these
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::ViewTodos));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::ManageTodos));
     }
 
     #[test]
@@ -518,6 +532,8 @@ mod tests {
             Action::CreateTask,
             Action::UpdateTask,
             Action::UpdateTaskStatus,
+            Action::ViewTodos,
+            Action::ManageTodos,
         ];
         for action in actions {
             assert!(
@@ -593,6 +609,14 @@ mod tests {
         assert!(is_allowed_project_role(
             MemberRole::TagAdmin,
             Action::UpdateTaskStatus
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::ViewTodos
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::ManageTodos
         ));
         // Denied
         assert!(!is_allowed_project_role(
@@ -690,6 +714,15 @@ mod tests {
         assert!(is_allowed_project_role(
             MemberRole::Member,
             Action::UpdateTaskStatus
+        ));
+        // Todo — Member can view and manage
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::ViewTodos
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::ManageTodos
         ));
     }
 
@@ -794,6 +827,8 @@ mod tests {
             Action::CreateTask,
             Action::UpdateTask,
             Action::UpdateTaskStatus,
+            Action::ViewTodos,
+            Action::ManageTodos,
         ];
         let mut seen = std::collections::HashSet::new();
         for action in actions {
