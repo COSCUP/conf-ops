@@ -1,4 +1,4 @@
-# Phase 1：認證與帳號管理
+# Phase 1：認證與帳號管理 ✅ COMPLETED
 
 **階段目標：** 實作完整的認證流程（Passkey + Email Magic Link）與帳號管理，建立 JWT 簽發/驗證機制，使用者可註冊、登入並管理個人資料。
 
