@@ -326,6 +326,54 @@ pub fn require_permission(action_factory: impl Fn(RouteParams) -> Action) -> Per
 
 **設計理由：** 資料模型中的角色名稱保持簡潔（`owner`、`member`），因為 `role` 欄位已明確屬於專案成員的上下文。API 權限標註加上 `project_` 前綴（`project_owner`、`project_member`），是為了在 API 層級區分組織角色（`org_owner`、`org_admin`、`org_member`）與專案角色，避免混淆。此外，`task_participant` 為動態計算的權限（依參與人邏輯判定），不對應固定的資料模型角色。
 
+### 5.5 權限矩陣（實作對照表）
+
+以下矩陣對應程式碼中 `is_allowed`（組織層級）與 `is_allowed_project_role`（專案層級）的實作。
+
+#### 組織層級權限矩陣
+
+| Action | `org_owner` | `org_admin` | `org_member` |
+|--------|:-----------:|:-----------:|:------------:|
+| ViewOrganization | O | O | O |
+| UpdateOrganization | O | O | X |
+| DeleteOrganization | O | X | X |
+| InviteMember | O | O | X |
+| RemoveMember | O | O | X |
+| UpdateMemberRole | O | X | X |
+| CreateProject | O | O | X |
+| ViewProject | O | O | O |
+| UpdateProject | O | O | X |
+| DeleteProject | O | O | X |
+| UpdateProjectStatus | O | O | X |
+| ViewPermissionSettings | O | X | X |
+| UpdatePermissionSettings | O | X | X |
+| CreateContact | O | O | X |
+| UpdateContact | O | O | X |
+| DeleteContact | O | O | X |
+| MergeContacts | O | O | X |
+
+> `org_owner` 擁有完整權限。`org_admin` 不可刪除組織、變更成員角色、檢視/修改權限設定。`org_member` 僅可檢視組織與專案。
+
+#### 專案層級權限矩陣（ProjectScoped）
+
+當 `org_owner` 存取 ProjectScoped 資源時直接放行；`org_admin` 先檢查組織矩陣，若組織矩陣允許則放行，否則 fallback 至專案角色矩陣。
+
+| Action | `owner` | `tag_admin` | `member` |
+|--------|:-------:|:-----------:|:--------:|
+| ViewProjectMembers | O | O | O |
+| InviteProjectMember | O | O | X |
+| RemoveProjectMember | O | X | X |
+| UpdateProjectMemberRole | O | X | X |
+| ViewTags | O | O | O |
+| CreateTag | O | O | O |
+| UpdateTag | O | O | X |
+| DeleteTag | O | X | X |
+| AssignTag | O | O | X |
+| UnassignTag | O | O | X |
+| UpdateExternalTaskCreation | O | O | X |
+
+> `owner` 擁有完整專案管理權限。`tag_admin` 可管理標籤與指派，但不可移除成員或變更成員角色。`member` 僅可檢視與建立標籤。
+
 ---
 
 ## 6. 錯誤處理

@@ -182,7 +182,7 @@
 6. **權限矩陣實作於程式碼中**（`is_allowed` 和 `is_allowed_project_role` 函數），涵蓋：
    - 組織層級操作：成員管理、聯絡人管理
    - 專案層級操作：標籤管理、成員管理、權限設定
-7. ~~使用 moka cache 快取權限計算結果~~ — 延後至效能需要時實作
+7. 使用 moka cache 快取權限計算結果（已實作：TTL 300s + EventBus 事件驅動 invalidation）
 8. 專案複製時一同複製 permission_settings
 
 **涉及檔案：**
@@ -200,9 +200,9 @@
 **驗收標準：**
 - [x] deny-first 策略正確實作
 - [x] 三層權限計算正確
-- [ ] 權限快取有效運作（延後實作，不影響功能正確性）
+- [x] 權限快取有效運作（moka in-memory cache + EventBus invalidation）
 - [x] 專案複製包含 permission_settings
-- [ ] 權限矩陣文件完成（矩陣邏輯已實作於 `is_allowed` 和 `is_allowed_project_role` 函數中，獨立文件待產出）
+- [x] 權限矩陣文件完成（已新增至 `docs/system/09-authorization.md` 5.5 節）
 - [x] `cargo clippy -- -D warnings` 零警告（無使用 `#[allow(...)]` 忽略）
 - [x] `cargo fmt -- --check` 通過
 - [x] 錯誤回應符合 RFC 7807 Problem Details 格式
