@@ -376,6 +376,7 @@ dependencies = [
  "chrono",
  "dashmap",
  "dotenvy",
+ "http-body-util",
  "jsonwebtoken",
  "lettre",
  "postgresql_embedded",

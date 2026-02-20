@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -9,6 +10,13 @@ use conf_ops::modules::auth::jwt::{issue_access_token, JwtConfig};
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::repository::AccountRepository;
 use conf_ops::modules::auth::service::AuthService;
+use conf_ops::modules::core::organization::models::OrgRole;
+use conf_ops::modules::core::organization::repository::{
+    OrgMemberRepository, OrganizationRepository,
+};
+use conf_ops::modules::core::organization::service::OrganizationService;
+use conf_ops::modules::core::permission::service::PermissionService;
+use conf_ops::modules::core::project::service::ProjectService;
 use conf_ops::modules::email::EmailService;
 use postgresql_embedded::PostgreSQL;
 use sqlx::PgPool;
@@ -119,34 +127,89 @@ impl TestContext {
 
         let webauthn = build_webauthn(&app_config).expect("should build webauthn");
 
+        let event_bus = EventBus::default();
+
         let auth_service = Arc::new(AuthService::new(
             self.pool.clone(),
             jwt_config.clone(),
             self.email_service.clone(),
             webauthn,
-            EventBus::default(),
+            event_bus.clone(),
             &app_config,
         ));
 
+        let org_service = Arc::new(OrganizationService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+            self.email_service.clone(),
+            "http://localhost:3000".to_string(),
+        ));
+
+        let project_service = Arc::new(ProjectService::new(self.pool.clone(), event_bus.clone()));
+
+        let permission_service = Arc::new(PermissionService::new(self.pool.clone()));
+
         AppState {
             pool: self.pool.clone(),
-            event_bus: EventBus::default(),
+            event_bus,
             jwt_config,
             app_base_url: "http://localhost:8080".to_string(),
             auth_service,
+            org_service,
+            project_service,
+            permission_service,
         }
     }
 
+    #[allow(clippy::unused_self)]
     pub fn issue_test_token(&self, account_id: Uuid) -> String {
         issue_access_token(&Self::test_jwt_config(), account_id).expect("should issue test token")
     }
 
     pub async fn create_test_account(&self) -> (Uuid, String) {
         let id = generate_id();
-        let email = format!("test-{}@example.com", id);
+        let email = format!("test-{id}@example.com");
         AccountRepository::create(&self.pool, id, &email, "Test User")
             .await
             .expect("should create test account");
         (id, email)
+    }
+
+    pub async fn create_test_org(&self, owner_id: Uuid) -> Uuid {
+        let org_id = generate_id();
+        OrganizationRepository::create(
+            &self.pool,
+            org_id,
+            "Test Organization",
+            Some("Test org description"),
+            None,
+            owner_id,
+        )
+        .await
+        .expect("should create test organization");
+
+        let member_id = generate_id();
+        OrgMemberRepository::create(&self.pool, member_id, org_id, owner_id, OrgRole::OrgOwner)
+            .await
+            .expect("should create org owner member");
+
+        org_id
+    }
+
+    pub async fn create_test_project(&self, org_id: Uuid, created_by: Uuid) -> Uuid {
+        let project_id = generate_id();
+        conf_ops::modules::core::project::repository::ProjectRepository::create(
+            &self.pool,
+            project_id,
+            org_id,
+            "Test Project",
+            Some("Test project description"),
+            None,
+            created_by,
+        )
+        .await
+        .expect("should create test project");
+
+        project_id
     }
 }

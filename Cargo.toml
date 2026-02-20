@@ -44,6 +44,7 @@ time = "0.3.41"
 utoipa = { version = "5", features = ["chrono", "uuid"] }
 
 [dev-dependencies]
+http-body-util = "0.1.3"
 postgresql_embedded = "0.20"
 tower = { version = "0.5", features = ["util"] }
 webauthn-authenticator-rs = "0.5"

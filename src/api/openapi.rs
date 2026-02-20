@@ -5,7 +5,7 @@
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
-use super::routes::{accounts, auth, health};
+use super::routes::{accounts, auth, health, organizations, projects};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -33,12 +33,32 @@ use super::routes::{accounts, auth, health};
         accounts::delete_passkey,
         accounts::get_notification_preferences,
         accounts::update_notification_preferences,
+        organizations::create_organization,
+        organizations::list_organizations,
+        organizations::get_organization,
+        organizations::update_organization,
+        organizations::delete_organization,
+        organizations::list_members,
+        organizations::invite_member,
+        organizations::update_member_role,
+        organizations::remove_member,
+        projects::create_project,
+        projects::list_projects,
+        projects::copy_project,
+        projects::get_project,
+        projects::update_project,
+        projects::delete_project,
+        projects::update_project_status,
+        projects::get_permission_settings,
+        projects::update_permission_settings,
     ),
     modifiers(&SecurityAddon),
     tags(
         (name = "health", description = "Health check endpoints"),
         (name = "auth", description = "Authentication endpoints"),
-        (name = "accounts", description = "Account management endpoints")
+        (name = "accounts", description = "Account management endpoints"),
+        (name = "organizations", description = "Organization management endpoints"),
+        (name = "projects", description = "Project management endpoints")
     )
 )]
 pub struct ApiDoc;

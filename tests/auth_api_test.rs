@@ -26,8 +26,10 @@ fn build_auth_app(state: conf_ops::app_state::AppState) -> Router {
 }
 
 async fn extract_token_from_email(ctx: &TestContext) -> String {
-    let sent = ctx.email_service.sent.lock().await;
-    let body = &sent[sent.len() - 1].2;
+    let body = {
+        let sent = ctx.email_service.sent.lock().await;
+        sent.last().unwrap().2.clone()
+    };
     body.split("token=")
         .nth(1)
         .unwrap()
