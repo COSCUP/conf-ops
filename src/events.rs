@@ -81,6 +81,14 @@ pub enum DomainEvent {
         assignment_id: uuid::Uuid,
         project_id: uuid::Uuid,
     },
+    TaskTemplateCreated {
+        template_id: uuid::Uuid,
+        project_id: uuid::Uuid,
+    },
+    TaskTemplateDeleted {
+        template_id: uuid::Uuid,
+        project_id: uuid::Uuid,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.

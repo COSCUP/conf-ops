@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE todo_templates SET sort_order = $2, updated_at = NOW()\n                 WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "241f24e9f0d174b49f4f07ab3fecbe17ce68fae3961f27fde6c89f7a298c5b27"
+}

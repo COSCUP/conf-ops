@@ -6,7 +6,7 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use super::routes::{
-    accounts, auth, contacts, health, member_tags, members, organizations, projects,
+    accounts, auth, contacts, health, member_tags, members, organizations, projects, task_templates,
 };
 
 #[derive(OpenApi)]
@@ -72,6 +72,25 @@ use super::routes::{
         member_tags::assign_tag,
         member_tags::remove_assignment,
         member_tags::update_external_task_creation,
+        task_templates::list_templates,
+        task_templates::create_template,
+        task_templates::get_template,
+        task_templates::update_template,
+        task_templates::delete_template,
+        task_templates::list_template_tags,
+        task_templates::link_tag,
+        task_templates::unlink_tag,
+        task_templates::list_todo_templates,
+        task_templates::create_todo_template,
+        task_templates::get_todo_template,
+        task_templates::update_todo_template,
+        task_templates::delete_todo_template,
+        task_templates::reorder_todo_templates,
+        task_templates::list_data_schemas,
+        task_templates::create_data_schema,
+        task_templates::get_data_schema,
+        task_templates::update_data_schema,
+        task_templates::delete_data_schema,
     ),
     modifiers(&SecurityAddon),
     tags(
@@ -82,7 +101,8 @@ use super::routes::{
         (name = "projects", description = "Project management endpoints"),
         (name = "members", description = "Project member management endpoints"),
         (name = "contacts", description = "Contact management endpoints"),
-        (name = "member-tags", description = "Member tag management endpoints")
+        (name = "member-tags", description = "Member tag management endpoints"),
+        (name = "task-templates", description = "Task template management endpoints")
     )
 )]
 pub struct ApiDoc;

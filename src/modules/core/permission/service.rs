@@ -43,6 +43,11 @@ pub enum Action {
     AssignTag,
     UnassignTag,
     UpdateExternalTaskCreation,
+    // Task template operations
+    ViewTaskTemplates,
+    CreateTaskTemplate,
+    UpdateTaskTemplate,
+    DeleteTaskTemplate,
 }
 
 impl Action {
@@ -76,11 +81,15 @@ impl Action {
             Self::AssignTag => 25,
             Self::UnassignTag => 26,
             Self::UpdateExternalTaskCreation => 27,
+            Self::ViewTaskTemplates => 28,
+            Self::CreateTaskTemplate => 29,
+            Self::UpdateTaskTemplate => 30,
+            Self::DeleteTaskTemplate => 31,
         }
     }
 }
 
-const ACTION_COUNT: u8 = 28;
+const ACTION_COUNT: u8 = 32;
 
 #[derive(Debug, Clone)]
 pub enum Resource {
@@ -319,10 +328,17 @@ fn is_allowed_project_role(role: MemberRole, action: Action) -> bool {
                 | Action::AssignTag
                 | Action::UnassignTag
                 | Action::UpdateExternalTaskCreation
+                | Action::ViewTaskTemplates
+                | Action::CreateTaskTemplate
+                | Action::UpdateTaskTemplate
+                | Action::DeleteTaskTemplate
         ),
         MemberRole::Member => matches!(
             action,
-            Action::ViewProjectMembers | Action::ViewTags | Action::CreateTag
+            Action::ViewProjectMembers
+                | Action::ViewTags
+                | Action::CreateTag
+                | Action::ViewTaskTemplates
         ),
     }
 }
@@ -362,6 +378,10 @@ mod tests {
             Action::AssignTag,
             Action::UnassignTag,
             Action::UpdateExternalTaskCreation,
+            Action::ViewTaskTemplates,
+            Action::CreateTaskTemplate,
+            Action::UpdateTaskTemplate,
+            Action::DeleteTaskTemplate,
         ];
         for action in actions {
             assert!(
@@ -415,6 +435,11 @@ mod tests {
             OrgRole::OrgAdmin,
             Action::UpdateExternalTaskCreation
         ));
+        // Task template actions — OrgAdmin can do these
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::ViewTaskTemplates));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::CreateTaskTemplate));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::UpdateTaskTemplate));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::DeleteTaskTemplate));
     }
 
     #[test]
@@ -459,6 +484,10 @@ mod tests {
             Action::AssignTag,
             Action::UnassignTag,
             Action::UpdateExternalTaskCreation,
+            Action::ViewTaskTemplates,
+            Action::CreateTaskTemplate,
+            Action::UpdateTaskTemplate,
+            Action::DeleteTaskTemplate,
         ];
         for action in actions {
             assert!(
@@ -502,6 +531,22 @@ mod tests {
         assert!(is_allowed_project_role(
             MemberRole::TagAdmin,
             Action::UpdateExternalTaskCreation
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::ViewTaskTemplates
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::CreateTaskTemplate
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::UpdateTaskTemplate
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::DeleteTaskTemplate
         ));
         // Denied
         assert!(!is_allowed_project_role(
@@ -565,6 +610,23 @@ mod tests {
         assert!(!is_allowed_project_role(
             MemberRole::Member,
             Action::UpdateExternalTaskCreation
+        ));
+        // Task template — Member can view but not create/update/delete
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::ViewTaskTemplates
+        ));
+        assert!(!is_allowed_project_role(
+            MemberRole::Member,
+            Action::CreateTaskTemplate
+        ));
+        assert!(!is_allowed_project_role(
+            MemberRole::Member,
+            Action::UpdateTaskTemplate
+        ));
+        assert!(!is_allowed_project_role(
+            MemberRole::Member,
+            Action::DeleteTaskTemplate
         ));
     }
 
@@ -661,6 +723,10 @@ mod tests {
             Action::AssignTag,
             Action::UnassignTag,
             Action::UpdateExternalTaskCreation,
+            Action::ViewTaskTemplates,
+            Action::CreateTaskTemplate,
+            Action::UpdateTaskTemplate,
+            Action::DeleteTaskTemplate,
         ];
         let mut seen = std::collections::HashSet::new();
         for action in actions {

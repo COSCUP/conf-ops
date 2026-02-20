@@ -24,6 +24,8 @@ use conf_ops::modules::core::organization::repository::{
 use conf_ops::modules::core::organization::service::OrganizationService;
 use conf_ops::modules::core::permission::service::PermissionService;
 use conf_ops::modules::core::project::service::ProjectService;
+use conf_ops::modules::core::task_template::repository::TaskTemplateRepository;
+use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::email::EmailService;
 use postgresql_embedded::PostgreSQL;
 use sqlx::PgPool;
@@ -125,6 +127,7 @@ impl TestContext {
             smtp_password: None,
             smtp_from: "noreply@conf-ops.dev".to_string(),
             frontend_url: "http://localhost:3000".to_string(),
+            authz_cache_ttl_secs: 300,
         }
     }
 
@@ -164,6 +167,11 @@ impl TestContext {
         let permission_service =
             Arc::new(PermissionService::new(self.pool.clone(), &event_bus, 300));
 
+        let task_template_service = Arc::new(TaskTemplateService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+        ));
+
         AppState {
             pool: self.pool.clone(),
             event_bus,
@@ -176,6 +184,7 @@ impl TestContext {
             contact_service,
             project_service,
             permission_service,
+            task_template_service,
         }
     }
 
@@ -278,6 +287,27 @@ impl TestContext {
         .await
         .expect("should assign tag to member");
         assignment_id
+    }
+
+    pub async fn create_test_task_template(
+        &self,
+        project_id: Uuid,
+        name: &str,
+        created_by: Uuid,
+    ) -> Uuid {
+        let template_id = generate_id();
+        TaskTemplateRepository::create(&self.pool, template_id, project_id, name, None, created_by)
+            .await
+            .expect("should create test task template");
+        template_id
+    }
+
+    pub async fn link_tag_to_template(&self, task_template_id: Uuid, member_tag_id: Uuid) -> Uuid {
+        let id = generate_id();
+        TaskTemplateRepository::link_tag(&self.pool, id, task_template_id, member_tag_id)
+            .await
+            .expect("should link tag to template");
+        id
     }
 
     pub async fn assign_tag_to_contact(

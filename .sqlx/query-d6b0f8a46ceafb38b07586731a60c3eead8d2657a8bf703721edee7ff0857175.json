@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM task_template_tags\n             WHERE task_template_id = $1 AND member_tag_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d6b0f8a46ceafb38b07586731a60c3eead8d2657a8bf703721edee7ff0857175"
+}

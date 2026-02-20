@@ -8,7 +8,7 @@ use tracing_subscriber::EnvFilter;
 
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::{
-    accounts, auth, contacts, health, member_tags, members, organizations, projects,
+    accounts, auth, contacts, health, member_tags, members, organizations, projects, task_templates,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -23,6 +23,7 @@ use conf_ops::modules::core::member_tag::service::MemberTagService;
 use conf_ops::modules::core::organization::service::OrganizationService;
 use conf_ops::modules::core::permission::service::PermissionService;
 use conf_ops::modules::core::project::service::ProjectService;
+use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
 
 fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
@@ -69,6 +70,8 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         config.authz_cache_ttl_secs,
     ));
 
+    let task_template_service = Arc::new(TaskTemplateService::new(pool.clone(), event_bus.clone()));
+
     AppState {
         pool,
         event_bus,
@@ -81,6 +84,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         contact_service,
         project_service,
         permission_service,
+        task_template_service,
     }
 }
 
@@ -185,6 +189,50 @@ fn project_routes() -> Router<AppState> {
             put(member_tags::update_external_task_creation),
         );
 
+    let task_template_routes = Router::new()
+        .route(
+            "/",
+            get(task_templates::list_templates).post(task_templates::create_template),
+        )
+        .route(
+            "/{templateId}",
+            get(task_templates::get_template)
+                .put(task_templates::update_template)
+                .delete(task_templates::delete_template),
+        )
+        .route(
+            "/{templateId}/tags",
+            get(task_templates::list_template_tags).post(task_templates::link_tag),
+        )
+        .route(
+            "/{templateId}/tags/{memberTagId}",
+            delete(task_templates::unlink_tag),
+        )
+        .route(
+            "/{templateId}/todo-templates",
+            get(task_templates::list_todo_templates).post(task_templates::create_todo_template),
+        )
+        .route(
+            "/{templateId}/todo-templates/reorder",
+            put(task_templates::reorder_todo_templates),
+        )
+        .route(
+            "/{templateId}/todo-templates/{todoTemplateId}",
+            get(task_templates::get_todo_template)
+                .put(task_templates::update_todo_template)
+                .delete(task_templates::delete_todo_template),
+        )
+        .route(
+            "/{templateId}/data-schemas",
+            get(task_templates::list_data_schemas).post(task_templates::create_data_schema),
+        )
+        .route(
+            "/{templateId}/data-schemas/{schemaId}",
+            get(task_templates::get_data_schema)
+                .put(task_templates::update_data_schema)
+                .delete(task_templates::delete_data_schema),
+        );
+
     Router::new()
         .route(
             "/{projectId}",
@@ -199,6 +247,7 @@ fn project_routes() -> Router<AppState> {
         )
         .nest("/{projectId}/members", member_routes)
         .nest("/{projectId}/member-tags", member_tag_routes)
+        .nest("/{projectId}/task-templates", task_template_routes)
 }
 
 fn build_router(state: AppState) -> Router {

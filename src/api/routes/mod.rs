@@ -6,3 +6,4 @@ pub mod member_tags;
 pub mod members;
 pub mod organizations;
 pub mod projects;
+pub mod task_templates;
