@@ -7,9 +7,10 @@ use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
 use conf_ops::api::middleware::auth::auth_middleware;
+use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::api::routes::{
-    accounts, auth, contacts, data_entries, data_external, health, member_tags, members,
-    organizations, projects, task_templates, tasks, todos,
+    accounts, auth, contacts, conversations, data_entries, data_external, files, health,
+    member_tags, members, organizations, projects, task_templates, tasks, todos, ws,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -18,6 +19,10 @@ use conf_ops::events::EventBus;
 use conf_ops::modules::auth::jwt::JwtConfig;
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::service::AuthService;
+use conf_ops::modules::conversation::awareness::AwarenessManager;
+use conf_ops::modules::conversation::crdt::CrdtManager;
+use conf_ops::modules::conversation::service::ConversationService;
+use conf_ops::modules::conversation::ws_manager::WsManager;
 use conf_ops::modules::core::contact::service::ContactService;
 use conf_ops::modules::core::data_sheet::service::DataSheetService;
 use conf_ops::modules::core::member::service::MemberService;
@@ -29,6 +34,8 @@ use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::core::todo::service::TodoService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
+use conf_ops::modules::storage::local::LocalStorageBackend;
+use conf_ops::modules::storage::service::{FileService, StorageConfig};
 
 fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
     let event_bus = EventBus::default();
@@ -82,6 +89,31 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
 
     let data_sheet_service = Arc::new(DataSheetService::new(pool.clone(), event_bus.clone()));
 
+    let storage_backend = Arc::new(LocalStorageBackend::new(&config.storage_base_path));
+    let storage_config = StorageConfig {
+        max_image_size: config.storage_max_image_size,
+        max_document_size: config.storage_max_document_size,
+        max_file_size: config.storage_max_file_size,
+    };
+    let file_service = Arc::new(FileService::new(
+        pool.clone(),
+        event_bus.clone(),
+        storage_backend,
+        storage_config,
+    ));
+
+    let crdt_manager = Arc::new(CrdtManager::new(pool.clone()));
+    let conversation_service = Arc::new(ConversationService::new(
+        pool.clone(),
+        event_bus.clone(),
+        crdt_manager,
+        Arc::clone(&file_service),
+    ));
+
+    let ws_token_store = Arc::new(WsTokenStore::new());
+    let ws_manager = Arc::new(WsManager::new(config.crdt_ws_max_connections));
+    let awareness_manager = Arc::new(AwarenessManager::new());
+
     AppState {
         pool,
         event_bus,
@@ -98,6 +130,13 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         task_service,
         todo_service,
         data_sheet_service,
+        file_service,
+        conversation_service,
+        ws_token_store,
+        ws_manager,
+        awareness_manager,
+        crdt_ws_heartbeat_interval_secs: config.crdt_ws_heartbeat_interval_secs,
+        crdt_ws_idle_timeout_secs: config.crdt_ws_idle_timeout_secs,
     }
 }
 
@@ -203,6 +242,10 @@ fn task_routes() -> Router<AppState> {
             "/{taskId}/todos/{todoId}/assignees/{memberId}",
             delete(todos::remove_assignee),
         )
+        .route(
+            "/{taskId}/todos/{todoId}/linked-task",
+            put(todos::link_task).delete(todos::unlink_task),
+        )
         .route("/{taskId}/data-entries", get(data_entries::list_entries))
         .route(
             "/{taskId}/data-entries/{schemaId}",
@@ -210,6 +253,28 @@ fn task_routes() -> Router<AppState> {
                 .put(data_entries::upsert_entry)
                 .delete(data_entries::delete_entry),
         )
+        .route(
+            "/{taskId}/data-entries/{schemaId}/share",
+            post(data_entries::share_data),
+        )
+        .route(
+            "/{taskId}/conversation",
+            get(conversations::get_conversation),
+        )
+        .route(
+            "/{taskId}/conversation/messages",
+            post(conversations::send_message),
+        )
+        .route(
+            "/{taskId}/conversation/last-seen",
+            get(conversations::get_last_seen).put(conversations::update_last_seen),
+        )
+        .route(
+            "/{taskId}/conversation/last-seen-position",
+            get(conversations::get_last_seen_position)
+                .put(conversations::update_last_seen_position),
+        )
+        .route("/{taskId}/conversation/ws-token", post(ws::create_ws_token))
 }
 
 fn project_routes() -> Router<AppState> {
@@ -335,7 +400,14 @@ fn build_router(state: AppState) -> Router {
         .nest("/auth", auth_routes())
         .nest("/accounts", account_routes)
         .nest("/organizations", org_routes())
-        .nest("/projects", project_routes());
+        .nest("/projects", project_routes())
+        .nest("/files", files::file_routes());
+
+    // WS upgrade route must be outside auth middleware
+    let ws_route = Router::new().route(
+        "/api/v1/projects/{projectId}/tasks/{taskId}/conversation/ws",
+        get(ws::ws_upgrade),
+    );
 
     Router::new()
         .route("/healthz", get(health::healthz))
@@ -346,6 +418,7 @@ fn build_router(state: AppState) -> Router {
             state.clone(),
             auth_middleware,
         ))
+        .merge(ws_route)
         .with_state(state)
 }
 
@@ -369,6 +442,21 @@ async fn main() {
         .expect("Failed to run database migrations");
 
     let state = build_app_state(&config, pool);
+
+    // Spawn periodic CRDT compaction background task (every 10 minutes, threshold: 100 ops)
+    let compaction_crdt_manager = Arc::clone(state.conversation_service.crdt_manager());
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(600));
+        loop {
+            interval.tick().await;
+            match compaction_crdt_manager.compact_if_needed(100).await {
+                Ok(0) => {}
+                Ok(n) => tracing::info!("CRDT compaction: compacted {n} document(s)"),
+                Err(e) => tracing::warn!("CRDT compaction error: {e}"),
+            }
+        }
+    });
+
     let app = build_router(state);
 
     let addr: SocketAddr = format!("{}:{}", config.app_host, config.app_port)

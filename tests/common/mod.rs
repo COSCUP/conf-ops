@@ -1,7 +1,14 @@
 #![allow(dead_code)]
 use std::sync::Arc;
 
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use axum::Router;
+use http_body_util::BodyExt;
+use tower::ServiceExt;
+
 use async_trait::async_trait;
+use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
 use conf_ops::events::EventBus;
@@ -10,6 +17,10 @@ use conf_ops::modules::auth::jwt::{issue_access_token, JwtConfig};
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::repository::AccountRepository;
 use conf_ops::modules::auth::service::AuthService;
+use conf_ops::modules::conversation::awareness::AwarenessManager;
+use conf_ops::modules::conversation::crdt::CrdtManager;
+use conf_ops::modules::conversation::service::ConversationService;
+use conf_ops::modules::conversation::ws_manager::WsManager;
 use conf_ops::modules::core::contact::repository::ContactRepository;
 use conf_ops::modules::core::contact::service::ContactService;
 use conf_ops::modules::core::data_sheet::service::DataSheetService;
@@ -30,6 +41,8 @@ use conf_ops::modules::core::task_template::repository::TaskTemplateRepository;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::core::todo::service::TodoService;
 use conf_ops::modules::email::EmailService;
+use conf_ops::modules::storage::local::LocalStorageBackend;
+use conf_ops::modules::storage::service::{FileService, StorageConfig};
 use postgresql_embedded::PostgreSQL;
 use sqlx::PgPool;
 use tokio::sync::Mutex;
@@ -61,7 +74,9 @@ impl EmailService for MockEmailService {
 pub struct TestContext {
     pub pool: PgPool,
     pub email_service: Arc<MockEmailService>,
+    pub storage_dir: std::path::PathBuf,
     _pg: PostgreSQL,
+    _temp_dir: tempfile::TempDir,
 }
 
 impl TestContext {
@@ -91,11 +106,16 @@ impl TestContext {
             .expect("Failed to run migrations");
 
         let email_service = Arc::new(MockEmailService::new());
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let storage_dir = temp_dir.path().join("storage");
+        std::fs::create_dir_all(&storage_dir).expect("Failed to create storage dir");
 
         Self {
             pool,
             email_service,
+            storage_dir,
             _pg: pg,
+            _temp_dir: temp_dir,
         }
     }
 
@@ -131,6 +151,13 @@ impl TestContext {
             smtp_from: "noreply@conf-ops.dev".to_string(),
             frontend_url: "http://localhost:3000".to_string(),
             authz_cache_ttl_secs: 300,
+            storage_base_path: "./storage".to_string(),
+            storage_max_image_size: 10 * 1024 * 1024,
+            storage_max_document_size: 50 * 1024 * 1024,
+            storage_max_file_size: 20 * 1024 * 1024,
+            crdt_ws_max_connections: 50,
+            crdt_ws_heartbeat_interval_secs: 30,
+            crdt_ws_idle_timeout_secs: 300,
         }
     }
 
@@ -175,12 +202,32 @@ impl TestContext {
             event_bus.clone(),
         ));
 
-        let task_service = Arc::new(TaskService::new(self.pool.clone(), event_bus.clone()));
+        let task_service = Arc::new(TaskService::new(self.pool.clone(), event_bus.clone(), 120));
 
         let todo_service = Arc::new(TodoService::new(self.pool.clone(), event_bus.clone()));
 
         let data_sheet_service =
             Arc::new(DataSheetService::new(self.pool.clone(), event_bus.clone()));
+
+        let storage_backend = Arc::new(LocalStorageBackend::new(&self.storage_dir));
+        let file_service = Arc::new(FileService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+            storage_backend,
+            StorageConfig::default(),
+        ));
+
+        let crdt_manager = Arc::new(CrdtManager::new(self.pool.clone()));
+        let conversation_service = Arc::new(ConversationService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+            crdt_manager,
+            Arc::clone(&file_service),
+        ));
+
+        let ws_token_store = Arc::new(WsTokenStore::new());
+        let ws_manager = Arc::new(WsManager::new(50));
+        let awareness_manager = Arc::new(AwarenessManager::new());
 
         AppState {
             pool: self.pool.clone(),
@@ -198,6 +245,13 @@ impl TestContext {
             task_service,
             todo_service,
             data_sheet_service,
+            file_service,
+            conversation_service,
+            ws_token_store,
+            ws_manager,
+            awareness_manager,
+            crdt_ws_heartbeat_interval_secs: 30,
+            crdt_ws_idle_timeout_secs: 300,
         }
     }
 
@@ -361,4 +415,323 @@ impl TestContext {
         .expect("should assign tag to contact");
         assignment_id
     }
+}
+
+// ── Shared test router ──────────────────────────────────────────
+
+pub fn build_app(ctx: &TestContext) -> Router {
+    let state = ctx.app_state();
+    assemble_router(state)
+}
+
+/// Start a real TCP server and return (addr, `AppState`).
+/// Needed for WebSocket tests where `oneshot` cannot do protocol upgrades.
+pub async fn start_test_server(ctx: &TestContext) -> (std::net::SocketAddr, AppState) {
+    let state = ctx.app_state();
+    let app = assemble_router_with_ws(state.clone());
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind to ephemeral port");
+    let addr = listener.local_addr().expect("get local addr");
+
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.ok();
+    });
+
+    (addr, state)
+}
+
+/// Assemble a router that includes the WS upgrade route (outside auth middleware).
+fn assemble_router_with_ws(state: AppState) -> Router {
+    use axum::routing::get;
+    use conf_ops::api::routes::ws;
+
+    let ws_route: Router = Router::new()
+        .route(
+            "/api/v1/projects/{projectId}/tasks/{taskId}/conversation/ws",
+            get(ws::ws_upgrade),
+        )
+        .with_state(state.clone());
+
+    assemble_router(state).merge(ws_route)
+}
+
+fn assemble_router(state: AppState) -> Router {
+    use axum::routing::get;
+    use conf_ops::api::middleware::auth::auth_middleware;
+    use conf_ops::api::routes::{data_entries, projects};
+
+    let project_top = Router::new()
+        .route(
+            "/{projectId}",
+            get(projects::get_project)
+                .put(projects::update_project)
+                .delete(projects::delete_project),
+        )
+        .nest("/{projectId}/members", test_member_routes())
+        .nest("/{projectId}/member-tags", test_member_tag_routes())
+        .nest("/{projectId}/task-templates", test_task_template_routes())
+        .nest("/{projectId}/tasks", test_task_routes())
+        .route(
+            "/{projectId}/task-templates/{templateId}/data-sheets/{schemaId}",
+            get(data_entries::get_aggregated_sheet),
+        );
+
+    Router::new()
+        .nest("/api/v1/organizations", test_org_routes())
+        .nest(
+            "/api/v1/organizations/{orgId}/projects",
+            test_project_nested_routes(),
+        )
+        .nest(
+            "/api/v1/organizations/{orgId}/contacts",
+            test_contact_routes(),
+        )
+        .nest("/api/v1/projects", project_top)
+        .nest("/api/v1/accounts", test_account_routes())
+        .nest("/api/v1/files", conf_ops::api::routes::files::file_routes())
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
+        .with_state(state)
+}
+
+fn test_org_routes() -> Router<AppState> {
+    use axum::routing::post;
+    use conf_ops::api::routes::organizations;
+    Router::new().route(
+        "/",
+        post(organizations::create_organization).get(organizations::list_organizations),
+    )
+}
+
+fn test_project_nested_routes() -> Router<AppState> {
+    use axum::routing::post;
+    use conf_ops::api::routes::projects;
+    Router::new().route(
+        "/",
+        post(projects::create_project).get(projects::list_projects),
+    )
+}
+
+fn test_contact_routes() -> Router<AppState> {
+    use axum::routing::{get, post};
+    use conf_ops::api::routes::contacts;
+    Router::new()
+        .route(
+            "/",
+            post(contacts::create_contact).get(contacts::list_contacts),
+        )
+        .route("/merge", post(contacts::merge_contacts))
+        .route(
+            "/{contactId}",
+            get(contacts::get_contact)
+                .put(contacts::update_contact)
+                .delete(contacts::delete_contact),
+        )
+}
+
+fn test_member_routes() -> Router<AppState> {
+    use axum::routing::{get, post};
+    use conf_ops::api::routes::members;
+    Router::new()
+        .route("/", get(members::list_members))
+        .route("/invite", post(members::invite_member))
+        .route(
+            "/{memberId}",
+            get(members::get_member)
+                .put(members::update_member)
+                .delete(members::delete_member),
+        )
+}
+
+fn test_member_tag_routes() -> Router<AppState> {
+    use axum::routing::{delete, get, post, put};
+    use conf_ops::api::routes::member_tags;
+    Router::new()
+        .route(
+            "/",
+            get(member_tags::list_tags).post(member_tags::create_tag),
+        )
+        .route(
+            "/{tagId}",
+            get(member_tags::get_tag)
+                .put(member_tags::update_tag)
+                .delete(member_tags::delete_tag),
+        )
+        .route("/{tagId}/assign", post(member_tags::assign_tag))
+        .route(
+            "/{tagId}/assignments/{assignmentId}",
+            delete(member_tags::remove_assignment),
+        )
+        .route(
+            "/{tagId}/external-task-creation",
+            put(member_tags::update_external_task_creation),
+        )
+}
+
+fn test_task_template_routes() -> Router<AppState> {
+    use axum::routing::{delete, get, put};
+    use conf_ops::api::routes::task_templates;
+    Router::new()
+        .route(
+            "/",
+            get(task_templates::list_templates).post(task_templates::create_template),
+        )
+        .route(
+            "/{templateId}",
+            get(task_templates::get_template)
+                .put(task_templates::update_template)
+                .delete(task_templates::delete_template),
+        )
+        .route(
+            "/{templateId}/tags",
+            get(task_templates::list_template_tags).post(task_templates::link_tag),
+        )
+        .route(
+            "/{templateId}/tags/{memberTagId}",
+            delete(task_templates::unlink_tag),
+        )
+        .route(
+            "/{templateId}/todo-templates",
+            get(task_templates::list_todo_templates).post(task_templates::create_todo_template),
+        )
+        .route(
+            "/{templateId}/todo-templates/reorder",
+            put(task_templates::reorder_todo_templates),
+        )
+        .route(
+            "/{templateId}/todo-templates/{todoTemplateId}",
+            get(task_templates::get_todo_template)
+                .put(task_templates::update_todo_template)
+                .delete(task_templates::delete_todo_template),
+        )
+        .route(
+            "/{templateId}/data-schemas",
+            get(task_templates::list_data_schemas).post(task_templates::create_data_schema),
+        )
+        .route(
+            "/{templateId}/data-schemas/{schemaId}",
+            get(task_templates::get_data_schema)
+                .put(task_templates::update_data_schema)
+                .delete(task_templates::delete_data_schema),
+        )
+}
+
+fn test_task_routes() -> Router<AppState> {
+    use axum::routing::{delete, get, post, put};
+    use conf_ops::api::routes::{conversations, data_entries, tasks, todos, ws};
+    Router::new()
+        .route("/", get(tasks::list_tasks).post(tasks::create_task))
+        .route(
+            "/{taskId}",
+            get(tasks::get_task)
+                .put(tasks::update_task)
+                .delete(tasks::delete_task),
+        )
+        .route("/{taskId}/status", put(tasks::update_task_status))
+        .route(
+            "/{taskId}/todos",
+            get(todos::list_todos).post(todos::create_todo),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}",
+            get(todos::get_todo)
+                .put(todos::update_todo)
+                .delete(todos::delete_todo),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}/status",
+            put(todos::update_todo_status),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}/assignees",
+            post(todos::add_assignee),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}/assignees/{memberId}",
+            delete(todos::remove_assignee),
+        )
+        .route(
+            "/{taskId}/todos/{todoId}/linked-task",
+            put(todos::link_task).delete(todos::unlink_task),
+        )
+        .route("/{taskId}/participants", get(tasks::get_task_participants))
+        .route("/{taskId}/data-entries", get(data_entries::list_entries))
+        .route(
+            "/{taskId}/data-entries/{schemaId}",
+            get(data_entries::get_entry)
+                .put(data_entries::upsert_entry)
+                .delete(data_entries::delete_entry),
+        )
+        .route(
+            "/{taskId}/data-entries/{schemaId}/share",
+            post(data_entries::share_data),
+        )
+        .route(
+            "/{taskId}/conversation",
+            get(conversations::get_conversation),
+        )
+        .route(
+            "/{taskId}/conversation/messages",
+            post(conversations::send_message),
+        )
+        .route(
+            "/{taskId}/conversation/last-seen",
+            get(conversations::get_last_seen).put(conversations::update_last_seen),
+        )
+        .route(
+            "/{taskId}/conversation/last-seen-position",
+            get(conversations::get_last_seen_position)
+                .put(conversations::update_last_seen_position),
+        )
+        .route("/{taskId}/conversation/ws-token", post(ws::create_ws_token))
+}
+
+fn test_account_routes() -> Router<AppState> {
+    use axum::routing::get;
+    use conf_ops::api::routes::todos;
+    Router::new().route("/me/todos", get(todos::list_my_todos))
+}
+
+// ── Request helpers ─────────────────────────────────────────────
+
+pub fn auth_header(token: &str) -> String {
+    format!("Bearer {token}")
+}
+
+pub async fn body_json(resp: axum::http::Response<Body>) -> serde_json::Value {
+    let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+    serde_json::from_slice(&bytes).unwrap()
+}
+
+pub async fn json_request(
+    app: Router,
+    method: &str,
+    uri: &str,
+    token: &str,
+    body: Option<serde_json::Value>,
+) -> (StatusCode, serde_json::Value) {
+    let auth = auth_header(token);
+    let (req_body, content_type) = body.map_or_else(
+        || (Body::empty(), None),
+        |v| (Body::from(v.to_string()), Some("application/json")),
+    );
+
+    let mut builder = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("Authorization", &auth);
+
+    if let Some(ct) = content_type {
+        builder = builder.header("Content-Type", ct);
+    }
+
+    let resp = app.oneshot(builder.body(req_body).unwrap()).await.unwrap();
+    let status = resp.status();
+    let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+    let json = serde_json::from_slice(&bytes).unwrap_or(serde_json::json!(null));
+    (status, json)
 }

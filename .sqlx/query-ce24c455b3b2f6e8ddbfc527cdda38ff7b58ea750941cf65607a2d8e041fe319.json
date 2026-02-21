@@ -1,0 +1,99 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, task_id,\n                      source_type AS \"source_type: MessageSourceType\",\n                      source_id, content, attachments, action_result,\n                      last_seen_message_id, created_at\n             FROM messages\n             WHERE task_id = $1\n               AND ($2::UUID IS NULL OR id < $2)\n               AND ($3::message_source_type IS NULL OR source_type = $3)\n             ORDER BY id DESC\n             LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "source_type: MessageSourceType",
+        "type_info": {
+          "Custom": {
+            "name": "message_source_type",
+            "kind": {
+              "Enum": [
+                "member",
+                "ai_suggestion",
+                "tool_execution",
+                "system",
+                "email_inbound"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "content",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "attachments",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "action_result",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_seen_message_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "message_source_type",
+            "kind": {
+              "Enum": [
+                "member",
+                "ai_suggestion",
+                "tool_execution",
+                "system",
+                "email_inbound"
+              ]
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "ce24c455b3b2f6e8ddbfc527cdda38ff7b58ea750941cf65607a2d8e041fe319"
+}

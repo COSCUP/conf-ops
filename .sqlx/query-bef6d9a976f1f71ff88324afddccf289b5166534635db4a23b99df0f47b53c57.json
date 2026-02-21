@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mt.name\n             FROM member_tags mt\n             JOIN member_tag_assignments mta ON mta.tag_id = mt.id\n             JOIN members m ON m.id = mta.member_id\n             WHERE m.account_id = $1 AND mt.project_id = $2\n               AND mt.deleted_at IS NULL AND m.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bef6d9a976f1f71ff88324afddccf289b5166534635db4a23b99df0f47b53c57"
+}

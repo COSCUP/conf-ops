@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                t.id, t.task_id, t.title, t.description,\n                t.status AS \"status: TodoStatus\",\n                t.type AS \"todo_type: TodoType\",\n                t.due_date,\n                p.id AS project_id,\n                p.name AS project_name,\n                tk.name AS task_name,\n                t.created_at, t.updated_at\n             FROM todos t\n             INNER JOIN todo_assignees ta ON ta.todo_id = t.id\n             INNER JOIN members m ON m.id = ta.member_id AND m.deleted_at IS NULL\n             INNER JOIN tasks tk ON tk.id = t.task_id AND tk.deleted_at IS NULL\n             INNER JOIN projects p ON p.id = tk.project_id AND p.deleted_at IS NULL\n             WHERE m.account_id = $1\n               AND t.deleted_at IS NULL\n               AND ($2::todo_status IS NULL OR t.status = $2)\n               AND ($3::UUID IS NULL OR p.id = $3)\n             ORDER BY t.due_date ASC NULLS LAST, t.created_at ASC",
+  "query": "SELECT t.id, t.task_id, t.parent_id, t.title, t.description,\n                    t.status AS \"status: TodoStatus\",\n                    t.type AS \"todo_type: TodoType\",\n                    t.source_template_id, t.due_date, t.sort_order,\n                    t.linked_task_id, t.completed_at, t.completed_by,\n                    t.created_at, t.updated_at, t.deleted_at\n                 FROM todos t\n                 WHERE t.id IN (\n                    SELECT DISTINCT ta.todo_id FROM todo_assignees ta\n                    WHERE ta.member_id = ANY($1)\n                 )\n                   AND t.deleted_at IS NULL\n                   AND ($2::todo_status IS NULL OR t.status = $2)\n                 ORDER BY t.due_date ASC NULLS LAST, t.created_at ASC",
   "describe": {
     "columns": [
       {
@@ -15,16 +15,21 @@
       },
       {
         "ordinal": 2,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
         "name": "title",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "description",
         "type_info": "Text"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "status: TodoStatus",
         "type_info": {
           "Custom": {
@@ -39,7 +44,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "todo_type: TodoType",
         "type_info": {
           "Custom": {
@@ -54,39 +59,54 @@
         }
       },
       {
-        "ordinal": 6,
-        "name": "due_date",
-        "type_info": "Timestamptz"
-      },
-      {
         "ordinal": 7,
-        "name": "project_id",
+        "name": "source_template_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 8,
-        "name": "project_name",
-        "type_info": "Varchar"
+        "name": "due_date",
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 9,
-        "name": "task_name",
-        "type_info": "Varchar"
+        "name": "sort_order",
+        "type_info": "Int4"
       },
       {
         "ordinal": 10,
+        "name": "linked_task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "completed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "completed_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 13,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 14,
         "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "deleted_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
+        "UuidArray",
         {
           "Custom": {
             "name": "todo_status",
@@ -97,24 +117,27 @@
               ]
             }
           }
-        },
-        "Uuid"
+        }
       ]
     },
     "nullable": [
       false,
       false,
+      true,
       false,
       true,
       false,
       false,
       true,
+      true,
+      false,
+      true,
+      true,
+      true,
       false,
       false,
-      false,
-      false,
-      false
+      true
     ]
   },
-  "hash": "f4b7ca73588900620148e2ca521cfe32983b201407fa005890c11ee4d0532f54"
+  "hash": "1b53c80f94c9551d6b56aa9eaa69fd7a2ba68bd5914528140a725107d720ff39"
 }

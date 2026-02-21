@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ta.member_id AS \"member_id!\"\n             FROM todo_assignees ta\n             INNER JOIN todos t ON t.id = ta.todo_id\n             WHERE t.task_id = $1 AND t.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "member_id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ebdcd50024fbf292c86e4a26bf48ce96fabbd9b59668bf06fe6395912be7701c"
+}
