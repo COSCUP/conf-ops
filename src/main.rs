@@ -8,8 +8,8 @@ use tracing_subscriber::EnvFilter;
 
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::{
-    accounts, auth, contacts, data_entries, health, member_tags, members, organizations, projects,
-    task_templates, tasks, todos,
+    accounts, auth, contacts, data_entries, data_external, health, member_tags, members,
+    organizations, projects, task_templates, tasks, todos,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -76,7 +76,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
 
     let task_template_service = Arc::new(TaskTemplateService::new(pool.clone(), event_bus.clone()));
 
-    let task_service = Arc::new(TaskService::new(pool.clone(), event_bus.clone()));
+    let task_service = Arc::new(TaskService::new(pool.clone(), event_bus.clone(), 120));
 
     let todo_service = Arc::new(TodoService::new(pool.clone(), event_bus.clone()));
 
@@ -180,6 +180,7 @@ fn task_routes() -> Router<AppState> {
                 .delete(tasks::delete_task),
         )
         .route("/{taskId}/status", put(tasks::update_task_status))
+        .route("/{taskId}/participants", get(tasks::get_task_participants))
         .route(
             "/{taskId}/todos",
             get(todos::list_todos).post(todos::create_todo),
@@ -309,6 +310,13 @@ fn project_routes() -> Router<AppState> {
         )
 }
 
+fn external_v1_routes() -> Router<AppState> {
+    Router::new().route(
+        "/projects/{projectId}/task-templates/{templateId}/data",
+        get(data_external::get_template_data),
+    )
+}
+
 fn build_router(state: AppState) -> Router {
     let account_routes = Router::new()
         .route("/me", get(accounts::get_me).patch(accounts::update_me))
@@ -333,6 +341,7 @@ fn build_router(state: AppState) -> Router {
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
         .nest("/api/v1", api_v1)
+        .nest("/external/v1", external_v1_routes())
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

@@ -89,6 +89,7 @@ const fn slug_from_status(status: StatusCode) -> &'static str {
         StatusCode::NOT_FOUND => "not-found",
         StatusCode::CONFLICT => "conflict",
         StatusCode::INTERNAL_SERVER_ERROR => "internal-server-error",
+        StatusCode::NOT_IMPLEMENTED => "not-implemented",
         StatusCode::SERVICE_UNAVAILABLE => "service-unavailable",
         _ => "unknown",
     }
