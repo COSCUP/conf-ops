@@ -178,6 +178,46 @@ impl TaskRepository {
         Ok(())
     }
 
+    /// Get the creator account ID of a task.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TaskError::Database` on database failure.
+    pub async fn get_creator_account_id(
+        pool: &PgPool,
+        task_id: Uuid,
+    ) -> Result<Option<Uuid>, TaskError> {
+        let id = sqlx::query_scalar!(
+            r#"SELECT created_by FROM tasks WHERE id = $1 AND deleted_at IS NULL"#,
+            task_id,
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(id)
+    }
+
+    /// Fetch multiple tasks by their IDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TaskError::Database` on database failure.
+    pub async fn get_by_ids(pool: &PgPool, ids: &[Uuid]) -> Result<Vec<Task>, TaskError> {
+        let tasks = sqlx::query_as!(
+            Task,
+            r#"SELECT id, project_id, task_template_id, owner_tag_id, name, description,
+                      status AS "status: TaskStatus",
+                      created_by, created_at, updated_at, deleted_at
+             FROM tasks
+             WHERE id = ANY($1) AND deleted_at IS NULL"#,
+            ids,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(tasks)
+    }
+
     /// Check if an owner tag is linked to a task template.
     ///
     /// # Errors

@@ -14,20 +14,20 @@
 
 **說明：**
 1. 遵循 TDD 流程：先撰寫失敗的測試定義預期行為 → 實作最少量程式碼使測試通過 → 重構改善品質
-2. 建立 migration `0014_files.sql`：
-   - `files` 表：id, original_name (VARCHAR), stored_path (VARCHAR), mime_type (VARCHAR), size_bytes (BIGINT), scope_type (VARCHAR — task/project 等), scope_id (UUID — 所屬資源 ID), status (VARCHAR, DEFAULT 'confirmed' — pending/confirmed/rejected，支援 S3 兩階段上傳), uploaded_by (FK → accounts), organization_id (FK, nullable), project_id (FK, nullable), task_id (FK, nullable), created_at, deleted_at
+2. 建立 migration `0018_files.sql`：
+   - `files` 表：id, filename (VARCHAR), storage_path (VARCHAR), mime_type (VARCHAR), file_size (BIGINT), scope_type (VARCHAR — task/project 等), scope_id (UUID — 所屬資源 ID), status (file_status ENUM, DEFAULT 'confirmed' — pending/confirmed/rejected，支援 S3 兩階段上傳), uploaded_by (FK → accounts), organization_id (FK, nullable), project_id (FK, nullable), task_id (FK, nullable), created_at, updated_at, deleted_at
    - `file_metadata` 表：id, file_id (FK), key (VARCHAR), value (TEXT), created_at
-3. 建立 `StorageService` trait（可替換的儲存後端介面，與 `docs/system/11-file-storage.md` 一致）：
+3. 建立 `StorageBackend` trait（可替換的儲存後端介面，與 `docs/system/11-file-storage.md` 一致）：
    ```rust
    #[async_trait]
-   pub trait StorageService: Send + Sync {
-       async fn upload(&self, filename: &str, mime_type: &str, data: impl AsyncRead + Send, file_size: u64, scope_type: &str, scope_id: Uuid, uploaded_by: Uuid) -> Result<FileMeta>;
-       async fn download(&self, file_id: Uuid) -> Result<(FileMeta, impl AsyncRead + Send)>;
-       async fn delete_file(&self, file_id: Uuid) -> Result<()>;
-       async fn cleanup_orphaned_files(&self) -> Result<u64>;
+   pub trait StorageBackend: Send + Sync {
+       async fn store(&self, storage_path: &str, data: &[u8]) -> Result<(), StorageError>;
+       async fn load(&self, storage_path: &str) -> Result<Box<dyn AsyncRead + Send + Unpin>, StorageError>;
+       async fn remove(&self, storage_path: &str) -> Result<(), StorageError>;
+       async fn exists(&self, storage_path: &str) -> Result<bool, StorageError>;
    }
    ```
-4. 建立 `LocalStorageService`：
+4. 建立 `LocalStorageBackend`：
    - 儲存至 `STORAGE_BASE_PATH`（環境變數）
    - 路徑規則：`{scope_type}/{scope_id}/{year}/{month}/{uuid}/{filename}`（與 `docs/system/11-file-storage.md` 一致）
 5. 建立 `FileService`：
@@ -53,9 +53,9 @@
 8. 新增 DomainEvent：`FileUploaded`, `FileDeleted`
 
 **涉及檔案：**
-- `migrations/0014_files.sql`
+- `migrations/0018_files.sql`
 - `src/modules/storage/mod.rs`, `models.rs`, `repository.rs`, `service.rs`
-- `src/modules/storage/backend.rs`（StorageTrait）
+- `src/modules/storage/backend.rs`（StorageBackend trait）
 - `src/modules/storage/local.rs`（LocalStorageBackend）
 - `src/api/routes/files.rs`
 

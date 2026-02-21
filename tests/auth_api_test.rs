@@ -107,7 +107,7 @@ async fn logout_with_auth_succeeds() {
     let ctx = TestContext::new().await;
     let state = ctx.app_state();
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let app = build_auth_app(state);
 

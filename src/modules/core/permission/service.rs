@@ -59,6 +59,9 @@ pub enum Action {
     // Data entry operations
     ViewDataEntries,
     ManageDataEntries,
+    // Conversation operations
+    ViewConversation,
+    ManageConversation,
 }
 
 impl Action {
@@ -104,11 +107,13 @@ impl Action {
             Self::ManageTodos => 37,
             Self::ViewDataEntries => 38,
             Self::ManageDataEntries => 39,
+            Self::ViewConversation => 40,
+            Self::ManageConversation => 41,
         }
     }
 }
 
-const ACTION_COUNT: u8 = 40;
+const ACTION_COUNT: u8 = 42;
 
 #[derive(Debug, Clone)]
 pub enum Resource {
@@ -359,6 +364,8 @@ fn is_allowed_project_role(role: MemberRole, action: Action) -> bool {
                 | Action::ManageTodos
                 | Action::ViewDataEntries
                 | Action::ManageDataEntries
+                | Action::ViewConversation
+                | Action::ManageConversation
         ),
         MemberRole::Member => matches!(
             action,
@@ -374,6 +381,8 @@ fn is_allowed_project_role(role: MemberRole, action: Action) -> bool {
                 | Action::ManageTodos
                 | Action::ViewDataEntries
                 | Action::ManageDataEntries
+                | Action::ViewConversation
+                | Action::ManageConversation
         ),
     }
 }
@@ -425,6 +434,8 @@ mod tests {
             Action::ManageTodos,
             Action::ViewDataEntries,
             Action::ManageDataEntries,
+            Action::ViewConversation,
+            Action::ManageConversation,
         ];
         for action in actions {
             assert!(
@@ -494,6 +505,9 @@ mod tests {
         // Data entry actions — OrgAdmin can do these
         assert!(is_allowed(OrgRole::OrgAdmin, Action::ViewDataEntries));
         assert!(is_allowed(OrgRole::OrgAdmin, Action::ManageDataEntries));
+        // Conversation actions — OrgAdmin can do these
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::ViewConversation));
+        assert!(is_allowed(OrgRole::OrgAdmin, Action::ManageConversation));
     }
 
     #[test]
@@ -550,6 +564,8 @@ mod tests {
             Action::ManageTodos,
             Action::ViewDataEntries,
             Action::ManageDataEntries,
+            Action::ViewConversation,
+            Action::ManageConversation,
         ];
         for action in actions {
             assert!(
@@ -641,6 +657,14 @@ mod tests {
         assert!(is_allowed_project_role(
             MemberRole::TagAdmin,
             Action::ManageDataEntries
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::ViewConversation
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::TagAdmin,
+            Action::ManageConversation
         ));
         // Denied
         assert!(!is_allowed_project_role(
@@ -757,6 +781,15 @@ mod tests {
             MemberRole::Member,
             Action::ManageDataEntries
         ));
+        // Conversation — Member can view and manage
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::ViewConversation
+        ));
+        assert!(is_allowed_project_role(
+            MemberRole::Member,
+            Action::ManageConversation
+        ));
     }
 
     #[test]
@@ -864,6 +897,8 @@ mod tests {
             Action::ManageTodos,
             Action::ViewDataEntries,
             Action::ManageDataEntries,
+            Action::ViewConversation,
+            Action::ManageConversation,
         ];
         let mut seen = std::collections::HashSet::new();
         for action in actions {

@@ -94,6 +94,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         max_image_size: config.storage_max_image_size,
         max_document_size: config.storage_max_document_size,
         max_file_size: config.storage_max_file_size,
+        cleanup_grace_period_secs: config.storage_cleanup_grace_period_secs,
     };
     let file_service = Arc::new(FileService::new(
         pool.clone(),

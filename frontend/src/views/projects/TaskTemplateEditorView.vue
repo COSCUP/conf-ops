@@ -6,10 +6,10 @@ import { useMemberTagStore } from '@/stores/memberTag'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
+import DataSchemaEditor from '@/components/data-schema/DataSchemaEditor.vue'
 import type { components } from '@/api/schema'
 
 type DataSchemaField = components['schemas']['DataSchemaField']
-type FieldType = components['schemas']['FieldType']
 
 const route = useRoute()
 const router = useRouter()
@@ -27,25 +27,8 @@ const editDescription = ref('')
 const newTodoName = ref('')
 const newTodoDescription = ref('')
 
-// Data schemas
-const newSchemaName = ref('')
-const newSchemaFields = ref<DataSchemaField[]>([])
-
 // Tags
 const linkTagId = ref('')
-
-const fieldTypes: FieldType[] = [
-  'single_line_text',
-  'multi_line_text',
-  'number',
-  'date',
-  'email',
-  'url',
-  'select',
-  'boolean',
-  'image',
-  'file',
-]
 
 onMounted(async () => {
   await Promise.all([
@@ -76,6 +59,8 @@ async function handleUpdateTemplate() {
 
 // ── Todo Templates ──────────────────────────────────────────
 
+const dragIndex = ref<number | null>(null)
+
 async function handleCreateTodo() {
   if (!newTodoName.value.trim()) return
   const sortOrder = store.todoTemplates.length
@@ -97,35 +82,36 @@ async function handleDeleteTodo(todoTemplateId: string) {
   await store.deleteTodoTemplate(projectId, templateId, todoTemplateId)
 }
 
+function onDragStart(index: number) {
+  dragIndex.value = index
+}
+
+function onDragOver(event: DragEvent) {
+  event.preventDefault()
+}
+
+async function onDrop(targetIndex: number) {
+  const from = dragIndex.value
+  dragIndex.value = null
+  if (from === null || from === targetIndex) return
+
+  const items = [...store.todoTemplates]
+  const [moved] = items.splice(from, 1)
+  if (!moved) return
+  items.splice(targetIndex, 0, moved)
+
+  const orders = items.map((item, i) => ({ id: item.id, sortOrder: i }))
+  await store.reorderTodoTemplates(projectId, templateId, orders)
+}
+
+function onDragEnd() {
+  dragIndex.value = null
+}
+
 // ── Data Schemas ────────────────────────────────────────────
 
-function addField() {
-  newSchemaFields.value.push({
-    key: '',
-    label: '',
-    description: '',
-    type: 'single_line_text',
-    required: false,
-    constraints: null,
-  })
-}
-
-function removeField(index: number) {
-  newSchemaFields.value.splice(index, 1)
-}
-
-async function handleCreateSchema() {
-  if (!newSchemaName.value.trim() || newSchemaFields.value.length === 0) return
-  const result = await store.createDataSchema(
-    projectId,
-    templateId,
-    newSchemaName.value.trim(),
-    newSchemaFields.value,
-  )
-  if (result) {
-    newSchemaName.value = ''
-    newSchemaFields.value = []
-  }
+async function handleCreateSchema(name: string, fields: DataSchemaField[]) {
+  await store.createDataSchema(projectId, templateId, name, fields)
 }
 
 async function handleDeleteSchema(schemaId: string) {
@@ -186,8 +172,19 @@ function availableTags() {
       </form>
 
       <ul class="item-list">
-        <li v-for="todo in store.todoTemplates" :key="todo.id" class="item-row">
+        <li
+          v-for="(todo, index) in store.todoTemplates"
+          :key="todo.id"
+          class="item-row"
+          :class="{ 'drag-over': dragIndex !== null && dragIndex !== index }"
+          draggable="true"
+          @dragstart="onDragStart(index)"
+          @dragover="onDragOver"
+          @drop="onDrop(index)"
+          @dragend="onDragEnd"
+        >
           <div class="item-info">
+            <span class="drag-handle" aria-label="Drag to reorder">&#x2630;</span>
             <strong>{{ todo.name }}</strong>
             <span v-if="todo.description" class="item-sub">{{ todo.description }}</span>
             <span class="item-sub">Sort: {{ todo.sortOrder }}</span>
@@ -208,57 +205,12 @@ function availableTags() {
 
     <!-- Data Schemas -->
     <BaseCard title="Data Schemas">
-      <div class="schema-create">
-        <BaseInput v-model="newSchemaName" label="Schema Name" placeholder="Schema name" />
-
-        <div v-for="(field, idx) in newSchemaFields" :key="idx" class="field-row">
-          <BaseInput v-model="field.key" label="Key" placeholder="field_key" />
-          <BaseInput v-model="field.label" label="Label" placeholder="Field Label" />
-          <BaseInput v-model="field.description" label="Description" placeholder="Description" />
-          <div class="field-select">
-            <label class="field-label">Type</label>
-            <select v-model="field.type">
-              <option v-for="ft in fieldTypes" :key="ft" :value="ft">{{ ft }}</option>
-            </select>
-          </div>
-          <label class="checkbox-label">
-            <input v-model="field.required" type="checkbox" />
-            Required
-          </label>
-          <BaseButton variant="danger" @click="removeField(idx)">Remove</BaseButton>
-        </div>
-
-        <div class="schema-actions">
-          <BaseButton variant="secondary" @click="addField">Add Field</BaseButton>
-          <BaseButton :disabled="store.loading" @click="handleCreateSchema">
-            Create Schema
-          </BaseButton>
-        </div>
-      </div>
-
-      <ul class="item-list">
-        <li v-for="schema in store.dataSchemas" :key="schema.id" class="item-row">
-          <div class="item-info">
-            <strong>{{ schema.name }}</strong>
-            <span class="item-sub">{{ schema.fields.length }} fields</span>
-            <ul class="field-summary">
-              <li v-for="field in schema.fields" :key="field.key" class="field-summary-item">
-                {{ field.label }} ({{ field.type }}{{ field.required ? ', required' : '' }})
-              </li>
-            </ul>
-          </div>
-          <BaseButton
-            variant="danger"
-            :disabled="store.loading"
-            @click="handleDeleteSchema(schema.id)"
-          >
-            Delete
-          </BaseButton>
-        </li>
-      </ul>
-      <p v-if="store.dataSchemas.length === 0 && !store.loading" class="empty-text">
-        No data schemas yet.
-      </p>
+      <DataSchemaEditor
+        :schemas="store.dataSchemas"
+        :loading="store.loading"
+        @create="handleCreateSchema"
+        @delete="handleDeleteSchema"
+      />
     </BaseCard>
 
     <!-- Linked Tags -->
@@ -343,6 +295,25 @@ function availableTags() {
   border-radius: 0.375rem;
 }
 
+.item-row[draggable='true'] {
+  cursor: grab;
+}
+
+.item-row[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.item-row.drag-over {
+  border-color: #3b82f6;
+  border-style: dashed;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #9ca3af;
+  margin-right: 0.5rem;
+}
+
 .item-info {
   display: flex;
   flex-direction: column;
@@ -352,66 +323,6 @@ function availableTags() {
 .item-sub {
   font-size: 0.75rem;
   color: #6b7280;
-}
-
-.schema-create {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.field-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  padding: 0.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-}
-
-.field-select {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.field-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.field-select select {
-  padding: 0.375rem 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  white-space: nowrap;
-}
-
-.schema-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.field-summary {
-  list-style: none;
-  padding: 0;
-  margin: 0.25rem 0 0;
-}
-
-.field-summary-item {
-  font-size: 0.75rem;
-  color: #9ca3af;
 }
 
 .empty-text {

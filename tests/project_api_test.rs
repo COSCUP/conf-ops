@@ -53,7 +53,7 @@ fn build_app(ctx: &common::TestContext) -> Router {
 async fn create_project_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -94,7 +94,7 @@ async fn create_project_returns_201() {
 async fn get_project() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -128,7 +128,7 @@ async fn get_project() {
 async fn copy_project_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -177,7 +177,7 @@ async fn copy_project_returns_201() {
 async fn update_project_status() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -222,7 +222,7 @@ async fn update_project_status() {
 async fn invalid_status_transition_returns_409() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -264,7 +264,7 @@ async fn invalid_status_transition_returns_409() {
 async fn delete_project_returns_204() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state

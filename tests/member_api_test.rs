@@ -2,7 +2,6 @@ mod common;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use axum::Router;
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
@@ -10,59 +9,12 @@ use conf_ops::modules::core::member::models::MemberRole;
 use conf_ops::modules::core::organization::models::OrgRole;
 use conf_ops::modules::core::organization::repository::OrgMemberRepository;
 
-fn build_app(ctx: &common::TestContext) -> Router {
-    use axum::routing::{delete, get, post, put};
-    use conf_ops::api::middleware::auth::auth_middleware;
-    use conf_ops::api::routes::{members, organizations, projects};
-
-    let state = ctx.app_state();
-
-    let org_routes = Router::new().route(
-        "/",
-        post(organizations::create_organization).get(organizations::list_organizations),
-    );
-
-    let project_nested = Router::new().route(
-        "/",
-        post(projects::create_project).get(projects::list_projects),
-    );
-
-    let member_routes = Router::new()
-        .route("/", get(members::list_members))
-        .route("/invite", post(members::invite_member))
-        .route(
-            "/{memberId}",
-            get(members::get_member)
-                .put(members::update_member)
-                .delete(members::delete_member),
-        );
-
-    let project_top = Router::new()
-        .route(
-            "/{projectId}",
-            get(projects::get_project)
-                .put(projects::update_project)
-                .delete(projects::delete_project),
-        )
-        .nest("/{projectId}/members", member_routes);
-
-    Router::new()
-        .nest("/api/v1/organizations", org_routes)
-        .nest("/api/v1/organizations/{orgId}/projects", project_nested)
-        .nest("/api/v1/projects", project_top)
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            auth_middleware,
-        ))
-        .with_state(state)
-}
-
 #[tokio::test]
 async fn invite_member_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
     let (invitee_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
     // Add invitee to org
@@ -78,7 +30,7 @@ async fn invite_member_returns_201() {
 
     let project_id = ctx.create_test_project(org_id, owner_id).await;
 
-    let app = build_app(&ctx);
+    let app = common::build_app(&ctx);
     let response = app
         .oneshot(
             Request::builder()
@@ -111,12 +63,12 @@ async fn invite_non_org_member_returns_400() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
     let (outsider_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
 
-    let app = build_app(&ctx);
+    let app = common::build_app(&ctx);
     let response = app
         .oneshot(
             Request::builder()
@@ -143,14 +95,14 @@ async fn invite_non_org_member_returns_400() {
 async fn list_members_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     ctx.create_test_member(project_id, owner_id, MemberRole::Owner)
         .await;
 
-    let app = build_app(&ctx);
+    let app = common::build_app(&ctx);
     let response = app
         .oneshot(
             Request::builder()
@@ -173,7 +125,7 @@ async fn list_members_returns_200() {
 async fn get_member_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
@@ -181,7 +133,7 @@ async fn get_member_returns_200() {
         .create_test_member(project_id, owner_id, MemberRole::Owner)
         .await;
 
-    let app = build_app(&ctx);
+    let app = common::build_app(&ctx);
     let response = app
         .oneshot(
             Request::builder()
@@ -205,7 +157,7 @@ async fn update_member_role_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
     let (member_account, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
@@ -213,7 +165,7 @@ async fn update_member_role_returns_200() {
         .create_test_member(project_id, member_account, MemberRole::Member)
         .await;
 
-    let app = build_app(&ctx);
+    let app = common::build_app(&ctx);
     let response = app
         .oneshot(
             Request::builder()
@@ -244,7 +196,7 @@ async fn delete_member_returns_204() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
     let (member_account, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
@@ -252,7 +204,7 @@ async fn delete_member_returns_204() {
         .create_test_member(project_id, member_account, MemberRole::Member)
         .await;
 
-    let app = build_app(&ctx);
+    let app = common::build_app(&ctx);
     let response = app
         .oneshot(
             Request::builder()
@@ -272,7 +224,7 @@ async fn delete_member_returns_204() {
 async fn last_owner_removal_returns_409() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
@@ -280,7 +232,7 @@ async fn last_owner_removal_returns_409() {
         .create_test_member(project_id, owner_id, MemberRole::Owner)
         .await;
 
-    let app = build_app(&ctx);
+    let app = common::build_app(&ctx);
     let response = app
         .oneshot(
             Request::builder()

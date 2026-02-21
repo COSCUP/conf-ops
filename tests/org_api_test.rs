@@ -75,7 +75,7 @@ async fn create_organization_returns_201() {
     let ctx = common::TestContext::new().await;
     let app = build_app(&ctx);
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let response = app
         .oneshot(
@@ -107,7 +107,7 @@ async fn create_organization_returns_201() {
 async fn list_organizations() {
     let ctx = common::TestContext::new().await;
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     // Create org via service
     let state = ctx.app_state();
@@ -141,7 +141,7 @@ async fn invite_existing_account_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
     let (_, invitee_email) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -177,7 +177,7 @@ async fn invite_existing_account_returns_201() {
 async fn invite_new_email_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -214,7 +214,7 @@ async fn member_forbidden_from_creating_project() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
     let (member_id, _) = ctx.create_test_account().await;
-    let member_token = ctx.issue_test_token(member_id);
+    let member_token = common::TestContext::issue_test_token(member_id);
 
     let org_id = ctx.create_test_org(owner_id).await;
 
@@ -255,7 +255,7 @@ async fn member_forbidden_from_creating_project() {
 async fn delete_org_with_active_projects_returns_409() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -290,7 +290,7 @@ async fn delete_org_with_active_projects_returns_409() {
 async fn remove_last_owner_returns_409() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state

@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::error::TodoError;
-use super::models::{MyTodoItem, Todo, TodoAssignee, TodoStatus, TodoType};
+use super::models::{Todo, TodoAssignee, TodoStatus, TodoType};
 
 pub struct CreateTodoParams<'a> {
     pub id: Uuid,
@@ -233,6 +233,35 @@ impl TodoRepository {
         Ok(max + 1)
     }
 
+    /// Update a todo's `linked_task_id`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TodoError::NotFound` if the todo does not exist.
+    pub async fn update_linked_task(
+        pool: &PgPool,
+        id: Uuid,
+        linked_task_id: Option<Uuid>,
+    ) -> Result<Todo, TodoError> {
+        sqlx::query_as!(
+            Todo,
+            r#"UPDATE todos
+             SET linked_task_id = $2, updated_at = NOW()
+             WHERE id = $1 AND deleted_at IS NULL
+             RETURNING id, task_id, parent_id, title, description,
+                       status AS "status: TodoStatus",
+                       type AS "todo_type: TodoType",
+                       source_template_id, due_date, sort_order,
+                       linked_task_id, completed_at, completed_by,
+                       created_at, updated_at, deleted_at"#,
+            id,
+            linked_task_id,
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(TodoError::NotFound)
+    }
+
     // ── Assignees ─────────────────────────────────────────────
 
     /// Add an assignee to a todo.
@@ -316,50 +345,67 @@ impl TodoRepository {
         Ok(assignees)
     }
 
-    // ── My Todos ────────────────────────────────────────────
-
-    /// List todos assigned to a specific account across all projects.
+    /// List distinct member IDs of all assignees for todos in a task.
     ///
-    /// Joins through `todo_assignees` → `members` → `account_id` and
-    /// includes project and task context.
+    /// Only joins todo-module tables (todos + `todo_assignees`).
     ///
     /// # Errors
     ///
     /// Returns `TodoError::Database` on database failure.
-    pub async fn list_my_todos(
+    pub async fn list_assignee_member_ids_by_task(
         pool: &PgPool,
-        account_id: Uuid,
-        status_filter: Option<&TodoStatus>,
-        project_id_filter: Option<Uuid>,
-    ) -> Result<Vec<MyTodoItem>, TodoError> {
-        let items = sqlx::query_as!(
-            MyTodoItem,
-            r#"SELECT
-                t.id, t.task_id, t.title, t.description,
-                t.status AS "status: TodoStatus",
-                t.type AS "todo_type: TodoType",
-                t.due_date,
-                p.id AS project_id,
-                p.name AS project_name,
-                tk.name AS task_name,
-                t.created_at, t.updated_at
-             FROM todos t
-             INNER JOIN todo_assignees ta ON ta.todo_id = t.id
-             INNER JOIN members m ON m.id = ta.member_id AND m.deleted_at IS NULL
-             INNER JOIN tasks tk ON tk.id = t.task_id AND tk.deleted_at IS NULL
-             INNER JOIN projects p ON p.id = tk.project_id AND p.deleted_at IS NULL
-             WHERE m.account_id = $1
-               AND t.deleted_at IS NULL
-               AND ($2::todo_status IS NULL OR t.status = $2)
-               AND ($3::UUID IS NULL OR p.id = $3)
-             ORDER BY t.due_date ASC NULLS LAST, t.created_at ASC"#,
-            account_id,
-            status_filter as Option<&TodoStatus>,
-            project_id_filter,
+        task_id: Uuid,
+    ) -> Result<Vec<Uuid>, TodoError> {
+        let ids = sqlx::query_scalar!(
+            r#"SELECT DISTINCT ta.member_id AS "member_id!"
+             FROM todo_assignees ta
+             INNER JOIN todos t ON t.id = ta.todo_id
+             WHERE t.task_id = $1 AND t.deleted_at IS NULL"#,
+            task_id,
         )
         .fetch_all(pool)
         .await?;
 
-        Ok(items)
+        Ok(ids)
+    }
+
+    // ── My Todos ────────────────────────────────────────────
+
+    /// List todos assigned to specific members (todo-module tables only).
+    ///
+    /// Only joins `todos` and `todo_assignees` (both within the todo module).
+    /// Enrichment with task/project context is done at the service layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TodoError::Database` on database failure.
+    pub async fn list_todos_for_members(
+        pool: &PgPool,
+        member_ids: &[Uuid],
+        status_filter: Option<&TodoStatus>,
+    ) -> Result<Vec<Todo>, TodoError> {
+        let todos = sqlx::query_as!(
+            Todo,
+            r#"SELECT t.id, t.task_id, t.parent_id, t.title, t.description,
+                    t.status AS "status: TodoStatus",
+                    t.type AS "todo_type: TodoType",
+                    t.source_template_id, t.due_date, t.sort_order,
+                    t.linked_task_id, t.completed_at, t.completed_by,
+                    t.created_at, t.updated_at, t.deleted_at
+                 FROM todos t
+                 WHERE t.id IN (
+                    SELECT DISTINCT ta.todo_id FROM todo_assignees ta
+                    WHERE ta.member_id = ANY($1)
+                 )
+                   AND t.deleted_at IS NULL
+                   AND ($2::todo_status IS NULL OR t.status = $2)
+                 ORDER BY t.due_date ASC NULLS LAST, t.created_at ASC"#,
+            member_ids,
+            status_filter as Option<&TodoStatus>,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(todos)
     }
 }

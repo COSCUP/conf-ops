@@ -183,6 +183,45 @@ impl MemberRepository {
         Ok(())
     }
 
+    /// Get account IDs for a batch of member IDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MemberError::Database` on database failure.
+    pub async fn get_account_ids_by_ids(
+        pool: &PgPool,
+        member_ids: &[Uuid],
+    ) -> Result<Vec<Uuid>, MemberError> {
+        let ids = sqlx::query_scalar!(
+            r#"SELECT DISTINCT account_id AS "account_id!" FROM members
+             WHERE id = ANY($1) AND deleted_at IS NULL"#,
+            member_ids,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(ids)
+    }
+
+    /// Get all member IDs for a given account (across all projects).
+    ///
+    /// # Errors
+    ///
+    /// Returns `MemberError::Database` on database failure.
+    pub async fn get_ids_by_account_id(
+        pool: &PgPool,
+        account_id: Uuid,
+    ) -> Result<Vec<Uuid>, MemberError> {
+        let ids = sqlx::query_scalar!(
+            r#"SELECT id FROM members WHERE account_id = $1 AND deleted_at IS NULL"#,
+            account_id,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(ids)
+    }
+
     /// Count the number of owners in a project.
     ///
     /// # Errors

@@ -236,6 +236,25 @@ impl ProjectRepository {
         Ok(record.count)
     }
 
+    /// Get project names for a batch of project IDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ProjectError::Database` on database failure.
+    pub async fn get_names_by_ids(
+        pool: &PgPool,
+        ids: &[Uuid],
+    ) -> Result<Vec<(Uuid, String)>, ProjectError> {
+        let rows = sqlx::query!(
+            r#"SELECT id, name FROM projects WHERE id = ANY($1) AND deleted_at IS NULL"#,
+            ids,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows.into_iter().map(|r| (r.id, r.name)).collect())
+    }
+
     /// Get the organization ID for a given project.
     ///
     /// # Errors

@@ -19,6 +19,9 @@ pub enum TaskError {
     #[error("Cannot complete task: {0} incomplete todo(s) remaining")]
     IncompleteTodos(i64),
 
+    #[error("External task creation not allowed for this tag and template combination")]
+    ExternalCreationNotAllowed,
+
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 }
@@ -41,6 +44,10 @@ impl From<TaskError> for ProblemDetails {
             }
             TaskError::IncompleteTodos(_) => {
                 Self::new(StatusCode::CONFLICT, "Cannot Complete Task").with_detail(err.to_string())
+            }
+            TaskError::ExternalCreationNotAllowed => {
+                Self::new(StatusCode::FORBIDDEN, "External Creation Not Allowed")
+                    .with_detail(err.to_string())
             }
             TaskError::Database(_) => Self::internal_server_error(),
         }

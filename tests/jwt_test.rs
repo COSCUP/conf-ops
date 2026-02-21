@@ -40,7 +40,7 @@ async fn middleware_sets_auth_user_with_valid_token() {
     let ctx = TestContext::new().await;
     let state = ctx.app_state();
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let app = build_app_with_middleware(state);
 

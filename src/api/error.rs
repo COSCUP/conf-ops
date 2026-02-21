@@ -28,6 +28,11 @@ pub struct ProblemDetails {
     /// Field-level validation errors.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub errors: Option<Vec<ValidationError>>,
+
+    /// RFC 7807 extension fields (e.g. for 409 `StaleConversation` extra data).
+    #[serde(flatten, skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Object>)]
+    pub extensions: Option<serde_json::Value>,
 }
 
 /// A single field validation error.
@@ -55,12 +60,19 @@ impl ProblemDetails {
             detail: None,
             instance: None,
             errors: None,
+            extensions: None,
         }
     }
 
     #[must_use]
     pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = Some(detail.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_extensions(mut self, extensions: serde_json::Value) -> Self {
+        self.extensions = Some(extensions);
         self
     }
 
@@ -88,6 +100,7 @@ const fn slug_from_status(status: StatusCode) -> &'static str {
         StatusCode::FORBIDDEN => "forbidden",
         StatusCode::NOT_FOUND => "not-found",
         StatusCode::CONFLICT => "conflict",
+        StatusCode::PAYLOAD_TOO_LARGE => "payload-too-large",
         StatusCode::INTERNAL_SERVER_ERROR => "internal-server-error",
         StatusCode::NOT_IMPLEMENTED => "not-implemented",
         StatusCode::SERVICE_UNAVAILABLE => "service-unavailable",

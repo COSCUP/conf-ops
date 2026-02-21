@@ -1,5 +1,11 @@
+use std::collections::HashSet;
+use std::time::Duration;
+
+use moka::future::Cache;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+use serde::Deserialize;
 
 use crate::events::{DomainEvent, EventBus};
 use crate::id::generate_id;
@@ -7,17 +13,96 @@ use crate::id::generate_id;
 use super::error::TaskError;
 use super::models::{Task, TaskStatus};
 use super::repository::{CreateTaskParams, TaskRepository};
+use crate::modules::core::member::repository::MemberRepository;
+use crate::modules::core::member_tag::repository::MemberTagRepository;
 use crate::modules::core::task_template::repository::TaskTemplateRepository;
 use crate::modules::core::todo::repository::TodoRepository;
 
 pub struct TaskService {
     pool: PgPool,
     event_bus: EventBus,
+    participant_cache: Cache<Uuid, Vec<Uuid>>,
 }
 
 impl TaskService {
-    pub fn new(pool: PgPool, event_bus: EventBus) -> Self {
-        Self { pool, event_bus }
+    pub fn new(pool: PgPool, event_bus: EventBus, cache_ttl_secs: u64) -> Self {
+        let participant_cache = Cache::builder()
+            .time_to_live(Duration::from_secs(cache_ttl_secs))
+            .max_capacity(5_000)
+            .build();
+
+        let cache_clone = participant_cache.clone();
+        let mut rx = event_bus.subscribe();
+
+        tokio::spawn(async move {
+            while let Ok(event) = rx.recv().await {
+                Self::handle_participant_cache_invalidation(&cache_clone, &event).await;
+            }
+        });
+
+        Self {
+            pool,
+            event_bus,
+            participant_cache,
+        }
+    }
+
+    async fn handle_participant_cache_invalidation(
+        cache: &Cache<Uuid, Vec<Uuid>>,
+        event: &DomainEvent,
+    ) {
+        match event {
+            DomainEvent::TodoCompleted { task_id, .. }
+            | DomainEvent::TaskCreated { task_id, .. }
+            | DomainEvent::TaskDeleted { task_id, .. } => {
+                cache.invalidate(task_id).await;
+            }
+            _ => {}
+        }
+    }
+
+    /// Get participants for a task (cached).
+    ///
+    /// Participants = ownerTag members ∪ task creator ∪ todo assignees.
+    /// Aggregated at service layer (no cross-module SQL JOINs).
+    ///
+    /// # Errors
+    ///
+    /// Returns `TaskError::Database` on database failure.
+    pub async fn get_task_participants(&self, task_id: Uuid) -> Result<Vec<Uuid>, TaskError> {
+        if let Some(cached) = self.participant_cache.get(&task_id).await {
+            return Ok(cached);
+        }
+
+        let task = TaskRepository::get_by_id(&self.pool, task_id).await?;
+        let mut participants = HashSet::new();
+
+        // Owner tag members (via MemberTagRepository — stays within member_tag module)
+        if let Ok(tag_members) =
+            MemberTagRepository::list_assigned_members(&self.pool, task.owner_tag_id).await
+        {
+            participants.extend(tag_members.iter().map(|m| m.account_id));
+        }
+
+        // Task creator
+        participants.insert(task.created_by);
+
+        // Todo assignees (TodoRepository for member_ids → MemberRepository for account_ids)
+        if let Ok(assignee_member_ids) =
+            TodoRepository::list_assignee_member_ids_by_task(&self.pool, task_id).await
+        {
+            if !assignee_member_ids.is_empty() {
+                if let Ok(account_ids) =
+                    MemberRepository::get_account_ids_by_ids(&self.pool, &assignee_member_ids).await
+                {
+                    participants.extend(account_ids);
+                }
+            }
+        }
+
+        let result: Vec<Uuid> = participants.into_iter().collect();
+        self.participant_cache.insert(task_id, result.clone()).await;
+        Ok(result)
     }
 
     /// Create a new task from a template.
@@ -54,6 +139,46 @@ impl TaskService {
                 .await?;
         if !is_linked {
             return Err(TaskError::InvalidOwnerTag);
+        }
+
+        // Check external task creation permission
+        let is_member =
+            MemberTagRepository::is_account_member_of_tag(&self.pool, created_by, owner_tag_id)
+                .await
+                .map_err(|_| TaskError::Database(sqlx::Error::RowNotFound))?;
+
+        if !is_member {
+            let tag = MemberTagRepository::get_by_id(&self.pool, owner_tag_id)
+                .await
+                .map_err(|_| TaskError::InvalidOwnerTag)?;
+
+            let rules: Vec<ExternalTaskCreationRule> =
+                serde_json::from_value(tag.external_task_creation.clone()).unwrap_or_default();
+
+            let rule = rules
+                .iter()
+                .find(|r| r.task_template_id == task_template_id);
+
+            match rule {
+                None => return Err(TaskError::ExternalCreationNotAllowed),
+                Some(r) => match &r.allowed_from_tags {
+                    AllowedFromTags::Wildcard(()) => {} // Allow all
+                    AllowedFromTags::List(allowed_names) => {
+                        let creator_tag_names = MemberTagRepository::get_account_tag_names(
+                            &self.pool, created_by, project_id,
+                        )
+                        .await
+                        .map_err(|_| TaskError::Database(sqlx::Error::RowNotFound))?;
+
+                        let has_match = creator_tag_names
+                            .iter()
+                            .any(|name| allowed_names.contains(name));
+                        if !has_match {
+                            return Err(TaskError::ExternalCreationNotAllowed);
+                        }
+                    }
+                },
+            }
         }
 
         let id = generate_id();
@@ -180,6 +305,32 @@ impl TaskService {
         });
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExternalTaskCreationRule {
+    task_template_id: Uuid,
+    allowed_from_tags: AllowedFromTags,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum AllowedFromTags {
+    Wildcard(#[serde(deserialize_with = "deserialize_wildcard")] ()),
+    List(Vec<String>),
+}
+
+fn deserialize_wildcard<'de, D>(deserializer: D) -> Result<(), D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s == "*" {
+        Ok(())
+    } else {
+        Err(serde::de::Error::custom("expected \"*\""))
     }
 }
 

@@ -81,7 +81,7 @@ fn build_app(ctx: &common::TestContext) -> Router {
 async fn create_tag_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
 
@@ -117,7 +117,7 @@ async fn create_tag_returns_201() {
 async fn list_tags_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     ctx.create_test_tag(project_id, "tag1").await;
@@ -146,7 +146,7 @@ async fn list_tags_returns_200() {
 async fn get_tag_detail_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "detail-tag").await;
@@ -190,7 +190,7 @@ async fn get_tag_detail_returns_200() {
 async fn update_tag_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "old-name").await;
@@ -227,7 +227,7 @@ async fn update_tag_returns_200() {
 async fn delete_tag_returns_204() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "to-delete").await;
@@ -254,7 +254,7 @@ async fn delete_tag_returns_204() {
 async fn assign_member_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "assign-tag").await;
@@ -295,7 +295,7 @@ async fn assign_member_returns_201() {
 async fn assign_contact_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "assign-tag").await;
@@ -336,7 +336,7 @@ async fn assign_contact_returns_201() {
 async fn remove_assignment_returns_204() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "remove-tag").await;
@@ -369,7 +369,7 @@ async fn remove_assignment_returns_204() {
 async fn duplicate_assignment_returns_409() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "dup-tag").await;
@@ -407,7 +407,7 @@ async fn duplicate_assignment_returns_409() {
 async fn invalid_xor_assignment_returns_400() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "xor-tag").await;
@@ -469,7 +469,7 @@ async fn invalid_xor_assignment_returns_400() {
 async fn update_external_task_creation_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
     let org_id = ctx.create_test_org(owner_id).await;
     let project_id = ctx.create_test_project(org_id, owner_id).await;
     let tag_id = ctx.create_test_tag(project_id, "ext-tag").await;

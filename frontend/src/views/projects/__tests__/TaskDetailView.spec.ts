@@ -47,6 +47,9 @@ function mockGetByPath() {
     if (path.includes('/data-entries')) {
       return Promise.resolve({ data: { entries: [] } })
     }
+    if (path.includes('/data-schemas')) {
+      return Promise.resolve({ data: { dataSchemas: [] } })
+    }
     if (path.includes('/members')) {
       return Promise.resolve({ data: { members: [] } })
     }

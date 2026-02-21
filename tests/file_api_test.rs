@@ -21,7 +21,7 @@ async fn setup_file_test(ctx: &common::TestContext) -> FileTestSetup {
     let member_id = ctx
         .create_test_member(project_id, account_id, MemberRole::Owner)
         .await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let template_id = ctx
         .create_test_task_template(project_id, "Template", account_id)
@@ -411,7 +411,7 @@ async fn unauthorized_user_cannot_download() {
 
     // Create another user without project access
     let (other_account_id, _) = ctx.create_test_account().await;
-    let other_token = ctx.issue_test_token(other_account_id);
+    let other_token = common::TestContext::issue_test_token(other_account_id);
 
     let req = Request::builder()
         .method("GET")

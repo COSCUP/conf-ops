@@ -28,7 +28,7 @@ async fn setup_task(ctx: &TestContext) -> (uuid::Uuid, uuid::Uuid, uuid::Uuid, S
         .await;
     ctx.link_tag_to_template(template_id, tag_id).await;
 
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
     let app = build_app(ctx);
     let (status, body) = json_request(
         app,
@@ -262,7 +262,7 @@ async fn unauthorized_user_gets_403() {
         .unwrap();
         id
     };
-    let other_token = ctx.issue_test_token(other_account_id);
+    let other_token = common::TestContext::issue_test_token(other_account_id);
 
     // Try to access conversation - should get 403
     let app = build_app(&ctx);
@@ -284,8 +284,17 @@ async fn system_message_via_service() {
 
     // Add a system message directly through the service
     let crdt_manager = Arc::new(CrdtManager::new(ctx.pool.clone()));
-    let conversation_service =
-        ConversationService::new(ctx.pool.clone(), EventBus::default(), crdt_manager, Arc::new(FileService::new(ctx.pool.clone(), EventBus::default(), Arc::new(LocalStorageBackend::new(&ctx.storage_dir)), StorageConfig::default())));
+    let conversation_service = ConversationService::new(
+        ctx.pool.clone(),
+        EventBus::default(),
+        crdt_manager,
+        Arc::new(FileService::new(
+            ctx.pool.clone(),
+            EventBus::default(),
+            Arc::new(LocalStorageBackend::new(&ctx.storage_dir)),
+            StorageConfig::default(),
+        )),
+    );
 
     let system_msg = conversation_service
         .add_system_message(
@@ -395,8 +404,17 @@ async fn send_message_with_invalid_member_returns_error() {
 
     // Try to send a member message with a non-existent member source_id via service directly
     let crdt_manager = Arc::new(CrdtManager::new(ctx.pool.clone()));
-    let conversation_service =
-        ConversationService::new(ctx.pool.clone(), EventBus::default(), crdt_manager, Arc::new(FileService::new(ctx.pool.clone(), EventBus::default(), Arc::new(LocalStorageBackend::new(&ctx.storage_dir)), StorageConfig::default())));
+    let conversation_service = ConversationService::new(
+        ctx.pool.clone(),
+        EventBus::default(),
+        crdt_manager,
+        Arc::new(FileService::new(
+            ctx.pool.clone(),
+            EventBus::default(),
+            Arc::new(LocalStorageBackend::new(&ctx.storage_dir)),
+            StorageConfig::default(),
+        )),
+    );
 
     let non_existent_member_id = generate_id();
     let result = conversation_service
@@ -487,8 +505,17 @@ async fn source_type_ai_suggestion_via_service() {
     let (_project_id, task_id, _account_id, _token) = setup_task(&ctx).await;
 
     let crdt_manager = Arc::new(CrdtManager::new(ctx.pool.clone()));
-    let conversation_service =
-        ConversationService::new(ctx.pool.clone(), EventBus::default(), crdt_manager, Arc::new(FileService::new(ctx.pool.clone(), EventBus::default(), Arc::new(LocalStorageBackend::new(&ctx.storage_dir)), StorageConfig::default())));
+    let conversation_service = ConversationService::new(
+        ctx.pool.clone(),
+        EventBus::default(),
+        crdt_manager,
+        Arc::new(FileService::new(
+            ctx.pool.clone(),
+            EventBus::default(),
+            Arc::new(LocalStorageBackend::new(&ctx.storage_dir)),
+            StorageConfig::default(),
+        )),
+    );
 
     let source_id = generate_id();
     let result = conversation_service
@@ -514,8 +541,17 @@ async fn source_type_tool_execution_via_service() {
     let (_project_id, task_id, _account_id, _token) = setup_task(&ctx).await;
 
     let crdt_manager = Arc::new(CrdtManager::new(ctx.pool.clone()));
-    let conversation_service =
-        ConversationService::new(ctx.pool.clone(), EventBus::default(), crdt_manager, Arc::new(FileService::new(ctx.pool.clone(), EventBus::default(), Arc::new(LocalStorageBackend::new(&ctx.storage_dir)), StorageConfig::default())));
+    let conversation_service = ConversationService::new(
+        ctx.pool.clone(),
+        EventBus::default(),
+        crdt_manager,
+        Arc::new(FileService::new(
+            ctx.pool.clone(),
+            EventBus::default(),
+            Arc::new(LocalStorageBackend::new(&ctx.storage_dir)),
+            StorageConfig::default(),
+        )),
+    );
 
     let source_id = generate_id();
     let result = conversation_service
@@ -546,8 +582,17 @@ async fn source_type_email_inbound_via_service() {
     let (_project_id, task_id, _account_id, _token) = setup_task(&ctx).await;
 
     let crdt_manager = Arc::new(CrdtManager::new(ctx.pool.clone()));
-    let conversation_service =
-        ConversationService::new(ctx.pool.clone(), EventBus::default(), crdt_manager, Arc::new(FileService::new(ctx.pool.clone(), EventBus::default(), Arc::new(LocalStorageBackend::new(&ctx.storage_dir)), StorageConfig::default())));
+    let conversation_service = ConversationService::new(
+        ctx.pool.clone(),
+        EventBus::default(),
+        crdt_manager,
+        Arc::new(FileService::new(
+            ctx.pool.clone(),
+            EventBus::default(),
+            Arc::new(LocalStorageBackend::new(&ctx.storage_dir)),
+            StorageConfig::default(),
+        )),
+    );
 
     let source_id = generate_id();
     let result = conversation_service

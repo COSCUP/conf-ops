@@ -108,6 +108,22 @@ pub enum DomainEvent {
         todo_id: uuid::Uuid,
         task_id: uuid::Uuid,
     },
+    MessageSent {
+        message_id: uuid::Uuid,
+        task_id: uuid::Uuid,
+        source_type: String,
+    },
+    FileUploaded {
+        file_id: uuid::Uuid,
+        scope_type: String,
+        scope_id: uuid::Uuid,
+        uploaded_by: uuid::Uuid,
+    },
+    FileDeleted {
+        file_id: uuid::Uuid,
+        scope_type: String,
+        scope_id: uuid::Uuid,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.

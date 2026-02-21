@@ -325,6 +325,55 @@ impl MemberTagRepository {
             .collect())
     }
 
+    /// Check if an account is a member of a specific tag (via `member_tag_assignments` + `members`).
+    ///
+    /// # Errors
+    ///
+    /// Returns `MemberTagError::Database` on database failure.
+    pub async fn is_account_member_of_tag(
+        pool: &PgPool,
+        account_id: Uuid,
+        tag_id: Uuid,
+    ) -> Result<bool, MemberTagError> {
+        let result = sqlx::query_scalar!(
+            r#"SELECT EXISTS(
+                 SELECT 1 FROM member_tag_assignments mta
+                 JOIN members m ON m.id = mta.member_id
+                 WHERE mta.tag_id = $1 AND m.account_id = $2 AND m.deleted_at IS NULL
+               ) as "exists!""#,
+            tag_id,
+            account_id,
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(result)
+    }
+
+    /// Get tag names that an account belongs to within a project.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MemberTagError::Database` on database failure.
+    pub async fn get_account_tag_names(
+        pool: &PgPool,
+        account_id: Uuid,
+        project_id: Uuid,
+    ) -> Result<Vec<String>, MemberTagError> {
+        let names = sqlx::query_scalar!(
+            r#"SELECT mt.name
+             FROM member_tags mt
+             JOIN member_tag_assignments mta ON mta.tag_id = mt.id
+             JOIN members m ON m.id = mta.member_id
+             WHERE m.account_id = $1 AND mt.project_id = $2
+               AND mt.deleted_at IS NULL AND m.deleted_at IS NULL"#,
+            account_id,
+            project_id,
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(names)
+    }
+
     /// Update the `external_task_creation` JSONB field.
     ///
     /// # Errors

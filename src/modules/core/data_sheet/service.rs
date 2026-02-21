@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::events::EventBus;
 use crate::id::generate_id;
+use crate::modules::core::crdt::repository::CrdtRepository;
 
 use super::error::DataSheetError;
 use super::models::DataEntry;
@@ -37,6 +38,7 @@ impl DataSheetService {
         task_id: Uuid,
         data_schema_id: Uuid,
         values: &serde_json::Value,
+        account_id: Uuid,
     ) -> Result<DataEntry, DataSheetError> {
         let schema = TaskTemplateRepository::get_data_schema_by_id(&self.pool, data_schema_id)
             .await
@@ -65,7 +67,29 @@ impl DataSheetService {
         };
 
         let id = generate_id();
-        DataEntryRepository::upsert(&self.pool, id, task_id, data_schema_id, &merged).await
+        let entry =
+            DataEntryRepository::upsert(&self.pool, id, task_id, data_schema_id, &merged).await?;
+
+        // Record CRDT operation for data entry change
+        let crdt_op = serde_json::json!({
+            "type": "upsert",
+            "schema_id": data_schema_id.to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        // Best-effort CRDT recording
+        let _ = CrdtRepository::insert_operation(
+            &self.pool,
+            op_id,
+            "data_entry",
+            task_id,
+            &op_bytes,
+            account_id,
+        )
+        .await;
+
+        Ok(entry)
     }
 
     /// Get a data entry by task and schema.
@@ -99,8 +123,28 @@ impl DataSheetService {
         &self,
         task_id: Uuid,
         data_schema_id: Uuid,
+        account_id: Uuid,
     ) -> Result<(), DataSheetError> {
-        DataEntryRepository::soft_delete(&self.pool, task_id, data_schema_id).await
+        DataEntryRepository::soft_delete(&self.pool, task_id, data_schema_id).await?;
+
+        let crdt_op = serde_json::json!({
+            "type": "delete",
+            "schema_id": data_schema_id.to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ = CrdtRepository::insert_operation(
+            &self.pool,
+            op_id,
+            "data_entry",
+            task_id,
+            &op_bytes,
+            account_id,
+        )
+        .await;
+
+        Ok(())
     }
 
     /// List all entries for a schema (aggregation view).
@@ -113,6 +157,110 @@ impl DataSheetService {
         data_schema_id: Uuid,
     ) -> Result<Vec<DataEntry>, DataSheetError> {
         DataEntryRepository::list_by_schema(&self.pool, data_schema_id).await
+    }
+
+    /// Share data fields from one task's data entry to another task.
+    ///
+    /// Copies specified fields from source entry to target entry, updating
+    /// the target's `source_links` to record the sharing relationship.
+    ///
+    /// # Errors
+    ///
+    /// Returns `DataSheetError::NotFound` if the source entry does not exist.
+    /// Returns `DataSheetError::TargetTaskNotFound` if the target entry cannot be created.
+    /// Returns `DataSheetError::SourceFieldNotFound` if a source field key does not exist.
+    pub async fn share_data_to_task(
+        &self,
+        source_task_id: Uuid,
+        source_schema_id: Uuid,
+        target_task_id: Uuid,
+        target_schema_id: Uuid,
+        field_mappings: &[(String, String)],
+        account_id: Uuid,
+    ) -> Result<DataEntry, DataSheetError> {
+        let source_entry = DataEntryRepository::get_by_task_and_schema(
+            &self.pool,
+            source_task_id,
+            source_schema_id,
+        )
+        .await?;
+
+        let source_obj = source_entry.values.as_object().ok_or_else(|| {
+            DataSheetError::ValidationFailed("source values not an object".to_string())
+        })?;
+
+        // Build target values from field mappings
+        let mut shared_values = serde_json::Map::new();
+        for (source_key, target_key) in field_mappings {
+            let value = source_obj
+                .get(source_key)
+                .ok_or_else(|| DataSheetError::SourceFieldNotFound(source_key.clone()))?;
+            shared_values.insert(target_key.clone(), value.clone());
+        }
+
+        // Upsert the target entry with shared values
+        let target_entry = self
+            .upsert_entry(
+                target_task_id,
+                target_schema_id,
+                &serde_json::Value::Object(shared_values),
+                account_id,
+            )
+            .await
+            .map_err(|e| match e {
+                DataSheetError::SchemaNotFound => DataSheetError::TargetTaskNotFound,
+                other => other,
+            })?;
+
+        // Update source_links on the target entry
+        let existing_links = target_entry
+            .source_links
+            .as_ref()
+            .and_then(|v| v.as_array().cloned())
+            .unwrap_or_default();
+
+        let new_link = serde_json::json!({
+            "sourceTaskId": source_task_id.to_string(),
+            "sourceSchemaId": source_schema_id.to_string(),
+            "fieldMappings": field_mappings.iter().map(|(s, t)| {
+                serde_json::json!({"sourceKey": s, "targetKey": t})
+            }).collect::<Vec<_>>(),
+            "sharedAt": chrono::Utc::now().to_rfc3339(),
+        });
+
+        let mut links = existing_links;
+        links.push(new_link);
+        let links_value = serde_json::Value::Array(links);
+
+        let updated = DataEntryRepository::update_source_links(
+            &self.pool,
+            target_task_id,
+            target_schema_id,
+            &links_value,
+        )
+        .await?;
+
+        // CRDT recording
+        let crdt_op = serde_json::json!({
+            "type": "share_data",
+            "source_task_id": source_task_id.to_string(),
+            "source_schema_id": source_schema_id.to_string(),
+            "target_schema_id": target_schema_id.to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ = CrdtRepository::insert_operation(
+            &self.pool,
+            op_id,
+            "data_entry",
+            target_task_id,
+            &op_bytes,
+            account_id,
+        )
+        .await;
+
+        Ok(updated)
     }
 }
 
@@ -140,10 +288,9 @@ fn validate_values(
             continue;
         }
 
-        let field = fields
-            .iter()
-            .find(|f| f.key == *key)
-            .expect("key existence already checked");
+        let field = fields.iter().find(|f| f.key == *key).ok_or_else(|| {
+            DataSheetError::ValidationFailed(format!("Field definition not found for key: {key}"))
+        })?;
 
         validate_field_value(key, value, field)?;
     }
@@ -232,7 +379,7 @@ fn validate_field_value(
         FieldType::Image | FieldType::File => {
             if !value.is_string() {
                 return Err(DataSheetError::ValidationFailed(format!(
-                    "Field '{key}' expects a string (file URL)"
+                    "Field '{key}' expects a string (file ID / UUID)"
                 )));
             }
         }

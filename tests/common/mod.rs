@@ -155,6 +155,7 @@ impl TestContext {
             storage_max_image_size: 10 * 1024 * 1024,
             storage_max_document_size: 50 * 1024 * 1024,
             storage_max_file_size: 20 * 1024 * 1024,
+            storage_cleanup_grace_period_secs: 604_800,
             crdt_ws_max_connections: 50,
             crdt_ws_heartbeat_interval_secs: 30,
             crdt_ws_idle_timeout_secs: 300,
@@ -255,8 +256,7 @@ impl TestContext {
         }
     }
 
-    #[allow(clippy::unused_self)]
-    pub fn issue_test_token(&self, account_id: Uuid) -> String {
+    pub fn issue_test_token(account_id: Uuid) -> String {
         issue_access_token(&Self::test_jwt_config(), account_id).expect("should issue test token")
     }
 

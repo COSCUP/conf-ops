@@ -12,6 +12,8 @@ use crate::app_state::AppState;
 use crate::modules::core::permission::service::{Action, Resource};
 use crate::modules::core::project::repository::ProjectRepository;
 use crate::modules::core::task::models::{Task, TaskStatus};
+use crate::modules::core::task_template::repository::TaskTemplateRepository;
+use crate::modules::core::todo::service::TemplateTodoEntry;
 
 // ── Request/Response Types ────────────────────────────────────
 
@@ -63,6 +65,12 @@ pub struct TaskResponse {
 #[serde(rename_all = "camelCase")]
 pub struct TaskListResponse {
     pub tasks: Vec<TaskResponse>,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskParticipantsResponse {
+    pub participants: Vec<Uuid>,
 }
 
 fn task_to_response(task: &Task) -> TaskResponse {
@@ -129,6 +137,43 @@ pub async fn create_task(
         )
         .await
         .map_err(ProblemDetails::from)?;
+
+    // Instantiate todos from template (best-effort)
+    if let Ok(todo_templates) =
+        TaskTemplateRepository::list_todo_templates(&state.pool, body.task_template_id).await
+    {
+        if !todo_templates.is_empty() {
+            let entries: Vec<TemplateTodoEntry> = todo_templates
+                .iter()
+                .map(|t| {
+                    (
+                        t.id,
+                        t.parent_id,
+                        t.name.clone(),
+                        t.description.clone(),
+                        t.sort_order,
+                    )
+                })
+                .collect();
+            let _ = state
+                .todo_service
+                .create_from_templates(task.id, &entries, user.account_id)
+                .await;
+        }
+    }
+
+    // Instantiate empty data_entries from template schemas (best-effort)
+    if let Ok(schemas) =
+        TaskTemplateRepository::list_data_schemas(&state.pool, body.task_template_id).await
+    {
+        for schema in &schemas {
+            let empty_values = serde_json::json!({});
+            let _ = state
+                .data_sheet_service
+                .upsert_entry(task.id, schema.id, &empty_values, user.account_id)
+                .await;
+        }
+    }
 
     Ok((StatusCode::CREATED, Json(task_to_response(&task))))
 }
@@ -365,4 +410,51 @@ pub async fn update_task_status(
         .map_err(ProblemDetails::from)?;
 
     Ok(Json(task_to_response(&task)))
+}
+
+/// Get task participants.
+///
+/// Returns the list of account IDs that are participants of a task
+/// (owner tag members, task creator, and todo assignees).
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on not found or permission failure.
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{projectId}/tasks/{taskId}/participants",
+    responses(
+        (status = 200, body = TaskParticipantsResponse),
+        (status = 404, body = ProblemDetails),
+    ),
+    params(
+        ("projectId" = Uuid, Path,),
+        ("taskId" = Uuid, Path,),
+    ),
+    tag = "tasks",
+)]
+pub async fn get_task_participants(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path((project_id, task_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<TaskParticipantsResponse>, ProblemDetails> {
+    let org_id = ProjectRepository::get_organization_id(&state.pool, project_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    require_permission(
+        &state,
+        user.account_id,
+        Resource::ProjectScoped { org_id, project_id },
+        Action::ViewTasks,
+    )
+    .await?;
+
+    let participants = state
+        .task_service
+        .get_task_participants(task_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    Ok(Json(TaskParticipantsResponse { participants }))
 }

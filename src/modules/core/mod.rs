@@ -1,4 +1,5 @@
 pub mod contact;
+pub mod crdt;
 pub mod data_sheet;
 pub mod member;
 pub mod member_tag;

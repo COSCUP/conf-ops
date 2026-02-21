@@ -7,7 +7,7 @@ use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 fn build_app(ctx: &common::TestContext) -> Router {
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{get, post};
     use conf_ops::api::middleware::auth::auth_middleware;
     use conf_ops::api::routes::{contacts, organizations};
 
@@ -45,7 +45,7 @@ fn build_app(ctx: &common::TestContext) -> Router {
 async fn create_contact_returns_201() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -87,7 +87,7 @@ async fn create_contact_returns_201() {
 async fn list_contacts_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -125,7 +125,7 @@ async fn list_contacts_returns_200() {
 async fn list_contacts_with_search() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -172,7 +172,7 @@ async fn list_contacts_with_search() {
 async fn get_contact_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -213,7 +213,7 @@ async fn get_contact_returns_200() {
 async fn update_contact_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -263,7 +263,7 @@ async fn update_contact_returns_200() {
 async fn delete_contact_returns_204() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -301,7 +301,7 @@ async fn delete_contact_returns_204() {
 async fn merge_contacts_returns_200() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -359,7 +359,7 @@ async fn merge_contacts_returns_200() {
 async fn merge_source_contains_target_returns_400() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -401,7 +401,7 @@ async fn merge_source_contains_target_returns_400() {
 async fn merge_already_merged_target_returns_409() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state
@@ -463,7 +463,7 @@ async fn merge_already_merged_target_returns_409() {
 async fn get_merged_contact_follows_chain() {
     let ctx = common::TestContext::new().await;
     let (owner_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(owner_id);
+    let token = common::TestContext::issue_test_token(owner_id);
 
     let state = ctx.app_state();
     let org = state

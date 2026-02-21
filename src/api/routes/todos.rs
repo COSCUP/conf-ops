@@ -152,6 +152,12 @@ fn my_todo_to_response(item: &MyTodoItem) -> MyTodoResponse {
     }
 }
 
+#[derive(Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkTaskRequest {
+    pub linked_task_id: Uuid,
+}
+
 fn assignee_to_response(a: &TodoAssignee) -> TodoAssigneeResponse {
     TodoAssigneeResponse {
         id: a.id,
@@ -252,6 +258,7 @@ pub async fn create_todo(
             body.parent_id,
             &body.title,
             body.description.as_deref(),
+            user.account_id,
         )
         .await
         .map_err(ProblemDetails::from)?;
@@ -355,6 +362,7 @@ pub async fn update_todo(
             body.title.as_deref(),
             body.description.as_ref().map(|d| d.as_deref()),
             due_date,
+            user.account_id,
         )
         .await
         .map_err(ProblemDetails::from)?;
@@ -400,7 +408,7 @@ pub async fn delete_todo(
 
     state
         .todo_service
-        .delete_todo(todo_id)
+        .delete_todo(todo_id, user.account_id)
         .await
         .map_err(ProblemDetails::from)?;
 
@@ -494,7 +502,7 @@ pub async fn add_assignee(
 
     let assignee = state
         .todo_service
-        .add_assignee(todo_id, body.member_id)
+        .add_assignee(todo_id, body.member_id, user.account_id)
         .await
         .map_err(ProblemDetails::from)?;
 
@@ -540,11 +548,103 @@ pub async fn remove_assignee(
 
     state
         .todo_service
-        .remove_assignee(todo_id, member_id)
+        .remove_assignee(todo_id, member_id, user.account_id)
         .await
         .map_err(ProblemDetails::from)?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Link a task to a todo (cross-task dependency).
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on not found or permission failure.
+#[utoipa::path(
+    put,
+    path = "/api/v1/projects/{projectId}/tasks/{taskId}/todos/{todoId}/linked-task",
+    request_body = LinkTaskRequest,
+    responses(
+        (status = 200, body = TodoResponse),
+        (status = 404, body = ProblemDetails),
+    ),
+    params(
+        ("projectId" = Uuid, Path,),
+        ("taskId" = Uuid, Path,),
+        ("todoId" = Uuid, Path,),
+    ),
+    tag = "todos",
+)]
+pub async fn link_task(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path((project_id, _task_id, todo_id)): Path<(Uuid, Uuid, Uuid)>,
+    Json(body): Json<LinkTaskRequest>,
+) -> Result<Json<TodoResponse>, ProblemDetails> {
+    let org_id = ProjectRepository::get_organization_id(&state.pool, project_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    require_permission(
+        &state,
+        user.account_id,
+        Resource::ProjectScoped { org_id, project_id },
+        Action::ManageTodos,
+    )
+    .await?;
+
+    let todo = state
+        .todo_service
+        .link_task(todo_id, body.linked_task_id, user.account_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    Ok(Json(todo_to_response(&todo)))
+}
+
+/// Unlink a task from a todo.
+///
+/// # Errors
+///
+/// Returns `ProblemDetails` on not found or permission failure.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/projects/{projectId}/tasks/{taskId}/todos/{todoId}/linked-task",
+    responses(
+        (status = 200, body = TodoResponse),
+        (status = 404, body = ProblemDetails),
+    ),
+    params(
+        ("projectId" = Uuid, Path,),
+        ("taskId" = Uuid, Path,),
+        ("todoId" = Uuid, Path,),
+    ),
+    tag = "todos",
+)]
+pub async fn unlink_task(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path((project_id, _task_id, todo_id)): Path<(Uuid, Uuid, Uuid)>,
+) -> Result<Json<TodoResponse>, ProblemDetails> {
+    let org_id = ProjectRepository::get_organization_id(&state.pool, project_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    require_permission(
+        &state,
+        user.account_id,
+        Resource::ProjectScoped { org_id, project_id },
+        Action::ManageTodos,
+    )
+    .await?;
+
+    let todo = state
+        .todo_service
+        .unlink_task(todo_id, user.account_id)
+        .await
+        .map_err(ProblemDetails::from)?;
+
+    Ok(Json(todo_to_response(&todo)))
 }
 
 /// List todos assigned to the current user across all projects.

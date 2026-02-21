@@ -1,8 +1,10 @@
 pub mod accounts;
 pub mod auth;
 pub mod contacts;
+pub mod conversations;
 pub mod data_entries;
 pub mod data_external;
+pub mod files;
 pub mod health;
 pub mod member_tags;
 pub mod members;
@@ -11,3 +13,4 @@ pub mod projects;
 pub mod task_templates;
 pub mod tasks;
 pub mod todos;
+pub mod ws;

@@ -28,7 +28,7 @@ Modular Monolith 架構，單一 Rust binary，9 個內部模組。
 **後端：**
 - `cargo clippy -- -D warnings` — 零錯誤、零警告（含 info 層級，使用 `.sqlx/` 離線快取，不需 DB）
 - `cargo fmt -- --check` — 格式檢查通過
-- `cargo test` — 所有測試通過（需要真實 PostgreSQL）
+- `cargo test` — 所有測試通過（使用 `postgresql_embedded` 自動管理 PostgreSQL，無需手動啟動）
 - 若修改了 SQL query：`DATABASE_URL=... cargo xtask sqlx-prepare` 更新 `.sqlx/` 快取並提交
 
 **前端：**
@@ -40,7 +40,7 @@ Modular Monolith 架構，單一 Rust binary，9 個內部模組。
 
 - 測試分三層：單元測試、API 測試、整合測試
 - 每個 bug 修復必須附帶迴歸測試
-- DB 測試禁止 mock，使用 `pg_lite` 搭配真實 PostgreSQL
+- DB 測試禁止 mock，使用 `postgresql_embedded`（自動下載並管理嵌入式 PostgreSQL，無需預先安裝）
 - 前端測試使用 Vitest + Vue Test Utils
 
 ### Rust 規範

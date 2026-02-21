@@ -13,6 +13,12 @@ pub enum DataSheetError {
     #[error("Validation failed: {0}")]
     ValidationFailed(String),
 
+    #[error("Source field not found: {0}")]
+    SourceFieldNotFound(String),
+
+    #[error("Target task not found")]
+    TargetTaskNotFound,
+
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 }
@@ -28,6 +34,14 @@ impl From<DataSheetError> for ProblemDetails {
             }
             DataSheetError::ValidationFailed(_) => {
                 Self::new(StatusCode::BAD_REQUEST, "Validation Error").with_detail(err.to_string())
+            }
+            DataSheetError::SourceFieldNotFound(_) => {
+                Self::new(StatusCode::BAD_REQUEST, "Source Field Not Found")
+                    .with_detail(err.to_string())
+            }
+            DataSheetError::TargetTaskNotFound => {
+                Self::new(StatusCode::NOT_FOUND, "Target Task Not Found")
+                    .with_detail(err.to_string())
             }
             DataSheetError::Database(_) => Self::internal_server_error(),
         }

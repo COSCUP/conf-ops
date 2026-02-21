@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::events::{DomainEvent, EventBus};
 use crate::id::generate_id;
+use crate::modules::core::crdt::repository::CrdtRepository;
 
 use super::error::TodoError;
 
@@ -10,6 +11,8 @@ use super::error::TodoError;
 pub type TemplateTodoEntry = (Uuid, Option<Uuid>, String, Option<String>, i32);
 use super::models::{MyTodoItem, Todo, TodoAssignee, TodoStatus, TodoType};
 use super::repository::{CreateTodoParams, TodoRepository};
+use crate::modules::core::member::repository::MemberRepository;
+use crate::modules::core::project::repository::ProjectRepository;
 use crate::modules::core::task::models::TaskStatus;
 use crate::modules::core::task::repository::TaskRepository;
 
@@ -35,6 +38,7 @@ impl TodoService {
         parent_id: Option<Uuid>,
         title: &str,
         description: Option<&str>,
+        account_id: Uuid,
     ) -> Result<Todo, TodoError> {
         // Validate nesting
         if let Some(pid) = parent_id {
@@ -47,7 +51,7 @@ impl TodoService {
         let sort_order = TodoRepository::next_sort_order(&self.pool, task_id).await?;
 
         let id = generate_id();
-        TodoRepository::create(
+        let todo = TodoRepository::create(
             &self.pool,
             &CreateTodoParams {
                 id,
@@ -60,7 +64,20 @@ impl TodoService {
                 sort_order,
             },
         )
-        .await
+        .await?;
+
+        // Best-effort CRDT recording
+        let crdt_op = serde_json::json!({
+            "type": "create",
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ =
+            CrdtRepository::insert_operation(&self.pool, op_id, "todo", id, &op_bytes, account_id)
+                .await;
+
+        Ok(todo)
     }
 
     /// Create todos from task templates when a task is instantiated.
@@ -72,6 +89,7 @@ impl TodoService {
         &self,
         task_id: Uuid,
         template_todos: &[TemplateTodoEntry],
+        account_id: Uuid,
     ) -> Result<Vec<Todo>, TodoError> {
         let mut created = Vec::new();
         // Map from template todo ID → actual todo ID (for parent references)
@@ -125,6 +143,20 @@ impl TodoService {
             created.push(todo);
         }
 
+        // Best-effort CRDT recording for batch creation
+        for todo in &created {
+            let crdt_op = serde_json::json!({
+                "type": "create_from_template",
+                "timestamp": chrono::Utc::now().to_rfc3339(),
+            });
+            let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+            let op_id = generate_id();
+            let _ = CrdtRepository::insert_operation(
+                &self.pool, op_id, "todo", todo.id, &op_bytes, account_id,
+            )
+            .await;
+        }
+
         Ok(created)
     }
 
@@ -157,8 +189,21 @@ impl TodoService {
         title: Option<&str>,
         description: Option<Option<&str>>,
         due_date: Option<Option<chrono::DateTime<chrono::Utc>>>,
+        account_id: Uuid,
     ) -> Result<Todo, TodoError> {
-        TodoRepository::update(&self.pool, id, title, description, due_date).await
+        let todo = TodoRepository::update(&self.pool, id, title, description, due_date).await?;
+
+        let crdt_op = serde_json::json!({
+            "type": "update",
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ =
+            CrdtRepository::insert_operation(&self.pool, op_id, "todo", id, &op_bytes, account_id)
+                .await;
+
+        Ok(todo)
     }
 
     /// Update a todo's status (complete or reopen).
@@ -197,6 +242,19 @@ impl TodoService {
 
         let todo = TodoRepository::update_status(&self.pool, id, status, completed_by).await?;
 
+        // Record CRDT operation for status change
+        let crdt_op = serde_json::json!({
+            "type": "status_change",
+            "status": format!("{status:?}"),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        // Best-effort CRDT recording — don't fail the main operation
+        let _ =
+            CrdtRepository::insert_operation(&self.pool, op_id, "todo", id, &op_bytes, account_id)
+                .await;
+
         if *status == TodoStatus::Completed {
             self.event_bus.publish(DomainEvent::TodoCompleted {
                 todo_id: id,
@@ -212,8 +270,71 @@ impl TodoService {
     /// # Errors
     ///
     /// Returns `TodoError::NotFound` if the todo does not exist.
-    pub async fn delete_todo(&self, id: Uuid) -> Result<(), TodoError> {
-        TodoRepository::soft_delete(&self.pool, id).await
+    pub async fn delete_todo(&self, id: Uuid, account_id: Uuid) -> Result<(), TodoError> {
+        TodoRepository::soft_delete(&self.pool, id).await?;
+
+        let crdt_op = serde_json::json!({
+            "type": "delete",
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ =
+            CrdtRepository::insert_operation(&self.pool, op_id, "todo", id, &op_bytes, account_id)
+                .await;
+
+        Ok(())
+    }
+
+    /// Link a task to a todo (cross-task dependency).
+    ///
+    /// # Errors
+    ///
+    /// Returns `TodoError::NotFound` if the todo does not exist.
+    pub async fn link_task(
+        &self,
+        todo_id: Uuid,
+        linked_task_id: Uuid,
+        account_id: Uuid,
+    ) -> Result<Todo, TodoError> {
+        let todo =
+            TodoRepository::update_linked_task(&self.pool, todo_id, Some(linked_task_id)).await?;
+
+        let crdt_op = serde_json::json!({
+            "type": "link_task",
+            "linked_task_id": linked_task_id.to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ = CrdtRepository::insert_operation(
+            &self.pool, op_id, "todo", todo_id, &op_bytes, account_id,
+        )
+        .await;
+
+        Ok(todo)
+    }
+
+    /// Unlink a task from a todo.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TodoError::NotFound` if the todo does not exist.
+    pub async fn unlink_task(&self, todo_id: Uuid, account_id: Uuid) -> Result<Todo, TodoError> {
+        let todo = TodoRepository::update_linked_task(&self.pool, todo_id, None).await?;
+
+        let crdt_op = serde_json::json!({
+            "type": "unlink_task",
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ = CrdtRepository::insert_operation(
+            &self.pool, op_id, "todo", todo_id, &op_bytes, account_id,
+        )
+        .await;
+
+        Ok(todo)
     }
 
     /// Count incomplete todos for a task.
@@ -236,9 +357,24 @@ impl TodoService {
         &self,
         todo_id: Uuid,
         member_id: Uuid,
+        account_id: Uuid,
     ) -> Result<TodoAssignee, TodoError> {
         let id = generate_id();
-        TodoRepository::add_assignee(&self.pool, id, todo_id, member_id).await
+        let assignee = TodoRepository::add_assignee(&self.pool, id, todo_id, member_id).await?;
+
+        let crdt_op = serde_json::json!({
+            "type": "add_assignee",
+            "member_id": member_id.to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ = CrdtRepository::insert_operation(
+            &self.pool, op_id, "todo", todo_id, &op_bytes, account_id,
+        )
+        .await;
+
+        Ok(assignee)
     }
 
     /// Remove an assignee from a todo.
@@ -246,8 +382,27 @@ impl TodoService {
     /// # Errors
     ///
     /// Returns `TodoError::AssigneeNotFound` if the assignment does not exist.
-    pub async fn remove_assignee(&self, todo_id: Uuid, member_id: Uuid) -> Result<(), TodoError> {
-        TodoRepository::remove_assignee(&self.pool, todo_id, member_id).await
+    pub async fn remove_assignee(
+        &self,
+        todo_id: Uuid,
+        member_id: Uuid,
+        account_id: Uuid,
+    ) -> Result<(), TodoError> {
+        TodoRepository::remove_assignee(&self.pool, todo_id, member_id).await?;
+
+        let crdt_op = serde_json::json!({
+            "type": "remove_assignee",
+            "member_id": member_id.to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        });
+        let op_bytes = serde_json::to_vec(&crdt_op).unwrap_or_default();
+        let op_id = generate_id();
+        let _ = CrdtRepository::insert_operation(
+            &self.pool, op_id, "todo", todo_id, &op_bytes, account_id,
+        )
+        .await;
+
+        Ok(())
     }
 
     /// List assignees for a todo.
@@ -261,6 +416,12 @@ impl TodoService {
 
     /// List todos assigned to the current account across all projects.
     ///
+    /// Aggregated at service layer (no cross-module SQL JOINs):
+    /// 1. `MemberRepository` → get `member_ids` for account
+    /// 2. `TodoRepository` → get assigned todos (todo-module tables only)
+    /// 3. `TaskRepository` → get task names
+    /// 4. `ProjectRepository` → get project names
+    ///
     /// # Errors
     ///
     /// Returns `TodoError::Database` on database failure.
@@ -270,7 +431,97 @@ impl TodoService {
         status_filter: Option<&TodoStatus>,
         project_id_filter: Option<Uuid>,
     ) -> Result<Vec<MyTodoItem>, TodoError> {
-        TodoRepository::list_my_todos(&self.pool, account_id, status_filter, project_id_filter)
+        // 1. Get all member_ids for this account
+        let member_ids = MemberRepository::get_ids_by_account_id(&self.pool, account_id)
             .await
+            .map_err(|e| {
+                TodoError::Database(match e {
+                    crate::modules::core::member::error::MemberError::Database(db) => db,
+                    _ => sqlx::Error::RowNotFound,
+                })
+            })?;
+
+        if member_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // 2. Get todos assigned to these members (todo-module tables only)
+        let todos =
+            TodoRepository::list_todos_for_members(&self.pool, &member_ids, status_filter).await?;
+
+        if todos.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // 3. Get unique task_ids and fetch task info
+        let task_ids: Vec<Uuid> = todos
+            .iter()
+            .map(|t| t.task_id)
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
+        let tasks = TaskRepository::get_by_ids(&self.pool, &task_ids)
+            .await
+            .map_err(|e| {
+                TodoError::Database(match e {
+                    crate::modules::core::task::error::TaskError::Database(db) => db,
+                    _ => sqlx::Error::RowNotFound,
+                })
+            })?;
+
+        let task_map: std::collections::HashMap<Uuid, &crate::modules::core::task::models::Task> =
+            tasks.iter().map(|t| (t.id, t)).collect();
+
+        // 4. Get unique project_ids and fetch project names
+        let project_ids: Vec<Uuid> = tasks
+            .iter()
+            .map(|t| t.project_id)
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
+        let project_names = ProjectRepository::get_names_by_ids(&self.pool, &project_ids)
+            .await
+            .map_err(|e| {
+                TodoError::Database(match e {
+                    crate::modules::core::project::error::ProjectError::Database(db) => db,
+                    _ => sqlx::Error::RowNotFound,
+                })
+            })?;
+
+        let project_map: std::collections::HashMap<Uuid, String> =
+            project_names.into_iter().collect();
+
+        // 5. Assemble MyTodoItem, filtering by project_id if specified
+        let items: Vec<MyTodoItem> = todos
+            .into_iter()
+            .filter_map(|todo| {
+                let task = task_map.get(&todo.task_id)?;
+                let project_name = project_map.get(&task.project_id)?;
+
+                // Apply project_id filter
+                if let Some(filter_pid) = project_id_filter {
+                    if task.project_id != filter_pid {
+                        return None;
+                    }
+                }
+
+                Some(MyTodoItem {
+                    id: todo.id,
+                    task_id: todo.task_id,
+                    title: todo.title,
+                    description: todo.description,
+                    status: todo.status,
+                    todo_type: todo.todo_type,
+                    due_date: todo.due_date,
+                    project_id: task.project_id,
+                    project_name: project_name.clone(),
+                    task_name: task.name.clone(),
+                    created_at: todo.created_at,
+                    updated_at: todo.updated_at,
+                })
+            })
+            .collect();
+
+        Ok(items)
     }
 }

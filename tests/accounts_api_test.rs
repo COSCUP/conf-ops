@@ -59,7 +59,7 @@ async fn get_me_returns_account() {
     let ctx = TestContext::new().await;
     let state = ctx.app_state();
     let (account_id, email) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let app = build_accounts_app(state);
 
@@ -92,7 +92,7 @@ async fn update_me_changes_display_name() {
     let ctx = TestContext::new().await;
     let state = ctx.app_state();
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let app = build_accounts_app(state);
 
@@ -123,7 +123,7 @@ async fn profile_crud() {
     let ctx = TestContext::new().await;
     let state = ctx.app_state();
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     // Get empty profile
     let app = build_accounts_app(state.clone());
@@ -174,7 +174,7 @@ async fn notification_preferences_stub() {
     let ctx = TestContext::new().await;
     let state = ctx.app_state();
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let app = build_accounts_app(state);
     let response = app
@@ -204,7 +204,7 @@ async fn list_passkeys_empty() {
     let ctx = TestContext::new().await;
     let state = ctx.app_state();
     let (account_id, _) = ctx.create_test_account().await;
-    let token = ctx.issue_test_token(account_id);
+    let token = common::TestContext::issue_test_token(account_id);
 
     let app = build_accounts_app(state);
     let response = app

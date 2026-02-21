@@ -12,9 +12,6 @@ use super::error::StorageError;
 use super::models::{FileMetadata, FileRecord};
 use super::repository::{CreateFileParams, FileMetadataRepository, FileRepository};
 
-/// Grace period for orphaned file cleanup (7 days).
-const CLEANUP_GRACE_PERIOD_SECS: i64 = 7 * 24 * 3600;
-
 /// Valid scope types for file uploads.
 const VALID_SCOPE_TYPES: &[&str] = &["task", "project"];
 
@@ -24,14 +21,16 @@ pub struct StorageConfig {
     pub max_image_size: u64,
     pub max_document_size: u64,
     pub max_file_size: u64,
+    pub cleanup_grace_period_secs: i64,
 }
 
 impl Default for StorageConfig {
     fn default() -> Self {
         Self {
-            max_image_size: 10 * 1024 * 1024,    // 10 MB
-            max_document_size: 50 * 1024 * 1024, // 50 MB
-            max_file_size: 20 * 1024 * 1024,     // 20 MB
+            max_image_size: 10 * 1024 * 1024,         // 10 MB
+            max_document_size: 50 * 1024 * 1024,      // 50 MB
+            max_file_size: 20 * 1024 * 1024,          // 20 MB
+            cleanup_grace_period_secs: 7 * 24 * 3600, // 7 days
         }
     }
 }
@@ -237,7 +236,8 @@ impl FileService {
     /// Returns `StorageError` on I/O or database error.
     pub async fn cleanup_orphaned_files(&self) -> Result<u64, StorageError> {
         let orphans =
-            FileRepository::find_orphaned_files(&self.pool, CLEANUP_GRACE_PERIOD_SECS).await?;
+            FileRepository::find_orphaned_files(&self.pool, self.config.cleanup_grace_period_secs)
+                .await?;
 
         let mut cleaned = 0u64;
         for record in orphans {

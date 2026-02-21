@@ -55,31 +55,35 @@ must_use_candidate = "allow"
 | **API 測試** | HTTP 端點的請求 / 回應驗證 | `axum::test` 或 `reqwest` + test server | CI pipeline |
 | **整合測試** | 跨模組的完整業務流程 | `tests/` 目錄 + 真實 DB | CI pipeline |
 
-### 2.2 資料庫測試：使用真實 PostgreSQL
+### 2.2 資料庫測試：使用 postgresql_embedded（無需手動安裝 PostgreSQL）
 
 **禁止使用 mock 資料庫。** 所有涉及資料庫的測試必須使用真實 PostgreSQL 實例。
 
-使用 [`pg_lite`](https://crates.io/crates/pg_lite) 管理測試用 PostgreSQL：
+使用 [`postgresql_embedded`](https://crates.io/crates/postgresql_embedded) 管理測試用 PostgreSQL。`postgresql_embedded` 會在測試執行時自動下載並啟動嵌入式 PostgreSQL，**不需要預先安裝或手動啟動 PostgreSQL 服務**，可直接執行 `cargo test`：
 
 ```rust
-use pg_lite::PgLite;
+use postgresql_embedded::PostgreSQL;
 
 #[tokio::test]
 async fn test_create_task() {
-    let pg = PgLite::new().await.unwrap();
-    let pool = pg.pool().await.unwrap();
+    let mut pg = PostgreSQL::default();
+    pg.setup().await.unwrap();
+    pg.start().await.unwrap();
+
+    let db_name = "test_db";
+    pg.create_database(db_name).await.unwrap();
+
+    let settings = pg.settings();
+    let url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        settings.username, settings.password, settings.host, settings.port, db_name,
+    );
+    let pool = PgPool::connect(&url).await.unwrap();
 
     // 執行 migration
     sqlx::migrate!("./migrations").run(&pool).await.unwrap();
 
-    // 執行測試邏輯
-    let task = TaskRepository::new(pool.clone())
-        .create(&NewTask { title: "Test".into(), /* ... */ })
-        .await
-        .unwrap();
-
-    assert_eq!(task.title, "Test");
-    // pg_lite 自動清理，測試結束後資料庫銷毀
+    // 執行測試邏輯（_pg 離開 scope 後自動清理）
 }
 ```
 
@@ -92,15 +96,25 @@ async fn test_create_task() {
 pub struct TestContext {
     pub pool: PgPool,
     pub app: TestApp,
+    _pg: PostgreSQL,  // 保持存活，離開 scope 後自動停止並清理
 }
 
 impl TestContext {
     pub async fn new() -> Self {
-        let pg = PgLite::new().await.unwrap();
-        let pool = pg.pool().await.unwrap();
+        let mut pg = PostgreSQL::default();
+        pg.setup().await.expect("Failed to setup PostgreSQL");
+        pg.start().await.expect("Failed to start PostgreSQL");
+        let db_name = format!("test_{}", Uuid::now_v7().simple());
+        pg.create_database(&db_name).await.unwrap();
+        let settings = pg.settings();
+        let url = format!(
+            "postgres://{}:{}@{}:{}/{}",
+            settings.username, settings.password, settings.host, settings.port, db_name,
+        );
+        let pool = PgPool::connect(&url).await.unwrap();
         sqlx::migrate!("./migrations").run(&pool).await.unwrap();
         let app = TestApp::new(pool.clone()).await;
-        Self { pool, app }
+        Self { pool, app, _pg: pg }
     }
 
     /// 建立測試用帳號，回傳 account_id 與 JWT token
@@ -245,7 +259,7 @@ DATABASE_URL=... cargo xtask sqlx-prepare --check
 #### 注意事項
 
 - `.sqlx/` 目錄必須提交至 Git（已排除在 `.gitignore` 之外）
-- `cargo test`（整合測試）仍需要真實 PostgreSQL，因為測試執行期間會連線資料庫
+- `cargo test`（整合測試）使用 `postgresql_embedded` 自動管理 PostgreSQL，無需手動安裝或啟動 PostgreSQL 服務
 - 若快取過期（SQL 有變更但未更新快取），編譯會失敗並提示類型不匹配
 
 ---

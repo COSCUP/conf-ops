@@ -33,6 +33,18 @@ pub struct AppConfig {
 
     // Authorization cache TTL in seconds
     pub authz_cache_ttl_secs: u64,
+
+    // File storage
+    pub storage_base_path: String,
+    pub storage_max_image_size: u64,
+    pub storage_max_document_size: u64,
+    pub storage_max_file_size: u64,
+    pub storage_cleanup_grace_period_secs: i64,
+
+    // CRDT WebSocket
+    pub crdt_ws_max_connections: usize,
+    pub crdt_ws_heartbeat_interval_secs: u64,
+    pub crdt_ws_idle_timeout_secs: u64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -95,6 +107,20 @@ impl AppConfig {
 
         let authz_cache_ttl_secs = parse_or(&lookup, "AUTHZ_CACHE_TTL_SECS", 300)?;
 
+        let storage_base_path =
+            lookup("STORAGE_BASE_PATH").unwrap_or_else(|| "./storage".to_string());
+        let storage_max_image_size = parse_or(&lookup, "STORAGE_MAX_IMAGE_SIZE", 10 * 1024 * 1024)?;
+        let storage_max_document_size =
+            parse_or(&lookup, "STORAGE_MAX_DOCUMENT_SIZE", 50 * 1024 * 1024)?;
+        let storage_max_file_size = parse_or(&lookup, "STORAGE_MAX_FILE_SIZE", 20 * 1024 * 1024)?;
+        let storage_cleanup_grace_period_secs =
+            parse_or(&lookup, "STORAGE_CLEANUP_GRACE_PERIOD", 7 * 24 * 3600_i64)?;
+
+        let crdt_ws_max_connections = parse_or(&lookup, "CRDT_WS_MAX_CONNECTIONS_PER_TASK", 50)?;
+        let crdt_ws_heartbeat_interval_secs =
+            parse_or(&lookup, "CRDT_WS_HEARTBEAT_INTERVAL_SECS", 30)?;
+        let crdt_ws_idle_timeout_secs = parse_or(&lookup, "CRDT_WS_IDLE_TIMEOUT_SECS", 300)?;
+
         Ok(Self {
             database_url,
             database_max_connections,
@@ -117,6 +143,14 @@ impl AppConfig {
             smtp_from,
             frontend_url,
             authz_cache_ttl_secs,
+            storage_base_path,
+            storage_max_image_size,
+            storage_max_document_size,
+            storage_max_file_size,
+            storage_cleanup_grace_period_secs,
+            crdt_ws_max_connections,
+            crdt_ws_heartbeat_interval_secs,
+            crdt_ws_idle_timeout_secs,
         })
     }
 }
