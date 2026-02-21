@@ -86,7 +86,7 @@ const router = createRouter({
         {
           path: 'projects/:projectId/task-templates',
           name: 'project-task-templates',
-          component: () => import('@/views/projects/TaskTemplatesView.vue'),
+          component: () => import('@/views/projects/TaskTemplateListView.vue'),
         },
         {
           path: 'projects/:projectId/task-templates/:templateId',
