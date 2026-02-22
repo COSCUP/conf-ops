@@ -134,6 +134,12 @@ pub enum DomainEvent {
         thread_id: uuid::Uuid,
         task_id: uuid::Uuid,
     },
+    UnmatchedEmailReceived {
+        email_id: uuid::Uuid,
+        project_id: uuid::Uuid,
+        from_address: String,
+        subject: String,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.

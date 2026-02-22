@@ -4,7 +4,7 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 
 use super::error::EmailError;
-use super::EmailService;
+use super::{EmailHeaders, EmailService};
 use crate::config::AppConfig;
 
 pub struct SmtpEmailService {
@@ -49,6 +49,49 @@ impl EmailService for SmtpEmailService {
             .from(self.from.clone())
             .to(to_mailbox)
             .subject(subject)
+            .header(lettre::message::header::ContentType::TEXT_HTML)
+            .body(html_body.to_string())
+            .map_err(|e| EmailError::SmtpError(format!("Failed to build email: {e}")))?;
+
+        self.transport
+            .send(email)
+            .await
+            .map_err(|e| EmailError::SmtpError(format!("Failed to send email: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn send_with_headers(
+        &self,
+        to: &str,
+        subject: &str,
+        html_body: &str,
+        headers: &EmailHeaders,
+    ) -> Result<(), EmailError> {
+        let to_mailbox: Mailbox = to.parse().map_err(|e| {
+            EmailError::InvalidEmailFormat(format!("Invalid recipient address: {e}"))
+        })?;
+
+        let mut builder = Message::builder()
+            .from(self.from.clone())
+            .to(to_mailbox)
+            .subject(subject);
+
+        if let Some(ref msg_id) = headers.message_id {
+            builder = builder.message_id(Some(msg_id.clone()));
+        }
+
+        if let Some(ref in_reply_to) = headers.in_reply_to {
+            builder = builder.in_reply_to(in_reply_to.clone());
+        }
+
+        if let Some(ref references) = headers.references {
+            for ref_id in references.split_whitespace() {
+                builder = builder.references(ref_id.to_string());
+            }
+        }
+
+        let email = builder
             .header(lettre::message::header::ContentType::TEXT_HTML)
             .body(html_body.to_string())
             .map_err(|e| EmailError::SmtpError(format!("Failed to build email: {e}")))?;

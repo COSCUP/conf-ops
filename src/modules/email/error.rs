@@ -31,6 +31,9 @@ pub enum EmailError {
     #[error("Duplicate email (message-id already exists)")]
     DuplicateEmail,
 
+    #[error("Attachment storage error: {0}")]
+    AttachmentStorageError(String),
+
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 }
@@ -58,6 +61,11 @@ impl From<EmailError> for ProblemDetails {
             EmailError::DuplicateEmail => {
                 Self::new(StatusCode::CONFLICT, "Duplicate Email").with_detail(err.to_string())
             }
+            EmailError::AttachmentStorageError(_) => Self::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Attachment Storage Error",
+            )
+            .with_detail(err.to_string()),
             EmailError::Database(_) => Self::internal_server_error(),
         }
     }

@@ -37,7 +37,7 @@ pub enum InboundStatus {
 pub struct InboundEmailService {
     pool: PgPool,
     event_bus: EventBus,
-    _file_service: Arc<crate::modules::storage::service::FileService>,
+    file_service: Arc<crate::modules::storage::service::FileService>,
 }
 
 impl InboundEmailService {
@@ -49,7 +49,7 @@ impl InboundEmailService {
         Self {
             pool,
             event_bus,
-            _file_service: file_service,
+            file_service,
         }
     }
 
@@ -106,7 +106,7 @@ impl InboundEmailService {
         // Resolve sender identity
         let task = sqlx::query_as!(
             TaskProjectRow,
-            r#"SELECT t.id, t.project_id, p.organization_id
+            r#"SELECT t.project_id, p.organization_id
              FROM tasks t
              INNER JOIN projects p ON p.id = t.project_id
              WHERE t.id = $1"#,
@@ -122,15 +122,26 @@ impl InboundEmailService {
             parsed.from_name.as_deref(),
             task.organization_id,
             task.project_id,
+            parsed.text_body.as_deref(),
         )
         .await?;
 
-        // Create conversation message
+        // Upload attachments and create conversation message
+        let file_ids = self
+            .upload_attachments(parsed, &task, thread.task_id)
+            .await?;
+
         let content = serde_json::json!({
             "text": parsed.text_body.as_deref().unwrap_or(""),
             "from": parsed.from_address,
             "subject": parsed.subject,
         });
+
+        let attachments_json = if file_ids.is_empty() {
+            None
+        } else {
+            Some(serde_json::json!(file_ids))
+        };
 
         let conv_msg_id = generate_id();
         MessageRepository::create(
@@ -141,7 +152,7 @@ impl InboundEmailService {
                 source_type: MessageSourceType::EmailInbound,
                 source_id: None,
                 content,
-                attachments: None,
+                attachments: attachments_json,
                 action_result: None,
                 last_seen_message_id: None,
             },
@@ -227,6 +238,39 @@ impl InboundEmailService {
         Ok(())
     }
 
+    async fn upload_attachments(
+        &self,
+        parsed: &ParsedEmail,
+        task: &TaskProjectRow,
+        task_id: Uuid,
+    ) -> Result<Vec<Uuid>, EmailError> {
+        let mut file_ids = Vec::new();
+        for attachment in &parsed.attachments {
+            let record = self
+                .file_service
+                .upload_file(&crate::modules::storage::service::UploadFileParams {
+                    filename: &attachment.filename,
+                    mime_type: &attachment.mime_type,
+                    data: &attachment.data,
+                    scope_type: "task",
+                    scope_id: task_id,
+                    uploaded_by: Uuid::nil(),
+                    organization_id: Some(task.organization_id),
+                    project_id: Some(task.project_id),
+                    task_id: Some(task_id),
+                })
+                .await
+                .map_err(|e| {
+                    EmailError::AttachmentStorageError(format!(
+                        "Failed to store attachment '{}': {e}",
+                        attachment.filename
+                    ))
+                })?;
+            file_ids.push(record.id);
+        }
+        Ok(file_ids)
+    }
+
     async fn process_unmatched_email(
         &self,
         parsed: &ParsedEmail,
@@ -253,6 +297,13 @@ impl InboundEmailService {
             },
         )
         .await?;
+
+        self.event_bus.publish(DomainEvent::UnmatchedEmailReceived {
+            email_id: unassigned_id,
+            project_id,
+            from_address: parsed.from_address.clone(),
+            subject: parsed.subject.clone(),
+        });
 
         Ok(InboundResult {
             status: InboundStatus::Unmatched,
@@ -320,8 +371,6 @@ impl InboundEmailService {
 
 #[derive(sqlx::FromRow)]
 struct TaskProjectRow {
-    #[allow(dead_code)]
-    id: Uuid,
     project_id: Uuid,
     organization_id: Uuid,
 }

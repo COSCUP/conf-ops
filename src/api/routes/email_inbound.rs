@@ -16,6 +16,48 @@ use crate::modules::email::error::EmailError;
 use crate::modules::email::models::UnassignedEmail;
 use crate::modules::email::repository::UnassignedEmailRepository;
 
+// ── Inbound Source Detection ──────────────────────────────────
+
+enum InboundSource {
+    AwsSes {
+        spam_verdict: Option<String>,
+        virus_verdict: Option<String>,
+    },
+    Cloudflare,
+    Unknown,
+}
+
+impl std::fmt::Display for InboundSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AwsSes { .. } => write!(f, "AWS SES"),
+            Self::Cloudflare => write!(f, "Cloudflare"),
+            Self::Unknown => write!(f, "Unknown"),
+        }
+    }
+}
+
+fn detect_source(headers: &HeaderMap) -> InboundSource {
+    if headers.get("x-ses-message-id").is_some() {
+        return InboundSource::AwsSes {
+            spam_verdict: headers
+                .get("x-ses-spam-verdict")
+                .and_then(|v| v.to_str().ok())
+                .map(String::from),
+            virus_verdict: headers
+                .get("x-ses-virus-verdict")
+                .and_then(|v| v.to_str().ok())
+                .map(String::from),
+        };
+    }
+
+    if headers.get("x-cf-mail-from").is_some() {
+        return InboundSource::Cloudflare;
+    }
+
+    InboundSource::Unknown
+}
+
 // ── Request/Response Types ────────────────────────────────────
 
 #[derive(Deserialize, ToSchema)]
@@ -127,9 +169,31 @@ pub async fn receive_inbound_email(
         return Err(ProblemDetails::from(EmailError::InvalidApiKey));
     }
 
-    // Use a default project_id from a query or header, or use Uuid::nil as fallback
-    // In practice, the thread matcher will determine the correct project
-    let default_project_id = Uuid::nil();
+    // Detect inbound source (AWS SES, Cloudflare, or Unknown)
+    let source = detect_source(&headers);
+    tracing::info!(source = %source, "Inbound email source detected");
+
+    // SES security checks
+    if let InboundSource::AwsSes {
+        ref spam_verdict,
+        ref virus_verdict,
+        ..
+    } = source
+    {
+        if spam_verdict.as_deref() == Some("FAIL") || virus_verdict.as_deref() == Some("FAIL") {
+            return Err(
+                ProblemDetails::new(axum::http::StatusCode::BAD_REQUEST, "Email rejected")
+                    .with_detail("Email failed spam or virus check."),
+            );
+        }
+    }
+
+    // Parse X-Project-Id header for default project, fallback to Uuid::nil()
+    let default_project_id = headers
+        .get("x-project-id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| Uuid::parse_str(v).ok())
+        .unwrap_or_else(Uuid::nil);
 
     let result = state
         .inbound_email_service

@@ -13,7 +13,7 @@ use super::models::{
     SendStatus,
 };
 use super::repository::{EmailMessageRepository, EmailThreadRepository};
-use super::EmailService;
+use super::{EmailHeaders, EmailService};
 
 pub struct SendEmailParams {
     pub thread_id: Option<Uuid>,
@@ -81,9 +81,14 @@ impl EmailOutboundService {
 
         // Try to send via SMTP
         let to_list = params.to_addresses.join(", ");
+        let email_headers = EmailHeaders {
+            message_id: Some(email_message_id.clone()),
+            in_reply_to: in_reply_to.clone(),
+            references: references_header.clone(),
+        };
         let send_result = self
             .smtp_service
-            .send(&to_list, &params.subject, &params.html_body)
+            .send_with_headers(&to_list, &params.subject, &params.html_body, &email_headers)
             .await;
 
         let send_status = if send_result.is_ok() {
@@ -171,7 +176,15 @@ impl EmailOutboundService {
             let to_list = to_addresses.join(", ");
 
             // We don't have the body stored, so we send a minimal retry notification
-            let result = self.smtp_service.send(&to_list, &msg.subject, "").await;
+            let retry_headers = EmailHeaders {
+                message_id: Some(msg.message_id.clone()),
+                in_reply_to: msg.in_reply_to.clone(),
+                references: msg.references_header.clone(),
+            };
+            let result = self
+                .smtp_service
+                .send_with_headers(&to_list, &msg.subject, "", &retry_headers)
+                .await;
 
             let new_count = msg.retry_count + 1;
             if result.is_ok() {

@@ -12,16 +12,71 @@ pub enum SenderIdentity {
     NewContact { contact_id: Uuid },
 }
 
+/// Detect if an email body contains forwarded content and extract the original sender's email.
+fn detect_forwarded_sender(body: &str) -> Option<String> {
+    let forward_markers = [
+        "---------- Forwarded message ----------",
+        "Begin forwarded message:",
+        "-------- Original Message --------",
+    ];
+
+    let has_forward = forward_markers.iter().any(|marker| body.contains(marker));
+    if !has_forward {
+        return None;
+    }
+
+    // Try to extract "From:" from the forwarded block
+    let from_pattern = regex::Regex::new(
+        r"(?i)From:\s*(?:.*<)?([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})>?",
+    )
+    .ok()?;
+
+    // Find all From: matches; the one after the forward marker is the original sender
+    for marker in &forward_markers {
+        if let Some(pos) = body.find(marker) {
+            let after_marker = &body[pos..];
+            if let Some(cap) = from_pattern.captures(after_marker) {
+                return cap.get(1).map(|m| m.as_str().to_string());
+            }
+        }
+    }
+
+    None
+}
+
 /// Resolve the identity of an email sender within a project's organization.
 ///
 /// 1. Check `accounts` table for email -> Member
 /// 2. Check `contacts` table for email -> Contact
 /// 3. Auto-create a new Contact -> `NewContact`
 ///
+/// If the email body contains a forwarded message, the original sender's
+/// email address is extracted and resolved instead.
+///
 /// # Errors
 ///
 /// Returns `EmailError::Database` on database failure.
 pub async fn resolve_sender(
+    pool: &PgPool,
+    from_address: &str,
+    from_name: Option<&str>,
+    organization_id: Uuid,
+    project_id: Uuid,
+    email_body: Option<&str>,
+) -> Result<SenderIdentity, EmailError> {
+    // Check for forwarded email and resolve the original sender if detected
+    if let Some(body) = email_body {
+        if let Some(original_sender) = detect_forwarded_sender(body) {
+            // Resolve the original sender instead of the forwarder
+            return resolve_sender_inner(pool, &original_sender, None, organization_id, project_id)
+                .await;
+        }
+    }
+
+    resolve_sender_inner(pool, from_address, from_name, organization_id, project_id).await
+}
+
+async fn resolve_sender_inner(
     pool: &PgPool,
     from_address: &str,
     from_name: Option<&str>,
