@@ -523,6 +523,138 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List notifications for the current user.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_notifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark all notifications as read.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        put: operations["mark_all_as_read"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get unread notification count.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["get_unread_count"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/web-push/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a Web Push subscription.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on duplicate or database failure.
+         */
+        post: operations["subscribe_web_push"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/web-push/subscriptions/{endpoint}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unsubscribe a Web Push endpoint.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        delete: operations["unsubscribe_web_push"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{notificationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark a notification as read.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        put: operations["mark_as_read"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations": {
         parameters: {
             query?: never;
@@ -2410,6 +2542,11 @@ export interface components {
             /** Format: uuid */
             memberTagId: string;
         };
+        /** @description Response for listing notifications. */
+        ListNotificationsResponse: {
+            data: components["schemas"]["NotificationResponse"][];
+            nextCursor?: string | null;
+        };
         ListSuggestionsResponse: {
             data: components["schemas"]["SuggestionGroupItem"][];
             /** Format: uuid */
@@ -2428,6 +2565,11 @@ export interface components {
         };
         MagicLinkResponse: {
             message: string;
+        };
+        /** @description Mark all as read response. */
+        MarkAllReadResponse: {
+            /** Format: int64 */
+            updated: number;
         };
         MemberDetailResponse: {
             /** Format: uuid */
@@ -2560,6 +2702,25 @@ export interface components {
         };
         NotificationPreferencesResponse: {
             channels: components["schemas"]["NotificationChannels"];
+        };
+        /** @description A notification item in the API response. */
+        NotificationResponse: {
+            /** Format: uuid */
+            accountId: string;
+            body?: string | null;
+            createdAt: string;
+            deliveredChannels: unknown;
+            /** Format: uuid */
+            id: string;
+            isRead: boolean;
+            /** Format: uuid */
+            projectId?: string | null;
+            readAt?: string | null;
+            /** Format: uuid */
+            referenceId?: string | null;
+            referenceType?: string | null;
+            title: string;
+            type: string;
         };
         OrgMemberListResponse: {
             members: components["schemas"]["OrgMemberResponse"][];
@@ -2949,6 +3110,11 @@ export interface components {
             snippet?: string | null;
             subject: string;
         };
+        /** @description Response for unread count. */
+        UnreadCountResponse: {
+            /** Format: int64 */
+            count: number;
+        };
         UpdateAccountRequest: {
             avatarUrl?: string | null;
             bio?: string | null;
@@ -3053,6 +3219,29 @@ export interface components {
             field: string;
             /** @description Human-readable error message. */
             message: string;
+        };
+        /** @description Web Push subscription keys. */
+        WebPushKeys: {
+            auth: string;
+            p256dh: string;
+        };
+        /** @description Web Push subscription request body. */
+        WebPushSubscribeRequest: {
+            deviceName?: string | null;
+            subscription: components["schemas"]["WebPushSubscriptionData"];
+        };
+        /** @description Web Push subscription data. */
+        WebPushSubscriptionData: {
+            endpoint: string;
+            keys: components["schemas"]["WebPushKeys"];
+        };
+        /** @description Web Push subscription response. */
+        WebPushSubscriptionResponse: {
+            createdAt: string;
+            deviceName?: string | null;
+            endpoint: string;
+            /** Format: uuid */
+            id: string;
         };
     };
     responses: never;
@@ -3907,6 +4096,211 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemoryVersionResponse"][];
+                };
+            };
+        };
+    };
+    list_notifications: {
+        parameters: {
+            query?: {
+                /** @description Cursor for pagination */
+                cursor?: string;
+                /** @description Max items to return */
+                limit?: number;
+                /** @description Filter unread only */
+                unreadOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notification list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListNotificationsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    mark_all_as_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All notifications marked as read */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkAllReadResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_unread_count: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unread count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCountResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    subscribe_web_push: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebPushSubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description Subscription created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebPushSubscriptionResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    unsubscribe_web_push: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Web Push endpoint URL (URL-encoded) */
+                endpoint: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Subscription deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    mark_as_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Notification ID */
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notification marked as read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

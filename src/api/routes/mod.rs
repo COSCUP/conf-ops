@@ -12,6 +12,7 @@ pub mod health;
 pub mod member_tags;
 pub mod members;
 pub mod memories;
+pub mod notifications;
 pub mod organizations;
 pub mod projects;
 pub mod task_templates;

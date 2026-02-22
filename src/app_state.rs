@@ -25,6 +25,7 @@ use crate::modules::core::task_template::service::TaskTemplateService;
 use crate::modules::core::todo::service::TodoService;
 use crate::modules::email::inbound::InboundEmailService;
 use crate::modules::email::service::EmailOutboundService;
+use crate::modules::notifications::service::NotificationService;
 use crate::modules::storage::service::FileService;
 use crate::modules::tools::service::ToolService;
 
@@ -60,4 +61,5 @@ pub struct AppState {
     pub placeholder_resolver: Arc<PlaceholderResolver>,
     pub privacy_engine: Arc<PrivacyEngine>,
     pub tool_service: Arc<ToolService>,
+    pub notification_service: Arc<NotificationService>,
 }

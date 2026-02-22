@@ -302,6 +302,15 @@ impl TestContext {
 
         let tool_service = Arc::new(ToolService::new(&self.pool, event_bus.clone()));
 
+        let notification_service = Arc::new(
+            conf_ops::modules::notifications::service::NotificationService::new(
+                self.pool.clone(),
+                event_bus.clone(),
+                Arc::new(conf_ops::modules::notifications::web_push::WebPushSender::noop()),
+                self.email_service.clone(),
+            ),
+        );
+
         let ws_token_store = Arc::new(WsTokenStore::new());
         let ws_manager = Arc::new(WsManager::new(50));
         let awareness_manager = Arc::new(AwarenessManager::new());
@@ -337,6 +346,7 @@ impl TestContext {
             placeholder_resolver,
             privacy_engine,
             tool_service,
+            notification_service,
         }
     }
 

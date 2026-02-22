@@ -7,8 +7,8 @@ use utoipa::{Modify, OpenApi};
 
 use super::routes::{
     accounts, ai_suggestions, auth, contacts, data_entries, data_external, email_inbound,
-    email_threads, health, member_tags, members, memories, organizations, projects, task_templates,
-    tasks, todos, tools,
+    email_threads, health, member_tags, members, memories, notifications, organizations, projects,
+    task_templates, tasks, todos, tools,
 };
 
 #[derive(OpenApi)]
@@ -140,6 +140,12 @@ use super::routes::{
         ai_suggestions::decide_suggestion,
         ai_suggestions::request_suggestion,
         ai_suggestions::resolve_placeholders,
+        notifications::list_notifications,
+        notifications::get_unread_count,
+        notifications::mark_as_read,
+        notifications::mark_all_as_read,
+        notifications::subscribe_web_push,
+        notifications::unsubscribe_web_push,
         tools::list_tools,
         tools::get_tool_details,
         tools::execute_tool,
@@ -168,6 +174,7 @@ use super::routes::{
         (name = "email-inbound", description = "Email inbound webhook and unassigned inbox endpoints"),
         (name = "memories", description = "Memory and library document management endpoints"),
         (name = "ai-suggestions", description = "AI suggestion pipeline endpoints"),
+        (name = "notifications", description = "Notification and Web Push endpoints"),
         (name = "tools", description = "Tool execution endpoints"),
         (name = "tool-configs", description = "Tool configuration management endpoints")
     )

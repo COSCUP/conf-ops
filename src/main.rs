@@ -10,13 +10,13 @@ use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::api::routes::{
     accounts, ai_suggestions, auth, contacts, conversations, data_entries, data_external,
-    email_inbound, email_threads, files, health, member_tags, members, memories, organizations,
-    projects, task_templates, tasks, todos, tools, ws,
+    email_inbound, email_threads, files, health, member_tags, members, memories, notifications,
+    organizations, projects, task_templates, tasks, todos, tools, ws,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
 use conf_ops::db;
-use conf_ops::events::{DomainEvent, EventBus};
+use conf_ops::events::EventBus;
 use conf_ops::modules::ai::context::ContextAssembler;
 use conf_ops::modules::ai::decision::DecisionService;
 use conf_ops::modules::ai::llm_client::{GeminiClient, LlmProvider, MockLlmProvider};
@@ -45,6 +45,8 @@ use conf_ops::modules::core::todo::service::TodoService;
 use conf_ops::modules::email::inbound::InboundEmailService;
 use conf_ops::modules::email::service::EmailOutboundService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
+use conf_ops::modules::notifications::service::NotificationService;
+use conf_ops::modules::notifications::web_push::WebPushSender;
 use conf_ops::modules::storage::local::LocalStorageBackend;
 use conf_ops::modules::storage::service::{FileService, StorageConfig};
 use conf_ops::modules::tools::service::ToolService;
@@ -69,19 +71,19 @@ fn build_file_service(
     ))
 }
 
-fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
-    let event_bus = EventBus::default();
+fn build_core_services(
+    config: &AppConfig,
+    pool: &sqlx::PgPool,
+    event_bus: &EventBus,
+    email_service: &Arc<dyn conf_ops::modules::email::EmailService>,
+) -> CoreServices {
+    let webauthn = build_webauthn(config).expect("Failed to build WebAuthn");
     let jwt_config = JwtConfig {
         secret: config.jwt_secret.clone(),
         issuer: config.jwt_issuer.clone(),
         access_token_expiry_secs: config.jwt_access_expiry_secs,
         refresh_token_expiry_secs: config.jwt_refresh_expiry_secs,
     };
-
-    let email_service =
-        Arc::new(SmtpEmailService::new(config).expect("Failed to create email service"));
-    let webauthn = build_webauthn(config).expect("Failed to build WebAuthn");
-
     let auth_service = Arc::new(AuthService::new(
         pool.clone(),
         jwt_config.clone(),
@@ -96,20 +98,47 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         email_service.clone(),
         config.frontend_url.clone(),
     ));
-    let project_service = Arc::new(ProjectService::new(pool.clone(), event_bus.clone()));
-    let member_service = Arc::new(MemberService::new(pool.clone(), event_bus.clone()));
-    let member_tag_service = Arc::new(MemberTagService::new(pool.clone(), event_bus.clone()));
-    let contact_service = Arc::new(ContactService::new(pool.clone(), event_bus.clone()));
-    let permission_service = Arc::new(PermissionService::new(
-        pool.clone(),
-        &event_bus,
-        config.authz_cache_ttl_secs,
-    ));
-    let task_template_service = Arc::new(TaskTemplateService::new(pool.clone(), event_bus.clone()));
-    let task_service = Arc::new(TaskService::new(pool.clone(), event_bus.clone(), 120));
-    let todo_service = Arc::new(TodoService::new(pool.clone(), event_bus.clone()));
-    let data_sheet_service = Arc::new(DataSheetService::new(pool.clone(), event_bus.clone()));
+    CoreServices {
+        jwt_config,
+        auth_service,
+        org_service,
+        project_service: Arc::new(ProjectService::new(pool.clone(), event_bus.clone())),
+        member_service: Arc::new(MemberService::new(pool.clone(), event_bus.clone())),
+        member_tag_service: Arc::new(MemberTagService::new(pool.clone(), event_bus.clone())),
+        contact_service: Arc::new(ContactService::new(pool.clone(), event_bus.clone())),
+        permission_service: Arc::new(PermissionService::new(
+            pool.clone(),
+            event_bus,
+            config.authz_cache_ttl_secs,
+        )),
+        task_template_service: Arc::new(TaskTemplateService::new(pool.clone(), event_bus.clone())),
+        task_service: Arc::new(TaskService::new(pool.clone(), event_bus.clone(), 120)),
+        todo_service: Arc::new(TodoService::new(pool.clone(), event_bus.clone())),
+        data_sheet_service: Arc::new(DataSheetService::new(pool.clone(), event_bus.clone())),
+    }
+}
 
+struct CoreServices {
+    jwt_config: JwtConfig,
+    auth_service: Arc<AuthService>,
+    org_service: Arc<OrganizationService>,
+    project_service: Arc<ProjectService>,
+    member_service: Arc<MemberService>,
+    member_tag_service: Arc<MemberTagService>,
+    contact_service: Arc<ContactService>,
+    permission_service: Arc<PermissionService>,
+    task_template_service: Arc<TaskTemplateService>,
+    task_service: Arc<TaskService>,
+    todo_service: Arc<TodoService>,
+    data_sheet_service: Arc<DataSheetService>,
+}
+
+fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
+    let event_bus = EventBus::default();
+    let email_service: Arc<dyn conf_ops::modules::email::EmailService> =
+        Arc::new(SmtpEmailService::new(config).expect("Failed to create email service"));
+
+    let core = build_core_services(config, &pool, &event_bus, &email_service);
     let file_service = build_file_service(config, pool.clone(), event_bus.clone());
 
     let crdt_manager = Arc::new(CrdtManager::new(pool.clone()));
@@ -122,7 +151,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
     let email_outbound_service = Arc::new(EmailOutboundService::new(
         pool.clone(),
         event_bus.clone(),
-        email_service,
+        email_service.clone(),
         config.email_domain.clone(),
     ));
     let inbound_email_service = Arc::new(InboundEmailService::new(
@@ -138,37 +167,39 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         event_bus.clone(),
         Arc::clone(&placeholder_resolver),
     ));
-
     let tool_service = Arc::new(ToolService::new(&pool, event_bus.clone()));
-
-    let ws_token_store = Arc::new(WsTokenStore::new());
-    let ws_manager = Arc::new(WsManager::new(config.crdt_ws_max_connections));
-    let awareness_manager = Arc::new(AwarenessManager::new());
+    let web_push_sender = Arc::new(WebPushSender::from_env());
+    let notification_service = Arc::new(NotificationService::new(
+        pool.clone(),
+        event_bus.clone(),
+        web_push_sender,
+        email_service,
+    ));
 
     AppState {
         pool,
         event_bus,
-        jwt_config,
+        jwt_config: core.jwt_config,
         app_base_url: config.app_base_url.clone(),
-        auth_service,
-        org_service,
-        member_service,
-        member_tag_service,
-        contact_service,
-        project_service,
-        permission_service,
-        task_template_service,
-        task_service,
-        todo_service,
-        data_sheet_service,
+        auth_service: core.auth_service,
+        org_service: core.org_service,
+        member_service: core.member_service,
+        member_tag_service: core.member_tag_service,
+        contact_service: core.contact_service,
+        project_service: core.project_service,
+        permission_service: core.permission_service,
+        task_template_service: core.task_template_service,
+        task_service: core.task_service,
+        todo_service: core.todo_service,
+        data_sheet_service: core.data_sheet_service,
         file_service,
         conversation_service,
         email_outbound_service,
         inbound_email_service,
         email_inbound_api_key: config.email_inbound_api_key.clone(),
-        ws_token_store,
-        ws_manager,
-        awareness_manager,
+        ws_token_store: Arc::new(WsTokenStore::new()),
+        ws_manager: Arc::new(WsManager::new(config.crdt_ws_max_connections)),
+        awareness_manager: Arc::new(AwarenessManager::new()),
         crdt_ws_heartbeat_interval_secs: config.crdt_ws_heartbeat_interval_secs,
         crdt_ws_idle_timeout_secs: config.crdt_ws_idle_timeout_secs,
         memory_service,
@@ -176,6 +207,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         placeholder_resolver,
         privacy_engine,
         tool_service,
+        notification_service,
     }
 }
 
@@ -534,11 +566,26 @@ fn build_router(state: AppState) -> Router {
             get(memories::list_library_document_versions),
         );
 
+    let notification_routes = Router::new()
+        .route("/", get(notifications::list_notifications))
+        .route("/unread-count", get(notifications::get_unread_count))
+        .route("/{notificationId}/read", put(notifications::mark_as_read))
+        .route("/read-all", put(notifications::mark_all_as_read))
+        .route(
+            "/web-push/subscribe",
+            post(notifications::subscribe_web_push),
+        )
+        .route(
+            "/web-push/subscriptions/{endpoint}",
+            delete(notifications::unsubscribe_web_push),
+        );
+
     let api_v1 = Router::new()
         .nest("/auth", auth_routes())
         .nest("/accounts", account_routes)
         .nest("/organizations", org_routes())
         .nest("/projects", project_routes())
+        .nest("/notifications", notification_routes)
         .nest("/files", files::file_routes())
         .nest("/memories", memory_routes)
         .nest("/library-documents", library_document_routes);
@@ -630,34 +677,38 @@ fn spawn_background_tasks(state: &AppState, config: &AppConfig) {
     ));
     pipeline_worker.start();
 
-    // Spawn event handler for unmatched email notifications (stub for Phase 10)
-    let unmatched_rx = state.event_bus.subscribe();
+    // Start notification event listener
+    state.notification_service.start_event_listener();
+
+    // Start reminder scheduler
+    let reminder_scheduler = Arc::new(
+        conf_ops::modules::notifications::scheduler::ReminderScheduler::new(Arc::clone(
+            &state.notification_service,
+        )),
+    );
+    reminder_scheduler.start();
+
+    // Spawn periodic due date and stale todo scanner (every hour)
+    let scanner_pool = state.pool.clone();
     tokio::spawn(async move {
-        let mut rx = unmatched_rx;
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(3600));
         loop {
-            match rx.recv().await {
-                Ok(DomainEvent::UnmatchedEmailReceived {
-                    email_id,
-                    project_id,
-                    from_address,
-                    subject,
-                }) => {
-                    tracing::info!(
-                        %email_id,
-                        %project_id,
-                        %from_address,
-                        %subject,
-                        "Unmatched email received — notification to project owners pending Phase 10"
-                    );
-                }
-                Ok(_) => {}
-                Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
-                    tracing::warn!("Event handler lagged, skipped {n} event(s)");
-                }
-                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                    tracing::error!("Event bus closed, stopping unmatched email handler");
-                    break;
-                }
+            interval.tick().await;
+            match conf_ops::modules::notifications::scheduler::scan_due_date_reminders(
+                &scanner_pool,
+            )
+            .await
+            {
+                Ok(0) => {}
+                Ok(n) => tracing::info!("Due date scanner: created {n} reminder(s)"),
+                Err(e) => tracing::warn!("Due date scanner error: {e}"),
+            }
+            match conf_ops::modules::notifications::scheduler::scan_stale_todos(&scanner_pool, 7)
+                .await
+            {
+                Ok(0) => {}
+                Ok(n) => tracing::info!("Stale todo scanner: created {n} reminder(s)"),
+                Err(e) => tracing::warn!("Stale todo scanner error: {e}"),
             }
         }
     });
