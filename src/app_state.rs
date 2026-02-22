@@ -19,6 +19,8 @@ use crate::modules::core::project::service::ProjectService;
 use crate::modules::core::task::service::TaskService;
 use crate::modules::core::task_template::service::TaskTemplateService;
 use crate::modules::core::todo::service::TodoService;
+use crate::modules::email::inbound::InboundEmailService;
+use crate::modules::email::service::EmailOutboundService;
 use crate::modules::storage::service::FileService;
 
 #[derive(Clone)]
@@ -40,6 +42,9 @@ pub struct AppState {
     pub data_sheet_service: Arc<DataSheetService>,
     pub file_service: Arc<FileService>,
     pub conversation_service: Arc<ConversationService>,
+    pub email_outbound_service: Arc<EmailOutboundService>,
+    pub inbound_email_service: Arc<InboundEmailService>,
+    pub email_inbound_api_key: Option<String>,
     pub ws_token_store: Arc<WsTokenStore>,
     pub ws_manager: Arc<WsManager>,
     pub awareness_manager: Arc<AwarenessManager>,

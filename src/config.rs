@@ -41,6 +41,10 @@ pub struct AppConfig {
     pub storage_max_file_size: u64,
     pub storage_cleanup_grace_period_secs: i64,
 
+    // Email inbound
+    pub email_inbound_api_key: Option<String>,
+    pub email_domain: String,
+
     // CRDT WebSocket
     pub crdt_ws_max_connections: usize,
     pub crdt_ws_heartbeat_interval_secs: u64,
@@ -116,6 +120,9 @@ impl AppConfig {
         let storage_cleanup_grace_period_secs =
             parse_or(&lookup, "STORAGE_CLEANUP_GRACE_PERIOD", 7 * 24 * 3600_i64)?;
 
+        let email_inbound_api_key = lookup("EMAIL_INBOUND_API_KEY");
+        let email_domain = lookup("EMAIL_DOMAIN").unwrap_or_else(|| "conf-ops.dev".to_string());
+
         let crdt_ws_max_connections = parse_or(&lookup, "CRDT_WS_MAX_CONNECTIONS_PER_TASK", 50)?;
         let crdt_ws_heartbeat_interval_secs =
             parse_or(&lookup, "CRDT_WS_HEARTBEAT_INTERVAL_SECS", 30)?;
@@ -148,6 +155,8 @@ impl AppConfig {
             storage_max_document_size,
             storage_max_file_size,
             storage_cleanup_grace_period_secs,
+            email_inbound_api_key,
+            email_domain,
             crdt_ws_max_connections,
             crdt_ws_heartbeat_interval_secs,
             crdt_ws_idle_timeout_secs,

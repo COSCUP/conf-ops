@@ -9,8 +9,9 @@ use tracing_subscriber::EnvFilter;
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::api::routes::{
-    accounts, auth, contacts, conversations, data_entries, data_external, files, health,
-    member_tags, members, organizations, projects, task_templates, tasks, todos, ws,
+    accounts, auth, contacts, conversations, data_entries, data_external, email_inbound,
+    email_threads, files, health, member_tags, members, organizations, projects, task_templates,
+    tasks, todos, ws,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -33,6 +34,8 @@ use conf_ops::modules::core::project::service::ProjectService;
 use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::core::todo::service::TodoService;
+use conf_ops::modules::email::inbound::InboundEmailService;
+use conf_ops::modules::email::service::EmailOutboundService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
 use conf_ops::modules::storage::local::LocalStorageBackend;
 use conf_ops::modules::storage::service::{FileService, StorageConfig};
@@ -63,7 +66,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
     let org_service = Arc::new(OrganizationService::new(
         pool.clone(),
         event_bus.clone(),
-        email_service,
+        email_service.clone(),
         config.frontend_url.clone(),
     ));
 
@@ -111,6 +114,19 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         Arc::clone(&file_service),
     ));
 
+    let email_outbound_service = Arc::new(EmailOutboundService::new(
+        pool.clone(),
+        event_bus.clone(),
+        email_service,
+        config.email_domain.clone(),
+    ));
+
+    let inbound_email_service = Arc::new(InboundEmailService::new(
+        pool.clone(),
+        event_bus.clone(),
+        Arc::clone(&file_service),
+    ));
+
     let ws_token_store = Arc::new(WsTokenStore::new());
     let ws_manager = Arc::new(WsManager::new(config.crdt_ws_max_connections));
     let awareness_manager = Arc::new(AwarenessManager::new());
@@ -133,6 +149,9 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         data_sheet_service,
         file_service,
         conversation_service,
+        email_outbound_service,
+        inbound_email_service,
+        email_inbound_api_key: config.email_inbound_api_key.clone(),
         ws_token_store,
         ws_manager,
         awareness_manager,
@@ -276,6 +295,19 @@ fn task_routes() -> Router<AppState> {
                 .put(conversations::update_last_seen_position),
         )
         .route("/{taskId}/conversation/ws-token", post(ws::create_ws_token))
+        .route(
+            "/{taskId}/email-threads",
+            get(email_threads::list_email_threads).post(email_threads::create_email_thread),
+        )
+        .route(
+            "/{taskId}/email-threads/{threadId}",
+            axum::routing::patch(email_threads::update_email_thread)
+                .delete(email_threads::delete_email_thread),
+        )
+        .route(
+            "/{taskId}/email-threads/{threadId}/messages",
+            get(email_threads::list_thread_messages).post(email_threads::send_thread_email),
+        )
 }
 
 fn project_routes() -> Router<AppState> {
@@ -371,6 +403,14 @@ fn project_routes() -> Router<AppState> {
         .nest("/{projectId}/task-templates", task_template_routes)
         .nest("/{projectId}/tasks", task_routes())
         .route(
+            "/{projectId}/unassigned-inbox",
+            get(email_inbound::list_unassigned_inbox),
+        )
+        .route(
+            "/{projectId}/unassigned-inbox/{emailId}/assign",
+            post(email_inbound::assign_unassigned_email),
+        )
+        .route(
             "/{projectId}/task-templates/{templateId}/data-sheets/{schemaId}",
             get(data_entries::get_aggregated_sheet),
         )
@@ -410,6 +450,12 @@ fn build_router(state: AppState) -> Router {
         get(ws::ws_upgrade),
     );
 
+    // Email inbound webhook must be outside auth middleware (uses API key auth)
+    let email_inbound_route = Router::new().route(
+        "/api/v1/email/inbound",
+        post(email_inbound::receive_inbound_email),
+    );
+
     Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
@@ -420,6 +466,7 @@ fn build_router(state: AppState) -> Router {
             auth_middleware,
         ))
         .merge(ws_route)
+        .merge(email_inbound_route)
         .with_state(state)
 }
 
@@ -454,6 +501,20 @@ async fn main() {
                 Ok(0) => {}
                 Ok(n) => tracing::info!("CRDT compaction: compacted {n} document(s)"),
                 Err(e) => tracing::warn!("CRDT compaction error: {e}"),
+            }
+        }
+    });
+
+    // Spawn periodic email retry background task (every 60 seconds)
+    let retry_service = Arc::clone(&state.email_outbound_service);
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            match retry_service.retry_failed_emails().await {
+                Ok(0) => {}
+                Ok(n) => tracing::info!("Email retry: retried {n} message(s)"),
+                Err(e) => tracing::warn!("Email retry error: {e}"),
             }
         }
     });

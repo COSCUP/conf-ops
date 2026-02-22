@@ -124,6 +124,16 @@ pub enum DomainEvent {
         scope_type: String,
         scope_id: uuid::Uuid,
     },
+    EmailSent {
+        email_message_id: uuid::Uuid,
+        thread_id: uuid::Uuid,
+        task_id: uuid::Uuid,
+    },
+    EmailReceived {
+        email_message_id: uuid::Uuid,
+        thread_id: uuid::Uuid,
+        task_id: uuid::Uuid,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.
