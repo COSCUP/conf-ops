@@ -26,7 +26,7 @@ pub enum AuthError {
     WebAuthn(String),
 
     #[error("Email sending failed: {0}")]
-    EmailSend(String),
+    EmailSend(#[from] crate::modules::email::error::EmailError),
 
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),

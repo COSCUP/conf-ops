@@ -40,6 +40,9 @@ use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::repository::TaskTemplateRepository;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::core::todo::service::TodoService;
+use conf_ops::modules::email::error::EmailError;
+use conf_ops::modules::email::inbound::InboundEmailService;
+use conf_ops::modules::email::service::EmailOutboundService;
 use conf_ops::modules::email::EmailService;
 use conf_ops::modules::storage::local::LocalStorageBackend;
 use conf_ops::modules::storage::service::{FileService, StorageConfig};
@@ -62,7 +65,7 @@ impl MockEmailService {
 
 #[async_trait]
 impl EmailService for MockEmailService {
-    async fn send(&self, to: &str, subject: &str, html_body: &str) -> Result<(), String> {
+    async fn send(&self, to: &str, subject: &str, html_body: &str) -> Result<(), EmailError> {
         self.sent
             .lock()
             .await
@@ -156,6 +159,8 @@ impl TestContext {
             storage_max_document_size: 50 * 1024 * 1024,
             storage_max_file_size: 20 * 1024 * 1024,
             storage_cleanup_grace_period_secs: 604_800,
+            email_inbound_api_key: Some("test-api-key".to_string()),
+            email_domain: "conf-ops.dev".to_string(),
             crdt_ws_max_connections: 50,
             crdt_ws_heartbeat_interval_secs: 30,
             crdt_ws_idle_timeout_secs: 300,
@@ -226,6 +231,19 @@ impl TestContext {
             Arc::clone(&file_service),
         ));
 
+        let email_outbound_service = Arc::new(EmailOutboundService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+            self.email_service.clone(),
+            "conf-ops.dev".to_string(),
+        ));
+
+        let inbound_email_service = Arc::new(InboundEmailService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+            Arc::clone(&file_service),
+        ));
+
         let ws_token_store = Arc::new(WsTokenStore::new());
         let ws_manager = Arc::new(WsManager::new(50));
         let awareness_manager = Arc::new(AwarenessManager::new());
@@ -248,6 +266,9 @@ impl TestContext {
             data_sheet_service,
             file_service,
             conversation_service,
+            email_outbound_service,
+            inbound_email_service,
+            email_inbound_api_key: Some("test-api-key".to_string()),
             ws_token_store,
             ws_manager,
             awareness_manager,

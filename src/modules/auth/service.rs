@@ -95,8 +95,7 @@ impl AuthService {
 
         self.email_service
             .send(email, "Login to Conf-Ops", &html_body)
-            .await
-            .map_err(AuthError::EmailSend)?;
+            .await?;
 
         Ok(())
     }

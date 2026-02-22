@@ -3,6 +3,7 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 
+use super::error::EmailError;
 use super::EmailService;
 use crate::config::AppConfig;
 
@@ -39,10 +40,10 @@ impl SmtpEmailService {
 
 #[async_trait]
 impl EmailService for SmtpEmailService {
-    async fn send(&self, to: &str, subject: &str, html_body: &str) -> Result<(), String> {
-        let to_mailbox: Mailbox = to
-            .parse()
-            .map_err(|e| format!("Invalid recipient address: {e}"))?;
+    async fn send(&self, to: &str, subject: &str, html_body: &str) -> Result<(), EmailError> {
+        let to_mailbox: Mailbox = to.parse().map_err(|e| {
+            EmailError::InvalidEmailFormat(format!("Invalid recipient address: {e}"))
+        })?;
 
         let email = Message::builder()
             .from(self.from.clone())
@@ -50,12 +51,12 @@ impl EmailService for SmtpEmailService {
             .subject(subject)
             .header(lettre::message::header::ContentType::TEXT_HTML)
             .body(html_body.to_string())
-            .map_err(|e| format!("Failed to build email: {e}"))?;
+            .map_err(|e| EmailError::SmtpError(format!("Failed to build email: {e}")))?;
 
         self.transport
             .send(email)
             .await
-            .map_err(|e| format!("Failed to send email: {e}"))?;
+            .map_err(|e| EmailError::SmtpError(format!("Failed to send email: {e}")))?;
 
         Ok(())
     }
