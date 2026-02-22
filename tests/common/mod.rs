@@ -13,6 +13,9 @@ use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
 use conf_ops::events::EventBus;
 use conf_ops::id::generate_id;
+use conf_ops::modules::ai::decision::DecisionService;
+use conf_ops::modules::ai::placeholder::PlaceholderResolver;
+use conf_ops::modules::ai::privacy::PrivacyEngine;
 use conf_ops::modules::auth::jwt::{issue_access_token, JwtConfig};
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::repository::AccountRepository;
@@ -201,6 +204,8 @@ impl TestContext {
             crdt_ws_max_connections: 50,
             crdt_ws_heartbeat_interval_secs: 30,
             crdt_ws_idle_timeout_secs: 300,
+            gemini_api_key: None,
+            gemini_model: "gemini-2.5-flash".to_string(),
         }
     }
 
@@ -281,6 +286,19 @@ impl TestContext {
             Arc::clone(&file_service),
         ));
 
+        let memory_service = Arc::new(conf_ops::modules::ai::memory::service::MemoryService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+        ));
+
+        let privacy_engine = Arc::new(PrivacyEngine::new(self.pool.clone()));
+        let placeholder_resolver = Arc::new(PlaceholderResolver::new(self.pool.clone()));
+        let decision_service = Arc::new(DecisionService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+            Arc::clone(&placeholder_resolver),
+        ));
+
         let ws_token_store = Arc::new(WsTokenStore::new());
         let ws_manager = Arc::new(WsManager::new(50));
         let awareness_manager = Arc::new(AwarenessManager::new());
@@ -311,6 +329,10 @@ impl TestContext {
             awareness_manager,
             crdt_ws_heartbeat_interval_secs: 30,
             crdt_ws_idle_timeout_secs: 300,
+            memory_service,
+            decision_service,
+            placeholder_resolver,
+            privacy_engine,
         }
     }
 
@@ -697,7 +719,7 @@ fn test_task_template_routes() -> Router<AppState> {
 
 fn test_task_routes() -> Router<AppState> {
     use axum::routing::{delete, get, post, put};
-    use conf_ops::api::routes::{conversations, data_entries, tasks, todos, ws};
+    use conf_ops::api::routes::{ai_suggestions, conversations, data_entries, tasks, todos, ws};
     Router::new()
         .route("/", get(tasks::list_tasks).post(tasks::create_task))
         .route(
@@ -763,6 +785,26 @@ fn test_task_routes() -> Router<AppState> {
                 .put(conversations::update_last_seen_position),
         )
         .route("/{taskId}/conversation/ws-token", post(ws::create_ws_token))
+        .route(
+            "/{taskId}/suggestions",
+            get(ai_suggestions::list_suggestions),
+        )
+        .route(
+            "/{taskId}/suggestions/request",
+            post(ai_suggestions::request_suggestion),
+        )
+        .route(
+            "/{taskId}/suggestions/{groupId}",
+            get(ai_suggestions::get_suggestion_group),
+        )
+        .route(
+            "/{taskId}/suggestions/{groupId}/suggestions/{suggestionId}/decide",
+            post(ai_suggestions::decide_suggestion),
+        )
+        .route(
+            "/{taskId}/ai/resolve-placeholders",
+            post(ai_suggestions::resolve_placeholders),
+        )
 }
 
 fn test_account_routes() -> Router<AppState> {
