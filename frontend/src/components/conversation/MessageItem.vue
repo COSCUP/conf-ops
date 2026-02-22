@@ -41,6 +41,14 @@ function getMessageText(
       return typeof content.text === 'string' ? content.text : ''
   }
 }
+
+function getEmailFrom(content: Record<string, unknown>): string {
+  return typeof content.from === 'string' ? content.from : ''
+}
+
+function getEmailSubject(content: Record<string, unknown>): string {
+  return typeof content.subject === 'string' ? content.subject : ''
+}
 </script>
 
 <template>
@@ -53,7 +61,15 @@ function getMessageText(
         {{ formatTime(message.createdAt) }}
       </span>
     </div>
-    <div class="message-body">
+    <div v-if="message.sourceType === 'email_inbound'" class="email-inbound-display">
+      <span class="email-icon">&#9993;</span>
+      <div class="email-from">{{ getEmailFrom(message.content) }}</div>
+      <div class="email-subject">{{ getEmailSubject(message.content) }}</div>
+      <div class="message-body">
+        {{ getMessageText(message.content, message.sourceType) }}
+      </div>
+    </div>
+    <div v-else class="message-body">
       {{ getMessageText(message.content, message.sourceType) }}
     </div>
   </div>
@@ -98,5 +114,28 @@ function getMessageText(
   color: #1f2937;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.email-inbound-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.email-icon {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.email-from {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.email-subject {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #4b5563;
 }
 </style>

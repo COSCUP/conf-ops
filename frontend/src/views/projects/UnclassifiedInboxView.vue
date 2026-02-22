@@ -1,24 +1,37 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUnassignedInboxStore } from '@/stores/unassignedInbox'
 import { useTaskStore } from '@/stores/task'
+import { useProjectStore } from '@/stores/project'
+import client from '@/api/client'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 
 const route = useRoute()
 const inboxStore = useUnassignedInboxStore()
 const taskStore = useTaskStore()
+const projectStore = useProjectStore()
 
 const projectId = route.params.projectId as string
 
 const assigningEmailId = ref<string | null>(null)
 const selectedTaskId = ref('')
 
+const creatingContactEmailId = ref<string | null>(null)
+const contactName = ref('')
+const contactEmail = ref('')
+const contactError = ref('')
+const contactLoading = ref(false)
+
+const orgId = computed(() => projectStore.currentProject?.organizationId ?? null)
+
 onMounted(async () => {
   await Promise.all([
     inboxStore.fetchEmails(projectId),
     taskStore.fetchTasks(projectId),
+    projectStore.fetchProject(projectId),
   ])
 })
 
@@ -37,6 +50,50 @@ async function handleAssign(emailId: string) {
   await inboxStore.assignEmail(projectId, emailId, selectedTaskId.value)
   assigningEmailId.value = null
   selectedTaskId.value = ''
+}
+
+function startCreateContact(emailId: string, fromName: string | null, fromAddress: string) {
+  creatingContactEmailId.value = emailId
+  contactName.value = fromName ?? ''
+  contactEmail.value = fromAddress
+  contactError.value = ''
+}
+
+function cancelCreateContact() {
+  creatingContactEmailId.value = null
+  contactName.value = ''
+  contactEmail.value = ''
+  contactError.value = ''
+}
+
+async function handleCreateContact() {
+  if (!orgId.value) {
+    contactError.value = 'Organization not loaded.'
+    return
+  }
+  if (!contactName.value.trim()) {
+    contactError.value = 'Name is required.'
+    return
+  }
+
+  contactLoading.value = true
+  contactError.value = ''
+  try {
+    const { data, error } = await client.POST('/api/v1/organizations/{orgId}/contacts', {
+      params: { path: { orgId: orgId.value } },
+      body: { name: contactName.value.trim(), email: contactEmail.value },
+    })
+    if (error) {
+      const detail = (error as Record<string, unknown>).detail
+      contactError.value = typeof detail === 'string' ? detail : 'Failed to create contact.'
+    } else if (data) {
+      cancelCreateContact()
+    }
+  } catch {
+    contactError.value = 'Failed to create contact.'
+  } finally {
+    contactLoading.value = false
+  }
 }
 
 async function loadMore() {
@@ -84,9 +141,28 @@ function formatDate(iso: string): string {
             <BaseButton variant="secondary" @click="cancelAssign">Cancel</BaseButton>
           </div>
         </div>
-        <BaseButton v-else variant="secondary" @click="startAssign(email.id)">
-          Assign to Task
-        </BaseButton>
+
+        <!-- Create Contact UI -->
+        <div v-else-if="creatingContactEmailId === email.id" class="create-contact-form">
+          <p v-if="contactError" class="error-message">{{ contactError }}</p>
+          <BaseInput v-model="contactName" label="Name" placeholder="Contact name" />
+          <BaseInput v-model="contactEmail" label="Email" :readonly="true" />
+          <div class="assign-actions">
+            <BaseButton :disabled="contactLoading" @click="handleCreateContact">
+              Create Contact
+            </BaseButton>
+            <BaseButton variant="secondary" @click="cancelCreateContact">Cancel</BaseButton>
+          </div>
+        </div>
+
+        <div v-else class="email-actions">
+          <BaseButton variant="secondary" @click="startAssign(email.id)">
+            Assign to Task
+          </BaseButton>
+          <BaseButton variant="secondary" @click="startCreateContact(email.id, email.fromName ?? null, email.fromAddress)">
+            Create Contact
+          </BaseButton>
+        </div>
       </BaseCard>
     </div>
     <p v-else-if="!inboxStore.loading" class="empty-text">No unclassified emails.</p>
@@ -167,6 +243,19 @@ function formatDate(iso: string): string {
 .assign-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.email-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.create-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .error-message {
