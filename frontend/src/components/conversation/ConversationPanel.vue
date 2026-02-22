@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import { useConversation } from '@/composables/useConversation'
+import { useSuggestion } from '@/composables/useSuggestion'
+import type { SuggestionDecision } from '@/stores/suggestion'
 import MessageItem from './MessageItem.vue'
 import MessageInput from './MessageInput.vue'
 import AwarenessBar from './AwarenessBar.vue'
@@ -25,6 +27,8 @@ const {
   setTyping,
 } = useConversation({ projectId: props.projectId, taskId: props.taskId })
 
+const { decide: decideSuggestion } = useSuggestion(props.projectId, props.taskId)
+
 const messageListRef = ref<HTMLElement | null>(null)
 
 function isUnread(messageId: string): boolean {
@@ -36,6 +40,22 @@ async function handleSend(text: string) {
   await sendMessage(text)
   await nextTick()
   scrollToBottom()
+}
+
+async function handleSuggestionDecide(payload: {
+  groupId: string
+  suggestionId: string
+  decision: SuggestionDecision
+  messageId: string
+  modifiedParameters?: unknown
+}) {
+  await decideSuggestion(
+    payload.groupId,
+    payload.suggestionId,
+    payload.decision,
+    payload.messageId,
+    payload.modifiedParameters,
+  )
 }
 
 const members: { id: string; displayName: string }[] = []
@@ -82,6 +102,9 @@ watch(
           :key="msg.id"
           :message="msg"
           :is-unread="isUnread(msg.id)"
+          :project-id="props.projectId"
+          :task-id="props.taskId"
+          @suggestion-decide="handleSuggestionDecide"
         />
       </template>
       <p v-else-if="!loading" class="empty-text">No messages yet.</p>

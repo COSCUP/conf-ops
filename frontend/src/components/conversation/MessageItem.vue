@@ -1,9 +1,26 @@
 <script setup lang="ts">
 import type { MessageResponse } from '@/stores/conversation'
+import type { SuggestionDecision } from '@/stores/suggestion'
+import SuggestionCard from '@/components/ai/SuggestionCard.vue'
+import type { SuggestionGroup, Suggestion } from '@/stores/suggestion'
 
-defineProps<{
+const props = defineProps<{
   message: MessageResponse
   isUnread: boolean
+  projectId: string
+  taskId: string
+}>()
+
+const emit = defineEmits<{
+  suggestionDecide: [
+    payload: {
+      groupId: string
+      suggestionId: string
+      decision: SuggestionDecision
+      messageId: string
+      modifiedParameters?: unknown
+    },
+  ]
 }>()
 
 function formatTime(iso: string): string {
@@ -34,7 +51,6 @@ function getMessageText(
         typeof content.status === 'string' ? content.status : ''
       return `[Tool: ${toolName}] ${status}`
     }
-    case 'ai_suggestion':
     case 'member':
     case 'email_inbound':
     default:
@@ -49,18 +65,49 @@ function getEmailFrom(content: Record<string, unknown>): string {
 function getEmailSubject(content: Record<string, unknown>): string {
   return typeof content.subject === 'string' ? content.subject : ''
 }
+
+function parseSuggestionGroup(content: Record<string, unknown>): SuggestionGroup | null {
+  try {
+    const raw = content.suggestionGroup
+    if (
+      raw != null &&
+      typeof raw === 'object' &&
+      !Array.isArray(raw) &&
+      'id' in raw &&
+      'suggestions' in raw &&
+      'trigger' in raw &&
+      'createdAt' in raw
+    ) {
+      return raw as SuggestionGroup
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function parseSuggestions(content: Record<string, unknown>): Suggestion[] {
+  const group = parseSuggestionGroup(content)
+  return group?.suggestions ?? []
+}
+
+function getGroupId(content: Record<string, unknown>): string {
+  const group = parseSuggestionGroup(content)
+  return group?.id ?? ''
+}
 </script>
 
 <template>
   <div :class="['message-item', `message-${message.sourceType}`, { 'message-unread': isUnread }]">
     <div class="message-header">
       <span class="message-source">
-        {{ message.sourceType === 'system' ? 'System' : (message.sourceId ?? 'Unknown') }}
+        {{ message.sourceType === 'system' ? 'System' : (message.sourceType === 'ai_suggestion' ? 'AI' : (message.sourceId ?? 'Unknown')) }}
       </span>
       <span class="message-time" :title="formatDate(message.createdAt)">
         {{ formatTime(message.createdAt) }}
       </span>
     </div>
+
     <div v-if="message.sourceType === 'email_inbound'" class="email-inbound-display">
       <span class="email-icon">&#9993;</span>
       <div class="email-from">{{ getEmailFrom(message.content) }}</div>
@@ -69,6 +116,25 @@ function getEmailSubject(content: Record<string, unknown>): string {
         {{ getMessageText(message.content, message.sourceType) }}
       </div>
     </div>
+
+    <div v-else-if="message.sourceType === 'ai_suggestion'" class="ai-suggestion-display">
+      <div v-if="parseSuggestions(message.content).length > 0" class="suggestion-list">
+        <SuggestionCard
+          v-for="suggestion in parseSuggestions(message.content)"
+          :key="suggestion.id"
+          :suggestion="suggestion"
+          :group-id="getGroupId(message.content)"
+          :message-id="message.id"
+          :project-id="props.projectId"
+          :task-id="props.taskId"
+          @decide="emit('suggestionDecide', $event)"
+        />
+      </div>
+      <div v-else class="message-body">
+        {{ typeof message.content.text === 'string' ? message.content.text : '[AI Suggestion]' }}
+      </div>
+    </div>
+
     <div v-else class="message-body">
       {{ getMessageText(message.content, message.sourceType) }}
     </div>
@@ -89,6 +155,11 @@ function getEmailSubject(content: Record<string, unknown>): string {
 .message-system {
   background: #fffbeb;
   font-style: italic;
+}
+
+.message-ai_suggestion {
+  background: #f0fdf4;
+  border-left: 3px solid #059669;
 }
 
 .message-header {
@@ -137,5 +208,17 @@ function getEmailSubject(content: Record<string, unknown>): string {
   font-size: 0.8125rem;
   font-weight: 500;
   color: #4b5563;
+}
+
+.ai-suggestion-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 </style>

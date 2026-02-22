@@ -355,6 +355,174 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List library documents by scope.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on invalid scope or database failure.
+         */
+        get: operations["list_library_documents"];
+        put?: never;
+        /**
+         * Create a new library document.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on invalid scope or database failure.
+         */
+        post: operations["create_library_document"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library-documents/{documentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a library document by ID.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        get: operations["get_library_document"];
+        /**
+         * Update a library document.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        put: operations["update_library_document"];
+        post?: never;
+        /**
+         * Delete a library document.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        delete: operations["delete_library_document"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library-documents/{documentId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List version history for a library document.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        get: operations["list_library_document_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List memories by scope.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on invalid scope or database failure.
+         */
+        get: operations["list_memories"];
+        put?: never;
+        /**
+         * Create a new memory.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on invalid scope, source, or database failure.
+         */
+        post: operations["create_memory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memories/{memoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a memory by ID.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        get: operations["get_memory"];
+        /**
+         * Update a memory.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        put: operations["update_memory"];
+        post?: never;
+        /**
+         * Delete a memory.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        delete: operations["delete_memory"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memories/{memoryId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List version history for a memory.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        get: operations["list_memory_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations": {
         parameters: {
             query?: never;
@@ -1255,6 +1423,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/ai/resolve-placeholders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve `{{profile.*}}` and `{{data.*}}` placeholders in a text string.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        post: operations["resolve_placeholders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{projectId}/tasks/{taskId}/data-entries": {
         parameters: {
             query?: never;
@@ -1411,6 +1601,95 @@ export interface paths {
          */
         put: operations["update_task_status"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List AI suggestion groups for a task, ordered newest first.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_suggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/suggestions/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Manually trigger an AI suggestion pipeline event for a task.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        post: operations["request_suggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/suggestions/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a single AI suggestion group by group ID.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        get: operations["get_suggestion_group"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/suggestions/{groupId}/suggestions/{suggestionId}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a decision on an AI suggestion.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on stale conversation, already decided, not found,
+         *     invalid decision, or database failure.
+         */
+        post: operations["decide_suggestion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1740,6 +2019,22 @@ export interface components {
             participants: string[];
             subject: string;
         };
+        CreateLibraryDocumentRequest: {
+            content: string;
+            /** Format: uuid */
+            scopeId: string;
+            scopeType: string;
+            title: string;
+        };
+        CreateMemoryRequest: {
+            content: string;
+            /** Format: uuid */
+            libraryRef?: string | null;
+            /** Format: uuid */
+            scopeId: string;
+            scopeType: string;
+            source: string;
+        };
         CreateOrganizationRequest: {
             description?: string | null;
             logoUrl?: string | null;
@@ -1815,6 +2110,16 @@ export interface components {
             taskTemplateId: string;
             updatedAt: string;
         };
+        DecideRequest: {
+            additionalInstructions?: string | null;
+            decision: components["schemas"]["SuggestionDecision"];
+            /** Format: uuid */
+            lastSeenMessageId: string;
+            modifiedParameters?: unknown;
+        };
+        DecideResponse: {
+            status: string;
+        };
         EmailMessageListResponse: {
             messages: components["schemas"]["EmailMessageResponse"][];
             pagination: components["schemas"]["PaginationInfo"];
@@ -1869,6 +2174,11 @@ export interface components {
         };
         /** @enum {string} */
         FieldType: "single_line_text" | "multi_line_text" | "number" | "date" | "email" | "url" | "select" | "boolean" | "image" | "file";
+        GetSuggestionGroupResponse: {
+            /** Format: uuid */
+            messageId: string;
+            suggestionGroup: components["schemas"]["SuggestionGroup"];
+        };
         HealthResponse: {
             status: string;
         };
@@ -1893,9 +2203,46 @@ export interface components {
             email: string;
             role: components["schemas"]["OrgRole"];
         };
+        LibraryDocumentListResponse: {
+            items: components["schemas"]["LibraryDocumentResponse"][];
+            /** Format: uuid */
+            nextCursor?: string | null;
+        };
+        LibraryDocumentResponse: {
+            content: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            createdBy: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            scopeId: string;
+            scopeType: string;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        LibraryDocumentVersionResponse: {
+            /** Format: uuid */
+            changedBy: string;
+            content: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            documentId: string;
+            /** Format: uuid */
+            id: string;
+            title?: string | null;
+        };
         LinkTagRequest: {
             /** Format: uuid */
             memberTagId: string;
+        };
+        ListSuggestionsResponse: {
+            data: components["schemas"]["SuggestionGroupItem"][];
+            /** Format: uuid */
+            nextCursor?: string | null;
         };
         MagicLinkRequest: {
             email: string;
@@ -1965,6 +2312,39 @@ export interface components {
             /** Format: uuid */
             projectId: string;
             updatedAt: string;
+        };
+        MemoryListResponse: {
+            items: components["schemas"]["MemoryResponse"][];
+            /** Format: uuid */
+            nextCursor?: string | null;
+        };
+        MemoryResponse: {
+            content: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            createdBy: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            libraryRef?: string | null;
+            /** Format: uuid */
+            scopeId: string;
+            scopeType: string;
+            source: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        MemoryVersionResponse: {
+            /** Format: uuid */
+            changedBy: string;
+            content: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            memoryId: string;
         };
         MergeContactsRequest: {
             sourceIds: string[];
@@ -2139,11 +2519,65 @@ export interface components {
         ReorderTodoTemplatesRequest: {
             orders: components["schemas"]["ReorderItem"][];
         };
+        RequestSuggestionResponse: {
+            /** Format: uuid */
+            eventId: string;
+        };
+        ResolvePlaceholdersRequest: {
+            text: string;
+        };
+        ResolvePlaceholdersResponse: {
+            text: string;
+            unresolved: string[];
+        };
         SendThreadEmailRequest: {
             ccAddresses?: string[] | null;
             htmlBody: string;
             subject?: string | null;
             toAddresses: string[];
+        };
+        /** @description A single AI suggestion proposing a tool execution. */
+        Suggestion: {
+            contextUsed?: components["schemas"]["SuggestionContextRef"][];
+            /** Format: date-time */
+            decidedAt?: string | null;
+            /** Format: uuid */
+            decidedBy?: string | null;
+            decision: components["schemas"]["SuggestionDecision"];
+            executionResult?: unknown;
+            /** Format: uuid */
+            id: string;
+            modifiedParameters?: unknown;
+            parameters: unknown;
+            reasoning: string;
+            summary: string;
+            tool: string;
+        };
+        /** @description A reference to a memory entry used as context for generating a suggestion. */
+        SuggestionContextRef: {
+            content: string;
+            /** Format: uuid */
+            memoryId: string;
+            scopeType: string;
+        };
+        /**
+         * @description The decision made on an AI suggestion.
+         * @enum {string}
+         */
+        SuggestionDecision: "pending" | "accept" | "modify_and_accept" | "reject" | "re_suggest";
+        /** @description A group of AI-generated suggestions sharing the same trigger event. */
+        SuggestionGroup: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            suggestions: components["schemas"]["Suggestion"][];
+            trigger: components["schemas"]["TriggerType"];
+        };
+        SuggestionGroupItem: {
+            /** Format: uuid */
+            messageId: string;
+            suggestionGroup: components["schemas"]["SuggestionGroup"];
         };
         TagAssignedContactResponse: {
             /** Format: uuid */
@@ -2270,6 +2704,11 @@ export interface components {
         };
         /** @enum {string} */
         TodoType: "template" | "ad_hoc";
+        /**
+         * @description The event type that triggered an AI suggestion pipeline.
+         * @enum {string}
+         */
+        TriggerType: "task_created" | "todo_completed" | "message_sent" | "tool_error" | "source_data_changed" | "manual_request";
         UnassignedEmailListResponse: {
             emails: components["schemas"]["UnassignedEmailResponse"][];
             pagination: components["schemas"]["PaginationInfo"];
@@ -2307,8 +2746,17 @@ export interface components {
         UpdateExternalTaskCreationRequest: {
             settings: Record<string, never>;
         };
+        UpdateLibraryDocumentRequest: {
+            content: string;
+            title?: string | null;
+        };
         UpdateMemberRoleRequest: {
             role: components["schemas"]["MemberRole"];
+        };
+        UpdateMemoryRequest: {
+            content: string;
+            /** Format: uuid */
+            libraryRef?: string | null;
         };
         UpdateNotificationPreferencesRequest: {
             channels: components["schemas"]["NotificationChannels"];
@@ -2933,6 +3381,300 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_library_documents: {
+        parameters: {
+            query: {
+                /** @description Scope type */
+                scopeType: string;
+                /** @description Scope ID */
+                scopeId: string;
+                /** @description Cursor for pagination */
+                cursor?: string;
+                /** @description Number of items per page */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of library documents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDocumentListResponse"];
+                };
+            };
+        };
+    };
+    create_library_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLibraryDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Library document created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDocumentResponse"];
+                };
+            };
+        };
+    };
+    get_library_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Document ID */
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Library document details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDocumentResponse"];
+                };
+            };
+        };
+    };
+    update_library_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Document ID */
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLibraryDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Library document updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDocumentResponse"];
+                };
+            };
+        };
+    };
+    delete_library_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Document ID */
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Library document deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_library_document_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Document ID */
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document version history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDocumentVersionResponse"][];
+                };
+            };
+        };
+    };
+    list_memories: {
+        parameters: {
+            query: {
+                /** @description Scope type */
+                scopeType: string;
+                /** @description Scope ID */
+                scopeId: string;
+                /** @description Cursor for pagination */
+                cursor?: string;
+                /** @description Number of items per page */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of memories */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryListResponse"];
+                };
+            };
+        };
+    };
+    create_memory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMemoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Memory created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryResponse"];
+                };
+            };
+        };
+    };
+    get_memory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Memory ID */
+                memoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Memory details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryResponse"];
+                };
+            };
+        };
+    };
+    update_memory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Memory ID */
+                memoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMemoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Memory updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryResponse"];
+                };
+            };
+        };
+    };
+    delete_memory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Memory ID */
+                memoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Memory deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_memory_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Memory ID */
+                memoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Memory version history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryVersionResponse"][];
                 };
             };
         };
@@ -5947,6 +6689,43 @@ export interface operations {
             };
         };
     };
+    resolve_placeholders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Task ID */
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolvePlaceholdersRequest"];
+            };
+        };
+        responses: {
+            /** @description Resolved text with list of unresolved placeholders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvePlaceholdersResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_entries: {
         parameters: {
             query?: never;
@@ -6297,6 +7076,177 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_suggestions: {
+        parameters: {
+            query?: {
+                /** @description Cursor for pagination */
+                cursor?: string;
+                /** @description Number of items per page (max 100) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Task ID */
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of suggestion groups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSuggestionsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    request_suggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Task ID */
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pipeline event queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestSuggestionResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_suggestion_group: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Task ID */
+                taskId: string;
+                /** @description Suggestion group ID */
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suggestion group detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetSuggestionGroupResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    decide_suggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Task ID */
+                taskId: string;
+                /** @description Suggestion group ID */
+                groupId: string;
+                /** @description Suggestion ID */
+                suggestionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideRequest"];
+            };
+        };
+        responses: {
+            /** @description Decision recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecideResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

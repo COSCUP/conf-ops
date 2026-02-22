@@ -21,14 +21,14 @@ function createMessage(overrides?: Partial<MessageResponse>): MessageResponse {
 describe('MessageItem', () => {
   it('renders message text', () => {
     const wrapper = mount(MessageItem, {
-      props: { message: createMessage(), isUnread: false },
+      props: { message: createMessage(), isUnread: false, projectId: 'proj-1', taskId: 'task-1' },
     })
     expect(wrapper.text()).toContain('Hello world')
   })
 
   it('renders source id for member messages', () => {
     const wrapper = mount(MessageItem, {
-      props: { message: createMessage({ sourceId: 'user-abc' }), isUnread: false },
+      props: { message: createMessage({ sourceId: 'user-abc' }), isUnread: false, projectId: 'proj-1', taskId: 'task-1' },
     })
     expect(wrapper.text()).toContain('user-abc')
   })
@@ -38,6 +38,8 @@ describe('MessageItem', () => {
       props: {
         message: createMessage({ sourceType: 'system', sourceId: null }),
         isUnread: false,
+        projectId: 'proj-1',
+        taskId: 'task-1',
       },
     })
     expect(wrapper.text()).toContain('System')
@@ -45,14 +47,14 @@ describe('MessageItem', () => {
 
   it('applies message-unread class when unread', () => {
     const wrapper = mount(MessageItem, {
-      props: { message: createMessage(), isUnread: true },
+      props: { message: createMessage(), isUnread: true, projectId: 'proj-1', taskId: 'task-1' },
     })
     expect(wrapper.find('.message-unread').exists()).toBe(true)
   })
 
   it('does not apply message-unread class when read', () => {
     const wrapper = mount(MessageItem, {
-      props: { message: createMessage(), isUnread: false },
+      props: { message: createMessage(), isUnread: false, projectId: 'proj-1', taskId: 'task-1' },
     })
     expect(wrapper.find('.message-unread').exists()).toBe(false)
   })
@@ -62,6 +64,8 @@ describe('MessageItem', () => {
       props: {
         message: createMessage({ sourceType: 'system' }),
         isUnread: false,
+        projectId: 'proj-1',
+        taskId: 'task-1',
       },
     })
     expect(wrapper.find('.message-system').exists()).toBe(true)
@@ -72,6 +76,8 @@ describe('MessageItem', () => {
       props: {
         message: createMessage({ content: { action: 'status_change' } }),
         isUnread: false,
+        projectId: 'proj-1',
+        taskId: 'task-1',
       },
     })
     expect(wrapper.find('.message-body').text()).toBe('')
@@ -86,6 +92,8 @@ describe('MessageItem', () => {
           content: { event: 'task_status_changed', details: { from: 'open', to: 'in_progress' } },
         }),
         isUnread: false,
+        projectId: 'proj-1',
+        taskId: 'task-1',
       },
     })
     expect(wrapper.find('.message-body').text()).toContain('[task_status_changed]')
@@ -100,6 +108,8 @@ describe('MessageItem', () => {
           content: { toolName: 'send_email', status: 'success', parameters: {}, result: {} },
         }),
         isUnread: false,
+        projectId: 'proj-1',
+        taskId: 'task-1',
       },
     })
     expect(wrapper.find('.message-body').text()).toContain('[Tool: send_email]')

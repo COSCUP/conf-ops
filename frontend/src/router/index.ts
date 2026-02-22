@@ -114,6 +114,12 @@ const router = createRouter({
           component: () => import('@/views/organizations/ContactsView.vue'),
         },
         {
+          path: 'organizations/:orgId/library-documents',
+          name: 'library-documents',
+          component: () => import('@/views/organizations/LibraryDocumentView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/settings/AccountSettingsView.vue'),
