@@ -791,6 +791,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{orgId}/tool-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tool configurations for an organization.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_org_tool_configs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{projectId}": {
         parameters: {
             query?: never;
@@ -1824,6 +1846,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{projectId}/tool-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tool configurations for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_project_tool_configs"];
+        put?: never;
+        /**
+         * Create a tool configuration for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on duplicate, validation failure, or database error.
+         */
+        post: operations["create_project_tool_config"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tool-configs/{configId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a tool configuration for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        put: operations["update_project_tool_config"];
+        post?: never;
+        /**
+         * Delete a tool configuration for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        delete: operations["delete_project_tool_config"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available tools for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_tools"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tools/{toolName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get detailed definition of a specific tool.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found or database failure.
+         */
+        get: operations["get_tool_details"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tools/{toolName}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute a tool.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on various failure conditions.
+         */
+        post: operations["execute_tool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{projectId}/unassigned-inbox": {
         parameters: {
             query?: never;
@@ -2074,6 +2218,16 @@ export interface components {
             /** Format: int32 */
             sortOrder: number;
         };
+        /** @description Request to create a tool configuration. */
+        CreateToolConfigRequest: {
+            config?: unknown;
+            description?: string | null;
+            displayName?: string | null;
+            enabled?: boolean;
+            mcpServerConfig?: unknown;
+            toolName: string;
+            toolType?: string | null;
+        };
         DataEntryListResponse: {
             entries: components["schemas"]["DataEntryResponse"][];
         };
@@ -2155,6 +2309,21 @@ export interface components {
             taskId: string;
             updatedAt: string;
         };
+        /** @description Request to execute a tool. */
+        ExecuteToolRequest: {
+            parameters: unknown;
+            /** Format: uuid */
+            suggestionId?: string | null;
+            /** Format: uuid */
+            taskId: string;
+        };
+        /** @description Response after executing a tool. */
+        ExecuteToolResponse: {
+            /** Format: int64 */
+            durationMs: number;
+            result: unknown;
+            success: boolean;
+        };
         FieldConstraints: {
             accept?: string[] | null;
             decimal?: boolean | null;
@@ -2179,6 +2348,8 @@ export interface components {
             messageId: string;
             suggestionGroup: components["schemas"]["SuggestionGroup"];
         };
+        /** @description Detailed tool definition response. */
+        GetToolDetailsResponse: components["schemas"]["ToolDefinition"];
         HealthResponse: {
             status: string;
         };
@@ -2243,6 +2414,14 @@ export interface components {
             data: components["schemas"]["SuggestionGroupItem"][];
             /** Format: uuid */
             nextCursor?: string | null;
+        };
+        /** @description Response for listing tool configs. */
+        ListToolConfigsResponse: {
+            toolConfigs: components["schemas"]["ToolConfigResponse"][];
+        };
+        /** @description Response for listing available tools. */
+        ListToolsResponse: {
+            tools: components["schemas"]["ToolSummary"][];
         };
         MagicLinkRequest: {
             email: string;
@@ -2705,6 +2884,51 @@ export interface components {
         /** @enum {string} */
         TodoType: "template" | "ad_hoc";
         /**
+         * @description The category of a tool in the MCP runtime.
+         * @enum {string}
+         */
+        ToolCategory: "core" | "configurable" | "external";
+        /** @description Tool configuration item for API responses. */
+        ToolConfigResponse: {
+            config: unknown;
+            createdAt: string;
+            description?: string | null;
+            displayName?: string | null;
+            enabled: boolean;
+            /** Format: uuid */
+            id: string;
+            mcpServerConfig?: unknown;
+            /** Format: uuid */
+            scopeId: string;
+            scopeType: string;
+            toolName: string;
+            toolType: string;
+            updatedAt: string;
+        };
+        /** @description An MCP tool definition exposed to clients. */
+        ToolDefinition: {
+            /** @description Tool category. */
+            category: components["schemas"]["ToolCategory"];
+            /** @description Tool description. */
+            description: string;
+            /** @description Human-readable display name. */
+            displayName?: string | null;
+            /** @description JSON Schema for the tool's input parameters. */
+            inputSchema: unknown;
+            /** @description Tool identifier name. */
+            name: string;
+            /** @description Whether the tool requires human confirmation before execution. */
+            requiresConfirmation: boolean;
+        };
+        /** @description Summary of an available tool. */
+        ToolSummary: {
+            category: components["schemas"]["ToolCategory"];
+            description: string;
+            displayName?: string | null;
+            name: string;
+            requiresConfirmation: boolean;
+        };
+        /**
          * @description The event type that triggered an AI suggestion pipeline.
          * @enum {string}
          */
@@ -2809,6 +3033,14 @@ export interface components {
         UpdateTodoTemplateRequest: {
             description?: string | null;
             name?: string | null;
+        };
+        /** @description Request to update a tool configuration. */
+        UpdateToolConfigRequest: {
+            config?: unknown;
+            description?: string | null;
+            displayName?: string | null;
+            enabled?: boolean | null;
+            mcpServerConfig?: unknown;
         };
         UpsertDataEntryRequest: {
             values: unknown;
@@ -4534,6 +4766,37 @@ export interface operations {
             };
             /** @description Source project not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_org_tool_configs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organization tool configurations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListToolConfigsResponse"];
+                };
+            };
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7506,6 +7769,313 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_project_tool_configs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tool configurations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListToolConfigsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_project_tool_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateToolConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Tool config created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolConfigResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_project_tool_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Tool config ID */
+                configId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateToolConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Tool config updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolConfigResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_project_tool_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Tool config ID */
+                configId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tool config deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_tools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of available tools */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListToolsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_tool_details: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Tool name */
+                toolName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tool details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetToolDetailsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    execute_tool: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Tool name */
+                toolName: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecuteToolRequest"];
+            };
+        };
+        responses: {
+            /** @description Tool executed successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecuteToolResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

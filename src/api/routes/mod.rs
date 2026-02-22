@@ -17,4 +17,5 @@ pub mod projects;
 pub mod task_templates;
 pub mod tasks;
 pub mod todos;
+pub mod tools;
 pub mod ws;

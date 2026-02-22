@@ -26,6 +26,7 @@ use crate::modules::core::todo::service::TodoService;
 use crate::modules::email::inbound::InboundEmailService;
 use crate::modules::email::service::EmailOutboundService;
 use crate::modules::storage::service::FileService;
+use crate::modules::tools::service::ToolService;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -58,4 +59,5 @@ pub struct AppState {
     pub decision_service: Arc<DecisionService>,
     pub placeholder_resolver: Arc<PlaceholderResolver>,
     pub privacy_engine: Arc<PrivacyEngine>,
+    pub tool_service: Arc<ToolService>,
 }

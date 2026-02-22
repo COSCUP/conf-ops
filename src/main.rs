@@ -11,7 +11,7 @@ use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::api::routes::{
     accounts, ai_suggestions, auth, contacts, conversations, data_entries, data_external,
     email_inbound, email_threads, files, health, member_tags, members, memories, organizations,
-    projects, task_templates, tasks, todos, ws,
+    projects, task_templates, tasks, todos, tools, ws,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -47,6 +47,7 @@ use conf_ops::modules::email::service::EmailOutboundService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
 use conf_ops::modules::storage::local::LocalStorageBackend;
 use conf_ops::modules::storage::service::{FileService, StorageConfig};
+use conf_ops::modules::tools::service::ToolService;
 
 fn build_file_service(
     config: &AppConfig,
@@ -138,6 +139,8 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         Arc::clone(&placeholder_resolver),
     ));
 
+    let tool_service = Arc::new(ToolService::new(&pool, event_bus.clone()));
+
     let ws_token_store = Arc::new(WsTokenStore::new());
     let ws_manager = Arc::new(WsManager::new(config.crdt_ws_max_connections));
     let awareness_manager = Arc::new(AwarenessManager::new());
@@ -172,6 +175,7 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         decision_service,
         placeholder_resolver,
         privacy_engine,
+        tool_service,
     }
 }
 
@@ -241,6 +245,7 @@ fn org_routes() -> Router<AppState> {
                 )
                 .route("/copy", post(projects::copy_project)),
         )
+        .route("/{orgId}/tool-configs", get(tools::list_org_tool_configs))
         .nest("/{orgId}/contacts", contact_routes)
 }
 
@@ -345,8 +350,8 @@ fn task_routes() -> Router<AppState> {
         )
 }
 
-fn project_routes() -> Router<AppState> {
-    let member_routes = Router::new()
+fn member_routes() -> Router<AppState> {
+    Router::new()
         .route("/", get(members::list_members))
         .route("/invite", post(members::invite_member))
         .route(
@@ -354,9 +359,11 @@ fn project_routes() -> Router<AppState> {
             get(members::get_member)
                 .put(members::update_member)
                 .delete(members::delete_member),
-        );
+        )
+}
 
-    let member_tag_routes = Router::new()
+fn member_tag_routes() -> Router<AppState> {
+    Router::new()
         .route(
             "/",
             get(member_tags::list_tags).post(member_tags::create_tag),
@@ -375,9 +382,11 @@ fn project_routes() -> Router<AppState> {
         .route(
             "/{tagId}/external-task-creation",
             put(member_tags::update_external_task_creation),
-        );
+        )
+}
 
-    let task_template_routes = Router::new()
+fn task_template_routes() -> Router<AppState> {
+    Router::new()
         .route(
             "/",
             get(task_templates::list_templates).post(task_templates::create_template),
@@ -419,8 +428,10 @@ fn project_routes() -> Router<AppState> {
             get(task_templates::get_data_schema)
                 .put(task_templates::update_data_schema)
                 .delete(task_templates::delete_data_schema),
-        );
+        )
+}
 
+fn project_routes() -> Router<AppState> {
     Router::new()
         .route(
             "/{projectId}",
@@ -433,9 +444,9 @@ fn project_routes() -> Router<AppState> {
             "/{projectId}/permission-settings",
             get(projects::get_permission_settings).put(projects::update_permission_settings),
         )
-        .nest("/{projectId}/members", member_routes)
-        .nest("/{projectId}/member-tags", member_tag_routes)
-        .nest("/{projectId}/task-templates", task_template_routes)
+        .nest("/{projectId}/members", member_routes())
+        .nest("/{projectId}/member-tags", member_tag_routes())
+        .nest("/{projectId}/task-templates", task_template_routes())
         .nest("/{projectId}/tasks", task_routes())
         .route(
             "/{projectId}/unassigned-inbox",
@@ -448,6 +459,28 @@ fn project_routes() -> Router<AppState> {
         .route(
             "/{projectId}/task-templates/{templateId}/data-sheets/{schemaId}",
             get(data_entries::get_aggregated_sheet),
+        )
+        .merge(tool_routes())
+}
+
+fn tool_routes() -> Router<AppState> {
+    Router::new()
+        .route("/{projectId}/tools", get(tools::list_tools))
+        .route(
+            "/{projectId}/tools/{toolName}",
+            get(tools::get_tool_details),
+        )
+        .route(
+            "/{projectId}/tools/{toolName}/execute",
+            post(tools::execute_tool),
+        )
+        .route(
+            "/{projectId}/tool-configs",
+            get(tools::list_project_tool_configs).post(tools::create_project_tool_config),
+        )
+        .route(
+            "/{projectId}/tool-configs/{configId}",
+            put(tools::update_project_tool_config).delete(tools::delete_project_tool_config),
         )
 }
 

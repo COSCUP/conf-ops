@@ -49,6 +49,7 @@ use conf_ops::modules::email::service::EmailOutboundService;
 use conf_ops::modules::email::{EmailHeaders, EmailService};
 use conf_ops::modules::storage::local::LocalStorageBackend;
 use conf_ops::modules::storage::service::{FileService, StorageConfig};
+use conf_ops::modules::tools::service::ToolService;
 use postgresql_embedded::PostgreSQL;
 use sqlx::PgPool;
 use tokio::sync::Mutex;
@@ -299,6 +300,8 @@ impl TestContext {
             Arc::clone(&placeholder_resolver),
         ));
 
+        let tool_service = Arc::new(ToolService::new(&self.pool, event_bus.clone()));
+
         let ws_token_store = Arc::new(WsTokenStore::new());
         let ws_manager = Arc::new(WsManager::new(50));
         let awareness_manager = Arc::new(AwarenessManager::new());
@@ -333,6 +336,7 @@ impl TestContext {
             decision_service,
             placeholder_resolver,
             privacy_engine,
+            tool_service,
         }
     }
 

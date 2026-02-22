@@ -361,6 +361,30 @@ components:
       - name
       - sortOrder
       type: object
+    CreateToolConfigRequest:
+      description: Request to create a tool configuration.
+      properties:
+        config: {}
+        description:
+          type:
+          - string
+          - 'null'
+        displayName:
+          type:
+          - string
+          - 'null'
+        enabled:
+          type: boolean
+        mcpServerConfig: {}
+        toolName:
+          type: string
+        toolType:
+          type:
+          - string
+          - 'null'
+      required:
+      - toolName
+      type: object
     DataEntryListResponse:
       properties:
         entries:
@@ -567,6 +591,37 @@ components:
       - createdAt
       - updatedAt
       type: object
+    ExecuteToolRequest:
+      description: Request to execute a tool.
+      properties:
+        parameters: {}
+        suggestionId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        taskId:
+          format: uuid
+          type: string
+      required:
+      - taskId
+      - parameters
+      type: object
+    ExecuteToolResponse:
+      description: Response after executing a tool.
+      properties:
+        durationMs:
+          format: int64
+          minimum: 0
+          type: integer
+        result: {}
+        success:
+          type: boolean
+      required:
+      - success
+      - result
+      - durationMs
+      type: object
     FieldConstraints:
       properties:
         accept:
@@ -646,6 +701,10 @@ components:
       - messageId
       - suggestionGroup
       type: object
+    GetToolDetailsResponse:
+      allOf:
+      - $ref: '#/components/schemas/ToolDefinition'
+      description: Detailed tool definition response.
     HealthResponse:
       properties:
         status:
@@ -801,6 +860,26 @@ components:
           - 'null'
       required:
       - data
+      type: object
+    ListToolConfigsResponse:
+      description: Response for listing tool configs.
+      properties:
+        toolConfigs:
+          items:
+            $ref: '#/components/schemas/ToolConfigResponse'
+          type: array
+      required:
+      - toolConfigs
+      type: object
+    ListToolsResponse:
+      description: Response for listing available tools.
+      properties:
+        tools:
+          items:
+            $ref: '#/components/schemas/ToolSummary'
+          type: array
+      required:
+      - tools
       type: object
     MagicLinkRequest:
       properties:
@@ -1951,6 +2030,105 @@ components:
       - template
       - ad_hoc
       type: string
+    ToolCategory:
+      description: The category of a tool in the MCP runtime.
+      enum:
+      - core
+      - configurable
+      - external
+      type: string
+    ToolConfigResponse:
+      description: Tool configuration item for API responses.
+      properties:
+        config: {}
+        createdAt:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        displayName:
+          type:
+          - string
+          - 'null'
+        enabled:
+          type: boolean
+        id:
+          format: uuid
+          type: string
+        mcpServerConfig: {}
+        scopeId:
+          format: uuid
+          type: string
+        scopeType:
+          type: string
+        toolName:
+          type: string
+        toolType:
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - scopeType
+      - scopeId
+      - toolType
+      - toolName
+      - enabled
+      - config
+      - createdAt
+      - updatedAt
+      type: object
+    ToolDefinition:
+      description: An MCP tool definition exposed to clients.
+      properties:
+        category:
+          $ref: '#/components/schemas/ToolCategory'
+          description: Tool category.
+        description:
+          description: Tool description.
+          type: string
+        displayName:
+          description: Human-readable display name.
+          type:
+          - string
+          - 'null'
+        inputSchema:
+          description: JSON Schema for the tool's input parameters.
+        name:
+          description: Tool identifier name.
+          type: string
+        requiresConfirmation:
+          description: Whether the tool requires human confirmation before execution.
+          type: boolean
+      required:
+      - name
+      - description
+      - inputSchema
+      - category
+      - requiresConfirmation
+      type: object
+    ToolSummary:
+      description: Summary of an available tool.
+      properties:
+        category:
+          $ref: '#/components/schemas/ToolCategory'
+        description:
+          type: string
+        displayName:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        requiresConfirmation:
+          type: boolean
+      required:
+      - name
+      - category
+      - description
+      - requiresConfirmation
+      type: object
     TriggerType:
       description: The event type that triggered an AI suggestion pipeline.
       enum:
@@ -2235,6 +2413,24 @@ components:
           type:
           - string
           - 'null'
+      type: object
+    UpdateToolConfigRequest:
+      description: Request to update a tool configuration.
+      properties:
+        config: {}
+        description:
+          type:
+          - string
+          - 'null'
+        displayName:
+          type:
+          - string
+          - 'null'
+        enabled:
+          type:
+          - boolean
+          - 'null'
+        mcpServerConfig: {}
       type: object
     UpsertDataEntryRequest:
       properties:
@@ -3924,6 +4120,37 @@ paths:
       summary: Copy an existing project into a new project.
       tags:
       - projects
+  /api/v1/organizations/{orgId}/tool-configs:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_org_tool_configs
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListToolConfigsResponse'
+          description: Organization tool configurations
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List tool configurations for an organization.
+      tags:
+      - tool-configs
   /api/v1/projects/{projectId}:
     delete:
       description: |-
@@ -7187,6 +7414,315 @@ paths:
       summary: Update a todo's status.
       tags:
       - todos
+  /api/v1/projects/{projectId}/tool-configs:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_project_tool_configs
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListToolConfigsResponse'
+          description: Tool configurations
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List tool configurations for a project.
+      tags:
+      - tool-configs
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on duplicate, validation failure, or database error.
+      operationId: create_project_tool_config
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateToolConfigRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolConfigResponse'
+          description: Tool config created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Create a tool configuration for a project.
+      tags:
+      - tool-configs
+  /api/v1/projects/{projectId}/tool-configs/{configId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: delete_project_tool_config
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tool config ID
+        in: path
+        name: configId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Tool config deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Delete a tool configuration for a project.
+      tags:
+      - tool-configs
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: update_project_tool_config
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tool config ID
+        in: path
+        name: configId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateToolConfigRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolConfigResponse'
+          description: Tool config updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update a tool configuration for a project.
+      tags:
+      - tool-configs
+  /api/v1/projects/{projectId}/tools:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_tools
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListToolsResponse'
+          description: List of available tools
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List available tools for a project.
+      tags:
+      - tools
+  /api/v1/projects/{projectId}/tools/{toolName}:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: get_tool_details
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tool name
+        in: path
+        name: toolName
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetToolDetailsResponse'
+          description: Tool details
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get detailed definition of a specific tool.
+      tags:
+      - tools
+  /api/v1/projects/{projectId}/tools/{toolName}/execute:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on various failure conditions.
+      operationId: execute_tool
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Tool name
+        in: path
+        name: toolName
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteToolRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteToolResponse'
+          description: Tool executed successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Execute a tool.
+      tags:
+      - tools
   /api/v1/projects/{projectId}/unassigned-inbox:
     get:
       description: |-
@@ -7369,3 +7905,7 @@ tags:
   name: memories
 - description: AI suggestion pipeline endpoints
   name: ai-suggestions
+- description: Tool execution endpoints
+  name: tools
+- description: Tool configuration management endpoints
+  name: tool-configs

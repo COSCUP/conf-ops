@@ -8,7 +8,7 @@ use utoipa::{Modify, OpenApi};
 use super::routes::{
     accounts, ai_suggestions, auth, contacts, data_entries, data_external, email_inbound,
     email_threads, health, member_tags, members, memories, organizations, projects, task_templates,
-    tasks, todos,
+    tasks, todos, tools,
 };
 
 #[derive(OpenApi)]
@@ -140,6 +140,14 @@ use super::routes::{
         ai_suggestions::decide_suggestion,
         ai_suggestions::request_suggestion,
         ai_suggestions::resolve_placeholders,
+        tools::list_tools,
+        tools::get_tool_details,
+        tools::execute_tool,
+        tools::list_project_tool_configs,
+        tools::create_project_tool_config,
+        tools::update_project_tool_config,
+        tools::delete_project_tool_config,
+        tools::list_org_tool_configs,
     ),
     modifiers(&SecurityAddon),
     tags(
@@ -159,7 +167,9 @@ use super::routes::{
         (name = "email-threads", description = "Email thread management endpoints"),
         (name = "email-inbound", description = "Email inbound webhook and unassigned inbox endpoints"),
         (name = "memories", description = "Memory and library document management endpoints"),
-        (name = "ai-suggestions", description = "AI suggestion pipeline endpoints")
+        (name = "ai-suggestions", description = "AI suggestion pipeline endpoints"),
+        (name = "tools", description = "Tool execution endpoints"),
+        (name = "tool-configs", description = "Tool configuration management endpoints")
     )
 )]
 pub struct ApiDoc;
