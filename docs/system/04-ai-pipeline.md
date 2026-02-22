@@ -547,7 +547,7 @@ CREATE INDEX idx_ai_pipeline_events_status ON ai_pipeline_events(status, schedul
 
 **實作要點：**
 
-1. **寫入**：觸發事件時先寫入 `ai_pipeline_events` 表，再透過 `NOTIFY` 通知 worker
+1. **寫入**：觸發事件時先寫入 `ai_pipeline_events` 表，`PipelineWorker` 透過訂閱 `EventBus`（in-process `tokio::broadcast`）接收通知後喚醒處理
 2. **消費**：Tokio worker 使用 `SELECT ... FOR UPDATE SKIP LOCKED` 取得待處理事件，避免多 worker 競爭
 3. **背壓控制**：限制同時處理的事件數（如 `max_concurrent = 10`），超過時新事件排隊等待
 4. **重試策略**：失敗事件使用指數退避重試（30s, 2m, 10m），超過 `max_attempts` 標記為 `failed`

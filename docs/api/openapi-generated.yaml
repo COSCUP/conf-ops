@@ -219,6 +219,45 @@ components:
       - subject
       - participants
       type: object
+    CreateLibraryDocumentRequest:
+      properties:
+        content:
+          type: string
+        scopeId:
+          format: uuid
+          type: string
+        scopeType:
+          type: string
+        title:
+          type: string
+      required:
+      - scopeType
+      - scopeId
+      - title
+      - content
+      type: object
+    CreateMemoryRequest:
+      properties:
+        content:
+          type: string
+        libraryRef:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        scopeId:
+          format: uuid
+          type: string
+        scopeType:
+          type: string
+        source:
+          type: string
+      required:
+      - scopeType
+      - scopeId
+      - content
+      - source
+      type: object
     CreateOrganizationRequest:
       properties:
         description:
@@ -414,6 +453,29 @@ components:
       - createdAt
       - updatedAt
       type: object
+    DecideRequest:
+      properties:
+        additionalInstructions:
+          type:
+          - string
+          - 'null'
+        decision:
+          $ref: '#/components/schemas/SuggestionDecision'
+        lastSeenMessageId:
+          format: uuid
+          type: string
+        modifiedParameters: {}
+      required:
+      - decision
+      - lastSeenMessageId
+      type: object
+    DecideResponse:
+      properties:
+        status:
+          type: string
+      required:
+      - status
+      type: object
     EmailMessageListResponse:
       properties:
         messages:
@@ -573,6 +635,17 @@ components:
       - image
       - file
       type: string
+    GetSuggestionGroupResponse:
+      properties:
+        messageId:
+          format: uuid
+          type: string
+        suggestionGroup:
+          $ref: '#/components/schemas/SuggestionGroup'
+      required:
+      - messageId
+      - suggestionGroup
+      type: object
     HealthResponse:
       properties:
         status:
@@ -633,6 +706,80 @@ components:
       - email
       - role
       type: object
+    LibraryDocumentListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/LibraryDocumentResponse'
+          type: array
+        nextCursor:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      required:
+      - items
+      type: object
+    LibraryDocumentResponse:
+      properties:
+        content:
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        id:
+          format: uuid
+          type: string
+        scopeId:
+          format: uuid
+          type: string
+        scopeType:
+          type: string
+        title:
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+      required:
+      - id
+      - scopeType
+      - scopeId
+      - title
+      - content
+      - createdBy
+      - createdAt
+      - updatedAt
+      type: object
+    LibraryDocumentVersionResponse:
+      properties:
+        changedBy:
+          format: uuid
+          type: string
+        content:
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        documentId:
+          format: uuid
+          type: string
+        id:
+          format: uuid
+          type: string
+        title:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - documentId
+      - content
+      - changedBy
+      - createdAt
+      type: object
     LinkTagRequest:
       properties:
         memberTagId:
@@ -640,6 +787,20 @@ components:
           type: string
       required:
       - memberTagId
+      type: object
+    ListSuggestionsResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/SuggestionGroupItem'
+          type: array
+        nextCursor:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      required:
+      - data
       type: object
     MagicLinkRequest:
       properties:
@@ -816,6 +977,81 @@ components:
       - externalTaskCreation
       - createdAt
       - updatedAt
+      type: object
+    MemoryListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MemoryResponse'
+          type: array
+        nextCursor:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      required:
+      - items
+      type: object
+    MemoryResponse:
+      properties:
+        content:
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        id:
+          format: uuid
+          type: string
+        libraryRef:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        scopeId:
+          format: uuid
+          type: string
+        scopeType:
+          type: string
+        source:
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+      required:
+      - id
+      - scopeType
+      - scopeId
+      - content
+      - source
+      - createdBy
+      - createdAt
+      - updatedAt
+      type: object
+    MemoryVersionResponse:
+      properties:
+        changedBy:
+          format: uuid
+          type: string
+        content:
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          format: uuid
+          type: string
+        memoryId:
+          format: uuid
+          type: string
+      required:
+      - id
+      - memoryId
+      - content
+      - changedBy
+      - createdAt
       type: object
     MergeContactsRequest:
       properties:
@@ -1261,6 +1497,33 @@ components:
       required:
       - orders
       type: object
+    RequestSuggestionResponse:
+      properties:
+        eventId:
+          format: uuid
+          type: string
+      required:
+      - eventId
+      type: object
+    ResolvePlaceholdersRequest:
+      properties:
+        text:
+          type: string
+      required:
+      - text
+      type: object
+    ResolvePlaceholdersResponse:
+      properties:
+        text:
+          type: string
+        unresolved:
+          items:
+            type: string
+          type: array
+      required:
+      - text
+      - unresolved
+      type: object
     SendThreadEmailRequest:
       properties:
         ccAddresses:
@@ -1282,6 +1545,101 @@ components:
       required:
       - toAddresses
       - htmlBody
+      type: object
+    Suggestion:
+      description: A single AI suggestion proposing a tool execution.
+      properties:
+        contextUsed:
+          items:
+            $ref: '#/components/schemas/SuggestionContextRef'
+          type: array
+        decidedAt:
+          format: date-time
+          type:
+          - string
+          - 'null'
+        decidedBy:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        decision:
+          $ref: '#/components/schemas/SuggestionDecision'
+        executionResult: {}
+        id:
+          format: uuid
+          type: string
+        modifiedParameters: {}
+        parameters: {}
+        reasoning:
+          type: string
+        summary:
+          type: string
+        tool:
+          type: string
+      required:
+      - id
+      - summary
+      - tool
+      - parameters
+      - reasoning
+      - decision
+      type: object
+    SuggestionContextRef:
+      description: A reference to a memory entry used as context for generating a suggestion.
+      properties:
+        content:
+          type: string
+        memoryId:
+          format: uuid
+          type: string
+        scopeType:
+          type: string
+      required:
+      - scopeType
+      - memoryId
+      - content
+      type: object
+    SuggestionDecision:
+      description: The decision made on an AI suggestion.
+      enum:
+      - pending
+      - accept
+      - modify_and_accept
+      - reject
+      - re_suggest
+      type: string
+    SuggestionGroup:
+      description: A group of AI-generated suggestions sharing the same trigger event.
+      properties:
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          format: uuid
+          type: string
+        suggestions:
+          items:
+            $ref: '#/components/schemas/Suggestion'
+          type: array
+        trigger:
+          $ref: '#/components/schemas/TriggerType'
+      required:
+      - id
+      - trigger
+      - suggestions
+      - createdAt
+      type: object
+    SuggestionGroupItem:
+      properties:
+        messageId:
+          format: uuid
+          type: string
+        suggestionGroup:
+          $ref: '#/components/schemas/SuggestionGroup'
+      required:
+      - messageId
+      - suggestionGroup
       type: object
     TagAssignedContactResponse:
       properties:
@@ -1593,6 +1951,16 @@ components:
       - template
       - ad_hoc
       type: string
+    TriggerType:
+      description: The event type that triggered an AI suggestion pipeline.
+      enum:
+      - task_created
+      - todo_completed
+      - message_sent
+      - tool_error
+      - source_data_changed
+      - manual_request
+      type: string
     UnassignedEmailListResponse:
       properties:
         emails:
@@ -1700,12 +2068,35 @@ components:
       required:
       - settings
       type: object
+    UpdateLibraryDocumentRequest:
+      properties:
+        content:
+          type: string
+        title:
+          type:
+          - string
+          - 'null'
+      required:
+      - content
+      type: object
     UpdateMemberRoleRequest:
       properties:
         role:
           $ref: '#/components/schemas/MemberRole'
       required:
       - role
+      type: object
+    UpdateMemoryRequest:
+      properties:
+        content:
+          type: string
+        libraryRef:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      required:
+      - content
       type: object
     UpdateNotificationPreferencesRequest:
       properties:
@@ -2374,6 +2765,344 @@ paths:
       summary: Receive an inbound email via webhook.
       tags:
       - email-inbound
+  /api/v1/library-documents:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on invalid scope or database failure.
+      operationId: list_library_documents
+      parameters:
+      - description: Scope type
+        in: query
+        name: scopeType
+        required: true
+        schema:
+          type: string
+      - description: Scope ID
+        in: query
+        name: scopeId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Number of items per page
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryDocumentListResponse'
+          description: List of library documents
+      summary: List library documents by scope.
+      tags:
+      - library-documents
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on invalid scope or database failure.
+      operationId: create_library_document
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLibraryDocumentRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryDocumentResponse'
+          description: Library document created
+      summary: Create a new library document.
+      tags:
+      - library-documents
+  /api/v1/library-documents/{documentId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: delete_library_document
+      parameters:
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Library document deleted
+      summary: Delete a library document.
+      tags:
+      - library-documents
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: get_library_document
+      parameters:
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryDocumentResponse'
+          description: Library document details
+      summary: Get a library document by ID.
+      tags:
+      - library-documents
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: update_library_document
+      parameters:
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLibraryDocumentRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryDocumentResponse'
+          description: Library document updated
+      summary: Update a library document.
+      tags:
+      - library-documents
+  /api/v1/library-documents/{documentId}/versions:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: list_library_document_versions
+      parameters:
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LibraryDocumentVersionResponse'
+                type: array
+          description: Document version history
+      summary: List version history for a library document.
+      tags:
+      - library-documents
+  /api/v1/memories:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on invalid scope or database failure.
+      operationId: list_memories
+      parameters:
+      - description: Scope type
+        in: query
+        name: scopeType
+        required: true
+        schema:
+          type: string
+      - description: Scope ID
+        in: query
+        name: scopeId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Number of items per page
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryListResponse'
+          description: List of memories
+      summary: List memories by scope.
+      tags:
+      - memories
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on invalid scope, source, or database failure.
+      operationId: create_memory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemoryRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryResponse'
+          description: Memory created
+      summary: Create a new memory.
+      tags:
+      - memories
+  /api/v1/memories/{memoryId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: delete_memory
+      parameters:
+      - description: Memory ID
+        in: path
+        name: memoryId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Memory deleted
+      summary: Delete a memory.
+      tags:
+      - memories
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: get_memory
+      parameters:
+      - description: Memory ID
+        in: path
+        name: memoryId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryResponse'
+          description: Memory details
+      summary: Get a memory by ID.
+      tags:
+      - memories
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: update_memory
+      parameters:
+      - description: Memory ID
+        in: path
+        name: memoryId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemoryRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryResponse'
+          description: Memory updated
+      summary: Update a memory.
+      tags:
+      - memories
+  /api/v1/memories/{memoryId}/versions:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: list_memory_versions
+      parameters:
+      - description: Memory ID
+        in: path
+        name: memoryId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MemoryVersionResponse'
+                type: array
+          description: Memory version history
+      summary: List version history for a memory.
+      tags:
+      - memories
   /api/v1/organizations:
     get:
       description: |-
@@ -5380,6 +6109,50 @@ paths:
       summary: Update a task's name and/or description.
       tags:
       - tasks
+  /api/v1/projects/{projectId}/tasks/{taskId}/ai/resolve-placeholders:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: resolve_placeholders
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolvePlaceholdersRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolvePlaceholdersResponse'
+          description: Resolved text with list of unresolved placeholders
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Resolve `{{profile.*}}` and `{{data.*}}` placeholders in a text string.
+      tags:
+      - ai-suggestions
   /api/v1/projects/{projectId}/tasks/{taskId}/data-entries:
     get:
       description: |-
@@ -5865,6 +6638,218 @@ paths:
       summary: Update a task's status.
       tags:
       - tasks
+  /api/v1/projects/{projectId}/tasks/{taskId}/suggestions:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_suggestions
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Number of items per page (max 100)
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListSuggestionsResponse'
+          description: List of suggestion groups
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List AI suggestion groups for a task, ordered newest first.
+      tags:
+      - ai-suggestions
+  /api/v1/projects/{projectId}/tasks/{taskId}/suggestions/request:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: request_suggestion
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestSuggestionResponse'
+          description: Pipeline event queued
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Manually trigger an AI suggestion pipeline event for a task.
+      tags:
+      - ai-suggestions
+  /api/v1/projects/{projectId}/tasks/{taskId}/suggestions/{groupId}:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found or database failure.
+      operationId: get_suggestion_group
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Suggestion group ID
+        in: path
+        name: groupId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetSuggestionGroupResponse'
+          description: Suggestion group detail
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get a single AI suggestion group by group ID.
+      tags:
+      - ai-suggestions
+  /api/v1/projects/{projectId}/tasks/{taskId}/suggestions/{groupId}/suggestions/{suggestionId}/decide:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on stale conversation, already decided, not found,
+        invalid decision, or database failure.
+      operationId: decide_suggestion
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Suggestion group ID
+        in: path
+        name: groupId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Suggestion ID
+        in: path
+        name: suggestionId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecideRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecideResponse'
+          description: Decision recorded
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Make a decision on an AI suggestion.
+      tags:
+      - ai-suggestions
   /api/v1/projects/{projectId}/tasks/{taskId}/todos:
     get:
       description: |-
@@ -6380,3 +7365,7 @@ tags:
   name: email-threads
 - description: Email inbound webhook and unassigned inbox endpoints
   name: email-inbound
+- description: Memory and library document management endpoints
+  name: memories
+- description: AI suggestion pipeline endpoints
+  name: ai-suggestions

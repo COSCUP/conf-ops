@@ -200,7 +200,7 @@
      - re_suggest 時附帶人類指示重新呼叫 LLM
 4. **事件佇列與持久化**（參考 `docs/system/04-ai-pipeline.md` 7.3 佇列持久化）：
    - 建立 `ai_pipeline_events` 表（在 migration `0017_ai_pipeline.sql` 中）：id, task_id (FK), trigger_type (VARCHAR), payload (JSONB), status (VARCHAR: pending/processing/completed/failed), attempts (INT), max_attempts (INT, DEFAULT 3), scheduled_at, started_at, completed_at, error_message, created_at
-   - 觸發事件時先寫入 `ai_pipeline_events` 表，再透過 PostgreSQL `NOTIFY` 通知 worker
+   - 觸發事件時先寫入 `ai_pipeline_events` 表，`PipelineWorker` 透過訂閱 `EventBus` 接收通知後喚醒處理（不使用 PostgreSQL `NOTIFY`/`LISTEN`，避免額外的 DB 連線與未來擴展限制）
    - Tokio worker 使用 `SELECT ... FOR UPDATE SKIP LOCKED` 取得待處理事件，避免多 worker 競爭
    - 重試策略：失敗事件使用指數退避重試（30s, 2m, 10m），超過 max_attempts 標記為 failed
    - 超時處理：processing 超過 5 分鐘的事件自動重置為 pending

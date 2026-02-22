@@ -194,7 +194,7 @@ erDiagram
 
 ### 7.1 事件寫入
 
-- 觸發事件時先寫入 `ai_pipeline_events` 表，再透過 PostgreSQL `NOTIFY` 通知 worker。
+- 觸發事件時先寫入 `ai_pipeline_events` 表，`PipelineWorker` 透過訂閱 `EventBus`（in-process `tokio::broadcast`）接收通知後喚醒處理（不使用 PostgreSQL `NOTIFY`/`LISTEN`）。
 - 事件寫入後 `status` 為 `pending`，`attempts` 為 0。
 
 ### 7.2 事件消費
