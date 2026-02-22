@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH task_info AS (\n                SELECT t.id AS task_id,\n                       t.task_template_id,\n                       t.owner_tag_id,\n                       t.project_id,\n                       p.organization_id\n                FROM tasks t\n                JOIN projects p ON p.id = t.project_id\n                WHERE t.id = $1 AND t.deleted_at IS NULL\n            ),\n            scope_chain AS (\n                SELECT 'task' AS scope_type, task_id AS scope_id, 0 AS sort_order FROM task_info\n                UNION ALL\n                SELECT 'task_template', task_template_id, 1 FROM task_info\n                UNION ALL\n                SELECT 'member_tag', owner_tag_id, 2 FROM task_info\n                UNION ALL\n                SELECT 'project', project_id, 3 FROM task_info\n                UNION ALL\n                SELECT 'organization', organization_id, 4 FROM task_info\n                UNION ALL\n                SELECT 'account', $2::UUID, 5\n            )\n            SELECT m.id, m.scope_type, m.scope_id, m.content, m.library_ref, m.source,\n                   m.created_by, m.created_at, m.updated_at, m.deleted_at\n            FROM scope_chain sc\n            JOIN memories m ON m.scope_type = sc.scope_type AND m.scope_id = sc.scope_id\n            WHERE m.deleted_at IS NULL\n            ORDER BY sc.sort_order, m.created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "scope_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "scope_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "library_ref",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "source",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ab720fae2cebe4ed6af4dfaffde95b10c82fa4be541a366a8070aa944f2433e8"
+}

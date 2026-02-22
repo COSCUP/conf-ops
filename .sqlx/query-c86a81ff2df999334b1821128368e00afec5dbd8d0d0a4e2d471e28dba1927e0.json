@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE memories\n             SET content = $2, library_ref = $3, updated_at = NOW()\n             WHERE id = $1 AND deleted_at IS NULL\n             RETURNING id, scope_type, scope_id, content, library_ref, source,\n                       created_by, created_at, updated_at, deleted_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "scope_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "scope_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "library_ref",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "source",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c86a81ff2df999334b1821128368e00afec5dbd8d0d0a4e2d471e28dba1927e0"
+}

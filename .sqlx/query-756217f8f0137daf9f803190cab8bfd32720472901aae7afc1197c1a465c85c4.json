@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO messages (id, task_id, source_type, source_id, content)\n             VALUES ($1, $2, 'ai_suggestion', $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "756217f8f0137daf9f803190cab8bfd32720472901aae7afc1197c1a465c85c4"
+}

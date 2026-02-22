@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, content FROM messages\n             WHERE task_id = $1\n               AND source_type = 'ai_suggestion'\n               AND ($2::UUID IS NULL OR id < $2)\n             ORDER BY id DESC\n             LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "content",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "f86f5be075de687fbef4ef88bd42422f50d3977eb152b2a3585bd485e4c2d418"
+}

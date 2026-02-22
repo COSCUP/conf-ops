@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE ai_pipeline_events\n             SET status = 'completed', completed_at = NOW()\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6139a5b6e29aa147ac91e6083a616b57815ac04a78f5c924273dc9939fee03cc"
+}

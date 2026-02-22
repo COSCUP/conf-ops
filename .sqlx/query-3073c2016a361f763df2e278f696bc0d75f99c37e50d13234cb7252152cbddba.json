@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE ai_pipeline_events\n             SET status = 'pending', started_at = NULL\n             WHERE status = 'processing'\n               AND started_at < NOW() - ($1::BIGINT * INTERVAL '1 second')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3073c2016a361f763df2e278f696bc0d75f99c37e50d13234cb7252152cbddba"
+}

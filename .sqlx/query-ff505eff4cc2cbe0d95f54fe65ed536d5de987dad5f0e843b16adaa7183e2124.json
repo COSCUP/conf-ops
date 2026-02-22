@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE ai_pipeline_events\n             SET status = 'processing',\n                 attempts = attempts + 1,\n                 started_at = NOW()\n             WHERE id = (\n                 SELECT id FROM ai_pipeline_events\n                 WHERE status = 'pending'\n                   AND scheduled_at <= NOW()\n                   AND attempts < max_attempts\n                 ORDER BY scheduled_at\n                 LIMIT 1\n                 FOR UPDATE SKIP LOCKED\n             )\n             RETURNING id, task_id, trigger_type, payload, status,\n                       attempts, max_attempts, scheduled_at,\n                       started_at, completed_at, error_message, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "trigger_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "payload",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "max_attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "scheduled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "completed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "error_message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "ff505eff4cc2cbe0d95f54fe65ed536d5de987dad5f0e843b16adaa7183e2124"
+}

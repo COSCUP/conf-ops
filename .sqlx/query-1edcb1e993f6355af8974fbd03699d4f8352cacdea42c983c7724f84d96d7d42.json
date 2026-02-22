@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE library_documents SET deleted_at = NOW(), updated_at = NOW()\n             WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1edcb1e993f6355af8974fbd03699d4f8352cacdea42c983c7724f84d96d7d42"
+}

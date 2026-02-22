@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE memories SET deleted_at = NOW(), updated_at = NOW()\n             WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b112535f89c77429b113997c54dc46228a353adc2e962b27f9dc792cf1654aba"
+}

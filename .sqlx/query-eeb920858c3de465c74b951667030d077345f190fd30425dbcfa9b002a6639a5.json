@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO ai_contexts\n                 (id, task_id, message_id, prompt, response, model,\n                  input_tokens, output_tokens, duration_ms)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n             RETURNING id, task_id, message_id, prompt, response, model,\n                       input_tokens, output_tokens, duration_ms, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "message_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "prompt",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "response",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "model",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "input_tokens",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "output_tokens",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "duration_ms",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Varchar",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "eeb920858c3de465c74b951667030d077345f190fd30425dbcfa9b002a6639a5"
+}

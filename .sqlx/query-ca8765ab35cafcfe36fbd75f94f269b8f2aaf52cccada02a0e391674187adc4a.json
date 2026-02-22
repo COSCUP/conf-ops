@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE ai_pipeline_events\n             SET error_message = $2,\n                 status = CASE\n                     WHEN attempts < max_attempts THEN 'pending'\n                     ELSE 'failed'\n                 END,\n                 scheduled_at = CASE\n                     WHEN attempts < max_attempts THEN NOW() + (\n                         CASE attempts\n                             WHEN 1 THEN INTERVAL '30 seconds'\n                             WHEN 2 THEN INTERVAL '2 minutes'\n                             ELSE INTERVAL '10 minutes'\n                         END\n                     )\n                     ELSE scheduled_at\n                 END\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ca8765ab35cafcfe36fbd75f94f269b8f2aaf52cccada02a0e391674187adc4a"
+}
