@@ -104,6 +104,11 @@ const router = createRouter({
           component: () => import('@/views/projects/TaskDetailView.vue'),
         },
         {
+          path: 'projects/:projectId/unclassified-inbox',
+          name: 'unclassified-inbox',
+          component: () => import('@/views/projects/UnclassifiedInboxView.vue'),
+        },
+        {
           path: 'organizations/:orgId/contacts',
           name: 'org-contacts',
           component: () => import('@/views/organizations/ContactsView.vue'),

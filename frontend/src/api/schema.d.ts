@@ -330,6 +330,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/email/inbound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive an inbound email via webhook.
+         * @description Expects `Authorization: Bearer {API_KEY}` header and raw MIME body
+         *     with `Content-Type: message/rfc822`.
+         *
+         *     # Errors
+         *
+         *     Returns `ProblemDetails` on invalid API key, parse error, or database failure.
+         */
+        post: operations["receive_inbound_email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations": {
         parameters: {
             query?: never;
@@ -1286,6 +1311,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/email-threads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List email threads for a task.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure or not found.
+         */
+        get: operations["list_email_threads"];
+        put?: never;
+        /**
+         * Create an email thread for a task.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure.
+         */
+        post: operations["create_email_thread"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/email-threads/{threadId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an email thread.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure or not found.
+         */
+        delete: operations["delete_email_thread"];
+        options?: never;
+        head?: never;
+        /**
+         * Update an email thread.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure or not found.
+         */
+        patch: operations["update_email_thread"];
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/tasks/{taskId}/email-threads/{threadId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List messages in an email thread.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure or not found.
+         */
+        get: operations["list_thread_messages"];
+        put?: never;
+        /**
+         * Send an email in a thread.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure, SMTP error, or not found.
+         */
+        post: operations["send_thread_email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{projectId}/tasks/{taskId}/status": {
         parameters: {
             query?: never;
@@ -1436,6 +1545,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{projectId}/unassigned-inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List unassigned emails for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure.
+         */
+        get: operations["list_unassigned_inbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/unassigned-inbox/{emailId}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign an unassigned email to a task.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on permission failure, not found, or already assigned.
+         */
+        post: operations["assign_unassigned_email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/external/v1/projects/{projectId}/task-templates/{templateId}/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get template data (external API — not yet implemented).
+         * @description This endpoint will be available for external integrations in Phase 11
+         *     with API Key authentication. Currently returns 501 Not Implemented.
+         *
+         *     # Errors
+         *
+         *     Always returns `ProblemDetails` with 501 status.
+         */
+        get: operations["get_template_data"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -1482,6 +1660,16 @@ export interface components {
             locale: string;
             name: string;
             updatedAt: string;
+        };
+        AssignEmailRequest: {
+            /** Format: uuid */
+            taskId: string;
+        };
+        AssignEmailResponse: {
+            /** Format: uuid */
+            taskId: string;
+            /** Format: uuid */
+            threadId?: string | null;
         };
         AssignTagRequest: {
             /** Format: uuid */
@@ -1547,6 +1735,10 @@ export interface components {
         CreateDataSchemaRequest: {
             fields: components["schemas"]["DataSchemaField"][];
             name: string;
+        };
+        CreateEmailThreadRequest: {
+            participants: string[];
+            subject: string;
         };
         CreateOrganizationRequest: {
             description?: string | null;
@@ -1623,6 +1815,41 @@ export interface components {
             taskTemplateId: string;
             updatedAt: string;
         };
+        EmailMessageListResponse: {
+            messages: components["schemas"]["EmailMessageResponse"][];
+            pagination: components["schemas"]["PaginationInfo"];
+        };
+        EmailMessageResponse: {
+            ccAddresses: unknown;
+            createdAt: string;
+            direction: string;
+            fromAddress: string;
+            /** Format: uuid */
+            id: string;
+            inReplyTo?: string | null;
+            messageId: string;
+            sendStatus: string;
+            subject: string;
+            /** Format: uuid */
+            threadId: string;
+            toAddresses: unknown;
+        };
+        EmailThreadListResponse: {
+            pagination: components["schemas"]["PaginationInfo"];
+            threads: components["schemas"]["EmailThreadResponse"][];
+        };
+        EmailThreadResponse: {
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            lastMessageAt?: string | null;
+            messageIds: unknown;
+            participants: unknown;
+            subject: string;
+            /** Format: uuid */
+            taskId: string;
+            updatedAt: string;
+        };
         FieldConstraints: {
             accept?: string[] | null;
             decimal?: boolean | null;
@@ -1644,6 +1871,13 @@ export interface components {
         FieldType: "single_line_text" | "multi_line_text" | "number" | "date" | "email" | "url" | "select" | "boolean" | "image" | "file";
         HealthResponse: {
             status: string;
+        };
+        InboundWebhookResponse: {
+            status: string;
+            /** Format: uuid */
+            taskId?: string | null;
+            /** Format: uuid */
+            threadId?: string | null;
         };
         InviteMemberRequest: {
             /** Format: uuid */
@@ -1807,6 +2041,11 @@ export interface components {
             name: string;
             updatedAt: string;
         };
+        PaginationInfo: {
+            hasMore: boolean;
+            /** Format: uuid */
+            nextCursor?: string | null;
+        };
         PasskeyListResponse: {
             passkeys: components["schemas"]["PasskeyResponse"][];
         };
@@ -1834,7 +2073,7 @@ export interface components {
             settings: Record<string, never>;
         };
         /** @description RFC 7807 Problem Details error response. */
-        ProblemDetails: {
+        ProblemDetails: (Record<string, never> | null) & {
             /** @description Detailed error description. */
             detail?: string | null;
             /** @description Field-level validation errors. */
@@ -1899,6 +2138,12 @@ export interface components {
         };
         ReorderTodoTemplatesRequest: {
             orders: components["schemas"]["ReorderItem"][];
+        };
+        SendThreadEmailRequest: {
+            ccAddresses?: string[] | null;
+            htmlBody: string;
+            subject?: string | null;
+            toAddresses: string[];
         };
         TagAssignedContactResponse: {
             /** Format: uuid */
@@ -2025,6 +2270,22 @@ export interface components {
         };
         /** @enum {string} */
         TodoType: "template" | "ad_hoc";
+        UnassignedEmailListResponse: {
+            emails: components["schemas"]["UnassignedEmailResponse"][];
+            pagination: components["schemas"]["PaginationInfo"];
+        };
+        UnassignedEmailResponse: {
+            fromAddress: string;
+            fromName?: string | null;
+            hasAttachments: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            receivedAt: string;
+            snippet?: string | null;
+            subject: string;
+        };
         UpdateAccountRequest: {
             avatarUrl?: string | null;
             bio?: string | null;
@@ -2038,6 +2299,10 @@ export interface components {
         UpdateDataSchemaRequest: {
             fields?: components["schemas"]["DataSchemaField"][] | null;
             name?: string | null;
+        };
+        UpdateEmailThreadRequest: {
+            participants?: string[] | null;
+            subject?: string | null;
         };
         UpdateExternalTaskCreationRequest: {
             settings: Record<string, never>;
@@ -2627,6 +2892,41 @@ export interface operations {
                 };
             };
             /** @description Invalid refresh token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    receive_inbound_email: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboundWebhookResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5764,6 +6064,214 @@ export interface operations {
             };
         };
     };
+    list_email_threads: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailThreadListResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_email_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmailThreadRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailThreadResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_email_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                taskId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_email_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                taskId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmailThreadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailThreadResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_thread_messages: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+                taskId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailMessageListResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    send_thread_email: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                taskId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendThreadEmailRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailMessageResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     update_task_status: {
         parameters: {
             query?: never;
@@ -6048,6 +6556,94 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_unassigned_inbox: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnassignedEmailListResponse"];
+                };
+            };
+        };
+    };
+    assign_unassigned_email: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                emailId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignEmailRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignEmailResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_template_data: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

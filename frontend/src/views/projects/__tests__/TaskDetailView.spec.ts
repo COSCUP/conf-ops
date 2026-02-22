@@ -53,6 +53,9 @@ function mockGetByPath() {
     if (path.includes('/members')) {
       return Promise.resolve({ data: { members: [] } })
     }
+    if (path.includes('/email-threads')) {
+      return Promise.resolve({ data: { threads: [], pagination: { hasMore: false, nextCursor: null } } })
+    }
     // task detail
     return Promise.resolve({ data: mockTask })
   }) as typeof client.GET)

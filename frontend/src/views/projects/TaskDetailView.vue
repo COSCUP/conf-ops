@@ -10,6 +10,7 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import TodoList from '@/components/task/TodoList.vue'
 import DataEntryForm from '@/components/data-schema/DataEntryForm.vue'
 import ConversationPanel from '@/components/conversation/ConversationPanel.vue'
+import EmailThreadsPanel from '@/components/email/EmailThreadsPanel.vue'
 import client from '@/api/client'
 import type { components } from '@/api/schema'
 
@@ -197,6 +198,11 @@ async function handleSaveEntry(schemaId: string, values: Record<string, unknown>
     <!-- Data Entries -->
     <BaseCard title="Data Entries">
       <DataEntryForm :schemas="dataSchemas" :entries="dataEntries" @save="handleSaveEntry" />
+    </BaseCard>
+
+    <!-- Email Threads -->
+    <BaseCard title="Email">
+      <EmailThreadsPanel :project-id="projectId" :task-id="taskId" />
     </BaseCard>
 
     <!-- Conversation -->
