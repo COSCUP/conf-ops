@@ -1,0 +1,8 @@
+# Conf-Ops Crontab Configuration
+# Install with: crontab scripts/crontab.example
+
+# Database backup: daily at 03:00 UTC
+0 3 * * * /opt/confops/scripts/backup-db.sh >> /var/log/confops-backup-db.log 2>&1
+
+# File storage backup: daily at 04:00 UTC
+0 4 * * * /opt/confops/scripts/backup-files.sh >> /var/log/confops-backup-files.log 2>&1

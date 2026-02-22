@@ -1,0 +1,21 @@
+# Caddyfile - Production reverse proxy configuration
+# Replace {$DOMAIN} with your actual domain or set it as an environment variable
+{$DOMAIN:api.confops.dev} {
+    # HTTP API and WebSocket proxy
+    reverse_proxy confops-app:8080 {
+        # WebSocket support (auto-detects Upgrade header)
+        flush_interval -1
+    }
+
+    # Access logging
+    log {
+        output stdout
+        format json
+    }
+
+    # Security headers (supplement to application-level headers)
+    header {
+        # Remove server identification
+        -Server
+    }
+}

@@ -207,6 +207,7 @@ impl TestContext {
             crdt_ws_idle_timeout_secs: 300,
             gemini_api_key: None,
             gemini_model: "gemini-2.5-flash".to_string(),
+            cors_origins: "http://localhost:3000".to_string(),
         }
     }
 

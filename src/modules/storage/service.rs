@@ -129,14 +129,13 @@ impl FileService {
             },
         )
         .await
-        .map_err(|e| {
+        .inspect_err(|_| {
             // Best-effort cleanup of written file on DB failure
             let backend = Arc::clone(&self.backend);
             let path = storage_path.clone();
             tokio::spawn(async move {
                 let _ = backend.remove(&path).await;
             });
-            e
         })?;
 
         self.event_bus.publish(DomainEvent::FileUploaded {

@@ -7,6 +7,9 @@ use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
 use conf_ops::api::middleware::auth::auth_middleware;
+use conf_ops::api::middleware::cors::build_cors_layer;
+use conf_ops::api::middleware::rate_limit::{ai_rate_limit, auth_rate_limit, global_rate_limit};
+use conf_ops::api::middleware::security_headers::security_headers;
 use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::api::routes::{
     accounts, ai_suggestions, api_keys, audit, auth, contacts, conversations, data_entries,
@@ -376,7 +379,7 @@ fn task_routes() -> Router<AppState> {
         )
         .route(
             "/{taskId}/suggestions/request",
-            post(ai_suggestions::request_suggestion),
+            post(ai_suggestions::request_suggestion).layer(middleware::from_fn(ai_rate_limit)),
         )
         .route(
             "/{taskId}/suggestions/{groupId}",
@@ -573,7 +576,7 @@ fn external_v1_routes() -> Router<AppState> {
         )
 }
 
-fn build_router(state: AppState) -> Router {
+fn build_router(state: AppState, config: &AppConfig) -> Router {
     let account_routes = Router::new()
         .route("/me", get(accounts::get_me).patch(accounts::update_me))
         .route(
@@ -631,7 +634,10 @@ fn build_router(state: AppState) -> Router {
         );
 
     let api_v1 = Router::new()
-        .nest("/auth", auth_routes())
+        .nest(
+            "/auth",
+            auth_routes().layer(middleware::from_fn(auth_rate_limit)),
+        )
         .nest("/accounts", account_routes)
         .nest("/organizations", org_routes())
         .nest("/projects", project_routes())
@@ -652,6 +658,8 @@ fn build_router(state: AppState) -> Router {
         post(email_inbound::receive_inbound_email),
     );
 
+    let cors_layer = build_cors_layer(&config.cors_origins);
+
     Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
@@ -663,6 +671,9 @@ fn build_router(state: AppState) -> Router {
         ))
         .merge(ws_route)
         .merge(email_inbound_route)
+        .layer(middleware::from_fn(security_headers))
+        .layer(middleware::from_fn(global_rate_limit))
+        .layer(cors_layer)
         .with_state(state)
 }
 
@@ -810,7 +821,7 @@ async fn main() {
 
     spawn_background_tasks(&state, &config);
 
-    let app = build_router(state);
+    let app = build_router(state, &config);
 
     let addr: SocketAddr = format!("{}:{}", config.app_host, config.app_port)
         .parse()

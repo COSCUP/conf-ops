@@ -1,0 +1,19 @@
+# Development Dockerfile with cargo-watch for hot reload
+FROM rust:1.82-bookworm
+
+WORKDIR /app
+
+# Install cargo-watch for development hot reload
+RUN cargo install cargo-watch
+
+# Install sqlx-cli for migrations
+RUN cargo install sqlx-cli --no-default-features --features postgres,rustls
+
+# Copy source (will be overridden by volume mount in dev)
+COPY . .
+
+ENV SQLX_OFFLINE=true
+
+EXPOSE 8080
+
+CMD ["cargo", "watch", "-x", "run"]

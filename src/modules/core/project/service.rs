@@ -6,6 +6,7 @@ use crate::id::generate_id;
 use crate::modules::core::member::models::MemberRole;
 use crate::modules::core::member::repository::MemberRepository;
 
+use super::copy::deep_copy_project;
 use super::error::ProjectError;
 use super::models::{Project, ProjectListItem, ProjectStatus};
 use super::repository::ProjectRepository;
@@ -72,11 +73,17 @@ impl ProjectService {
         Ok(project)
     }
 
-    /// Copy an existing project into a new project.
+    /// Copy an existing project into a new project with deep copy of all related entities.
+    ///
+    /// Copies: `member_tags`, `task_templates` (with `todo_templates` + `data_schemas`),
+    /// `task_template_tags`, memories, `tool_configs`, `permission_settings`.
+    ///
+    /// Does NOT copy: members, tasks, contacts, `data_entries`, messages, todos, conversations.
     ///
     /// # Errors
     ///
     /// Returns `ProjectError::NotFound` if the source project does not exist.
+    /// Returns `ProjectError::Database` on database failure.
     pub async fn copy_project(
         &self,
         org_id: Uuid,
@@ -119,6 +126,9 @@ impl ProjectService {
                 }
             })
         })?;
+
+        // Deep copy all project-related entities with ID mapping
+        deep_copy_project(&self.pool, source_project_id, project_id, created_by).await?;
 
         self.event_bus.publish(DomainEvent::ProjectCopied {
             project_id,

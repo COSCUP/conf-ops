@@ -53,6 +53,9 @@ pub struct AppConfig {
     // AI / Gemini
     pub gemini_api_key: Option<String>,
     pub gemini_model: String,
+
+    // CORS
+    pub cors_origins: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -135,6 +138,9 @@ impl AppConfig {
         let gemini_api_key = lookup("GEMINI_API_KEY");
         let gemini_model = lookup("GEMINI_MODEL").unwrap_or_else(|| "gemini-2.5-flash".to_string());
 
+        let cors_origins =
+            lookup("APP_CORS_ORIGINS").unwrap_or_else(|| "http://localhost:3000".to_string());
+
         Ok(Self {
             database_url,
             database_max_connections,
@@ -169,6 +175,7 @@ impl AppConfig {
             crdt_ws_idle_timeout_secs,
             gemini_api_key,
             gemini_model,
+            cors_origins,
         })
     }
 }

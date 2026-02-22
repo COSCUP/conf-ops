@@ -1,0 +1,126 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      confops-app:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  confops-app:
+    image: ghcr.io/org/confops:latest
+    restart: unless-stopped
+    env_file: .env.prod
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - file_storage:/data/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # IMPORTANT: confops-worker must remain a single replica.
+  # The Reminder Scheduler depends on single-instance execution to avoid
+  # duplicate notifications. If multi-replica is needed in the future,
+  # implement PostgreSQL Advisory Lock or SELECT ... FOR UPDATE SKIP LOCKED
+  # (see docs/system/10-notification-system.md).
+  confops-worker:
+    image: ghcr.io/org/confops:latest
+    restart: unless-stopped
+    command: ["confops", "--worker"]
+    env_file: .env.prod
+    volumes:
+      - file_storage:/data/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1  # Do not increase; see above comment
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: confops
+      POSTGRES_USER: confops
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U confops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:
+  file_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/confops/files
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt

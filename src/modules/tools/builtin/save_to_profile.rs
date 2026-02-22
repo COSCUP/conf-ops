@@ -55,7 +55,7 @@ impl BuiltinToolExecutor for SaveToProfileTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| ToolError::ExecutionError("Missing key".to_string()))?;
 
-        if !params.get("value").is_some_and(|v| !v.is_null()) {
+        if params.get("value").is_none_or(serde_json::Value::is_null) {
             return Err(ToolError::ExecutionError("Missing value".to_string()));
         }
 
