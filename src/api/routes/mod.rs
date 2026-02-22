@@ -4,6 +4,8 @@ pub mod contacts;
 pub mod conversations;
 pub mod data_entries;
 pub mod data_external;
+pub mod email_inbound;
+pub mod email_threads;
 pub mod files;
 pub mod health;
 pub mod member_tags;
