@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_messages\n             SET send_status = $2, retry_count = $3, next_retry_at = $4\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b265925ca28c0f538d4c869d96a3059a397746e87ae01ef5e9d3030e0895395d"
+}

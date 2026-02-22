@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM contacts\n         WHERE organization_id = $1 AND email = $2\n           AND deleted_at IS NULL AND merged_into_id IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "61fea5f43b091338a99287ef44900e47dfcdc173094a96a9d21d1db531bd4309"
+}

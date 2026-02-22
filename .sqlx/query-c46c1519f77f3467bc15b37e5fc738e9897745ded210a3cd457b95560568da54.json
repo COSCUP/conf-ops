@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT et.id, et.task_id, et.subject, et.participants, et.message_ids,\n                      et.last_message_at, et.created_at, et.updated_at\n             FROM email_threads et\n             INNER JOIN email_messages em ON em.thread_id = et.id\n             WHERE LOWER(et.subject) = LOWER($1)\n               AND em.from_address = $2\n             ORDER BY et.last_message_at DESC NULLS LAST\n             LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "subject",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "participants",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "message_ids",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_message_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "c46c1519f77f3467bc15b37e5fc738e9897745ded210a3cd457b95560568da54"
+}

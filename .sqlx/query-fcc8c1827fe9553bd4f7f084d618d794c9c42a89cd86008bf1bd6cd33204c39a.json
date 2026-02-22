@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_threads\n             SET message_ids = message_ids || to_jsonb($2::TEXT),\n                 updated_at = NOW()\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fcc8c1827fe9553bd4f7f084d618d794c9c42a89cd86008bf1bd6cd33204c39a"
+}

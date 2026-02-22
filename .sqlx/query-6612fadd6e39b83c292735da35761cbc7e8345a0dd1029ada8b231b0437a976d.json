@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_threads\n             SET subject = COALESCE($2, subject),\n                 participants = COALESCE($3, participants),\n                 updated_at = NOW()\n             WHERE id = $1\n             RETURNING id, task_id, subject, participants, message_ids,\n                       last_message_at, created_at, updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "subject",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "participants",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "message_ids",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_message_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "6612fadd6e39b83c292735da35761cbc7e8345a0dd1029ada8b231b0437a976d"
+}

@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, project_id, from_name, from_address, subject, snippet,\n                      raw_mime, has_attachments, received_at, assigned_at,\n                      assigned_task_id, created_at\n             FROM unassigned_emails\n             WHERE project_id = $1\n               AND assigned_at IS NULL\n               AND ($2::UUID IS NULL OR id < $2)\n             ORDER BY id DESC\n             LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "from_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "from_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "subject",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "snippet",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "raw_mime",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 7,
+        "name": "has_attachments",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "received_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "assigned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "assigned_task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "05ee23aed59c47ada39643c3982dffa8fe049f24044dc8cd0e61f76154b37cc5"
+}

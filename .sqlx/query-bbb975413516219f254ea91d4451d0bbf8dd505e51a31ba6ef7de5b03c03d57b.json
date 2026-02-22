@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE unassigned_emails\n             SET assigned_at = NOW(), assigned_task_id = $2\n             WHERE id = $1 AND assigned_at IS NULL\n             RETURNING id, project_id, from_name, from_address, subject, snippet,\n                       raw_mime, has_attachments, received_at, assigned_at,\n                       assigned_task_id, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "from_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "from_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "subject",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "snippet",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "raw_mime",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 7,
+        "name": "has_attachments",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "received_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "assigned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "assigned_task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "bbb975413516219f254ea91d4451d0bbf8dd505e51a31ba6ef7de5b03c03d57b"
+}
