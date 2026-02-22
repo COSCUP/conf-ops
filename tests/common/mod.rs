@@ -43,7 +43,7 @@ use conf_ops::modules::core::todo::service::TodoService;
 use conf_ops::modules::email::error::EmailError;
 use conf_ops::modules::email::inbound::InboundEmailService;
 use conf_ops::modules::email::service::EmailOutboundService;
-use conf_ops::modules::email::EmailService;
+use conf_ops::modules::email::{EmailHeaders, EmailService};
 use conf_ops::modules::storage::local::LocalStorageBackend;
 use conf_ops::modules::storage::service::{FileService, StorageConfig};
 use postgresql_embedded::PostgreSQL;
@@ -53,12 +53,14 @@ use uuid::Uuid;
 
 pub struct MockEmailService {
     pub sent: Mutex<Vec<(String, String, String)>>,
+    pub sent_with_headers: Mutex<Vec<(String, String, String, EmailHeaders)>>,
 }
 
 impl MockEmailService {
     pub fn new() -> Self {
         Self {
             sent: Mutex::new(Vec::new()),
+            sent_with_headers: Mutex::new(Vec::new()),
         }
     }
 }
@@ -71,6 +73,41 @@ impl EmailService for MockEmailService {
             .await
             .push((to.to_string(), subject.to_string(), html_body.to_string()));
         Ok(())
+    }
+
+    async fn send_with_headers(
+        &self,
+        to: &str,
+        subject: &str,
+        html_body: &str,
+        headers: &EmailHeaders,
+    ) -> Result<(), EmailError> {
+        self.sent_with_headers.lock().await.push((
+            to.to_string(),
+            subject.to_string(),
+            html_body.to_string(),
+            headers.clone(),
+        ));
+        Ok(())
+    }
+}
+
+pub struct FailingEmailService;
+
+#[async_trait]
+impl EmailService for FailingEmailService {
+    async fn send(&self, _to: &str, _subject: &str, _html_body: &str) -> Result<(), EmailError> {
+        Err(EmailError::SmtpError("Simulated SMTP failure".to_string()))
+    }
+
+    async fn send_with_headers(
+        &self,
+        _to: &str,
+        _subject: &str,
+        _html_body: &str,
+        _headers: &EmailHeaders,
+    ) -> Result<(), EmailError> {
+        Err(EmailError::SmtpError("Simulated SMTP failure".to_string()))
     }
 }
 
@@ -479,9 +516,9 @@ fn assemble_router_with_ws(state: AppState) -> Router {
 }
 
 fn assemble_router(state: AppState) -> Router {
-    use axum::routing::get;
+    use axum::routing::{get, post};
     use conf_ops::api::middleware::auth::auth_middleware;
-    use conf_ops::api::routes::{data_entries, projects};
+    use conf_ops::api::routes::{data_entries, email_inbound, projects};
 
     let project_top = Router::new()
         .route(
@@ -497,7 +534,23 @@ fn assemble_router(state: AppState) -> Router {
         .route(
             "/{projectId}/task-templates/{templateId}/data-sheets/{schemaId}",
             get(data_entries::get_aggregated_sheet),
+        )
+        .route(
+            "/{projectId}/unassigned-inbox",
+            get(email_inbound::list_unassigned_inbox),
+        )
+        .route(
+            "/{projectId}/unassigned-inbox/{emailId}/assign",
+            post(email_inbound::assign_unassigned_email),
         );
+
+    // Email inbound webhook (outside auth middleware, uses API key auth)
+    let email_inbound_route = Router::new()
+        .route(
+            "/api/v1/email/inbound",
+            post(email_inbound::receive_inbound_email),
+        )
+        .with_state(state.clone());
 
     Router::new()
         .nest("/api/v1/organizations", test_org_routes())
@@ -516,6 +569,7 @@ fn assemble_router(state: AppState) -> Router {
             state.clone(),
             auth_middleware,
         ))
+        .merge(email_inbound_route)
         .with_state(state)
 }
 
