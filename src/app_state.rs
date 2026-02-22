@@ -8,11 +8,13 @@ use crate::modules::ai::decision::DecisionService;
 use crate::modules::ai::memory::service::MemoryService;
 use crate::modules::ai::placeholder::PlaceholderResolver;
 use crate::modules::ai::privacy::PrivacyEngine;
+use crate::modules::audit::service::AuditService;
 use crate::modules::auth::jwt::JwtConfig;
 use crate::modules::auth::service::AuthService;
 use crate::modules::conversation::awareness::AwarenessManager;
 use crate::modules::conversation::service::ConversationService;
 use crate::modules::conversation::ws_manager::WsManager;
+use crate::modules::core::api_key::service::ApiKeyService;
 use crate::modules::core::contact::service::ContactService;
 use crate::modules::core::data_sheet::service::DataSheetService;
 use crate::modules::core::member::service::MemberService;
@@ -23,6 +25,7 @@ use crate::modules::core::project::service::ProjectService;
 use crate::modules::core::task::service::TaskService;
 use crate::modules::core::task_template::service::TaskTemplateService;
 use crate::modules::core::todo::service::TodoService;
+use crate::modules::core::webhook::service::WebhookService;
 use crate::modules::email::inbound::InboundEmailService;
 use crate::modules::email::service::EmailOutboundService;
 use crate::modules::notifications::service::NotificationService;
@@ -62,4 +65,7 @@ pub struct AppState {
     pub privacy_engine: Arc<PrivacyEngine>,
     pub tool_service: Arc<ToolService>,
     pub notification_service: Arc<NotificationService>,
+    pub webhook_service: Arc<WebhookService>,
+    pub api_key_service: Arc<ApiKeyService>,
+    pub audit_service: Arc<AuditService>,
 }

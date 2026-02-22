@@ -109,6 +109,21 @@ const router = createRouter({
           component: () => import('@/views/projects/UnclassifiedInboxView.vue'),
         },
         {
+          path: 'projects/:projectId/webhooks',
+          name: 'project-webhooks',
+          component: () => import('@/views/projects/WebhookManagementView.vue'),
+        },
+        {
+          path: 'projects/:projectId/audit-logs',
+          name: 'project-audit-logs',
+          component: () => import('@/views/projects/AuditLogView.vue'),
+        },
+        {
+          path: 'projects/:projectId/api-keys',
+          name: 'project-api-keys',
+          component: () => import('@/views/projects/ApiKeyManagementView.vue'),
+        },
+        {
           path: 'organizations/:orgId/contacts',
           name: 'org-contacts',
           component: () => import('@/views/organizations/ContactsView.vue'),

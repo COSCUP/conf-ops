@@ -717,6 +717,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{orgId}/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit logs for an organization.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_org_audit_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{orgId}/contacts": {
         parameters: {
             query?: never;
@@ -974,6 +996,78 @@ export interface paths {
          *     Returns `ProblemDetails` on failure.
          */
         delete: operations["delete_project"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List API keys for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_api_keys"];
+        put?: never;
+        /**
+         * Create an API key for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on validation or database failure.
+         */
+        post: operations["create_api_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/api-keys/{keyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke (delete) an API key.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found.
+         */
+        delete: operations["delete_api_key"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit logs for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_project_audit_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2144,6 +2238,136 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{projectId}/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List webhooks for a project.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_webhooks"];
+        put?: never;
+        /**
+         * Create a new webhook.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on validation or database failure.
+         */
+        post: operations["create_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/webhooks/{webhookId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a webhook by ID.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found.
+         */
+        get: operations["get_webhook"];
+        /**
+         * Update a webhook.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on validation or not found.
+         */
+        put: operations["update_webhook"];
+        post?: never;
+        /**
+         * Delete a webhook.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on not found.
+         */
+        delete: operations["delete_webhook"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/webhooks/{webhookId}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List event logs for a webhook.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on database failure.
+         */
+        get: operations["list_webhook_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{projectId}/webhooks/{webhookId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test event to a webhook.
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on failure.
+         */
+        post: operations["test_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/external/v1/projects/{projectId}/task-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List task templates (external API).
+         * @description Requires API Key authentication via X-API-Key header.
+         *
+         *     # Errors
+         *
+         *     Returns `ProblemDetails` on authorization failure.
+         */
+        get: operations["list_external_templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/projects/{projectId}/task-templates/{templateId}/data": {
         parameters: {
             query?: never;
@@ -2152,16 +2376,43 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get template data (external API — not yet implemented).
-         * @description This endpoint will be available for external integrations in Phase 11
-         *     with API Key authentication. Currently returns 501 Not Implemented.
+         * Get aggregated data for a task template (external API).
+         * @description Requires API Key authentication via X-API-Key header.
          *
          *     # Errors
          *
-         *     Always returns `ProblemDetails` with 501 status.
+         *     Returns `ProblemDetails` on not found or authorization failure.
          */
         get: operations["get_template_data"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/external/v1/projects/{projectId}/tasks/{taskId}/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get task data (external API).
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on authorization failure.
+         */
+        get: operations["get_task_data"];
+        /**
+         * Update task data (external API).
+         * @description # Errors
+         *
+         *     Returns `ProblemDetails` on authorization failure.
+         */
+        put: operations["update_task_data"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2216,6 +2467,28 @@ export interface components {
             name: string;
             updatedAt: string;
         };
+        /** @description API key created response (includes raw key, shown only once). */
+        ApiKeyCreatedResponse: {
+            apiKey: string;
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            permissions: unknown;
+        };
+        /** @description API key response item (without raw key). */
+        ApiKeyResponse: {
+            createdAt: string;
+            /** Format: uuid */
+            createdBy: string;
+            /** Format: uuid */
+            id: string;
+            lastUsedAt?: string | null;
+            name: string;
+            permissions: unknown;
+            /** Format: uuid */
+            projectId: string;
+        };
         AssignEmailRequest: {
             /** Format: uuid */
             taskId: string;
@@ -2248,6 +2521,23 @@ export interface components {
             projectId: string;
             /** Format: uuid */
             tagId: string;
+        };
+        /** @description Audit log response item. */
+        AuditLogResponse: {
+            action: string;
+            /** Format: uuid */
+            actorId?: string | null;
+            actorType: string;
+            /** Format: uuid */
+            contextId?: string | null;
+            contextType?: string | null;
+            createdAt: string;
+            details: unknown;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            resourceId: string;
+            resourceType: string;
         };
         AuthTokenResponse: {
             accessToken: string;
@@ -2282,6 +2572,11 @@ export interface components {
             name: string;
             /** Format: uuid */
             sourceProjectId: string;
+        };
+        /** @description Create API key request body. */
+        CreateApiKeyRequest: {
+            name: string;
+            permissions: unknown;
         };
         CreateContactRequest: {
             email: string;
@@ -2359,6 +2654,13 @@ export interface components {
             mcpServerConfig?: unknown;
             toolName: string;
             toolType?: string | null;
+        };
+        /** @description Create webhook request body. */
+        CreateWebhookRequest: {
+            eventTypes: string[];
+            name: string;
+            secret?: string | null;
+            url: string;
         };
         DataEntryListResponse: {
             entries: components["schemas"]["DataEntryResponse"][];
@@ -2456,6 +2758,14 @@ export interface components {
             result: unknown;
             success: boolean;
         };
+        /** @description External template data response. */
+        ExternalTemplateDataResponse: {
+            data: unknown[];
+            /** Format: uuid */
+            projectId: string;
+            /** Format: uuid */
+            templateId: string;
+        };
         FieldConstraints: {
             accept?: string[] | null;
             decimal?: boolean | null;
@@ -2542,6 +2852,15 @@ export interface components {
             /** Format: uuid */
             memberTagId: string;
         };
+        /** @description List API keys response. */
+        ListApiKeysResponse: {
+            data: components["schemas"]["ApiKeyResponse"][];
+        };
+        /** @description List audit logs response. */
+        ListAuditLogsResponse: {
+            data: components["schemas"]["AuditLogResponse"][];
+            nextCursor?: string | null;
+        };
         /** @description Response for listing notifications. */
         ListNotificationsResponse: {
             data: components["schemas"]["NotificationResponse"][];
@@ -2559,6 +2878,15 @@ export interface components {
         /** @description Response for listing available tools. */
         ListToolsResponse: {
             tools: components["schemas"]["ToolSummary"][];
+        };
+        /** @description List webhook logs response. */
+        ListWebhookLogsResponse: {
+            data: components["schemas"]["WebhookLogResponse"][];
+            nextCursor?: string | null;
+        };
+        /** @description List webhooks response. */
+        ListWebhooksResponse: {
+            data: components["schemas"]["WebhookResponse"][];
         };
         MagicLinkRequest: {
             email: string;
@@ -2987,6 +3315,12 @@ export interface components {
             /** Format: uuid */
             taskTemplateId: string;
         };
+        /** @description Test webhook response. */
+        TestWebhookResponse: {
+            /** Format: uuid */
+            eventLogId: string;
+            status: string;
+        };
         TodoAssigneeResponse: {
             createdAt: string;
             /** Format: uuid */
@@ -3208,6 +3542,14 @@ export interface components {
             enabled?: boolean | null;
             mcpServerConfig?: unknown;
         };
+        /** @description Update webhook request body. */
+        UpdateWebhookRequest: {
+            enabled?: boolean | null;
+            eventTypes?: string[] | null;
+            name?: string | null;
+            secret?: string | null;
+            url?: string | null;
+        };
         UpsertDataEntryRequest: {
             values: unknown;
         };
@@ -3242,6 +3584,40 @@ export interface components {
             endpoint: string;
             /** Format: uuid */
             id: string;
+        };
+        /** @description Webhook event log response item. */
+        WebhookLogResponse: {
+            /** Format: int32 */
+            attempts: number;
+            completedAt?: string | null;
+            createdAt: string;
+            eventType: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            maxAttempts: number;
+            payload: unknown;
+            /** Format: int32 */
+            responseStatus?: number | null;
+            status: string;
+            /** Format: uuid */
+            webhookId: string;
+        };
+        /** @description Webhook response item. */
+        WebhookResponse: {
+            createdAt: string;
+            /** Format: uuid */
+            createdBy: string;
+            enabled: boolean;
+            eventTypes: unknown;
+            hasSecret: boolean;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            projectId: string;
+            updatedAt: string;
+            url: string;
         };
     };
     responses: never;
@@ -4519,6 +4895,46 @@ export interface operations {
             };
         };
     };
+    list_org_audit_logs: {
+        parameters: {
+            query?: {
+                /** @description Cursor for pagination */
+                cursor?: string;
+                /** @description Max items to return */
+                limit?: number;
+                /** @description Filter by actor type */
+                actorType?: string;
+                /** @description Filter by action */
+                action?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organization audit logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAuditLogsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_contacts: {
         parameters: {
             query?: {
@@ -5343,6 +5759,167 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_api_keys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API key list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListApiKeysResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_api_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description API key created (raw key shown only once) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreatedResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_api_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description API Key ID */
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API key revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_project_audit_logs: {
+        parameters: {
+            query?: {
+                /** @description Cursor for pagination */
+                cursor?: string;
+                /** @description Max items to return */
+                limit?: number;
+                /** @description Filter by actor type */
+                actorType?: string;
+                /** @description Filter by action */
+                action?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project audit logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAuditLogsResponse"];
+                };
+            };
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8545,19 +9122,415 @@ export interface operations {
             };
         };
     };
+    list_webhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Webhook list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListWebhooksResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWebhookRequest"];
+            };
+        };
+        responses: {
+            /** @description Webhook created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Webhook ID */
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Webhook details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Webhook ID */
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWebhookRequest"];
+            };
+        };
+        responses: {
+            /** @description Webhook updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Webhook ID */
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Webhook deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_webhook_logs: {
+        parameters: {
+            query?: {
+                /** @description Cursor for pagination */
+                cursor?: string;
+                /** @description Max items to return */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Webhook ID */
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Webhook event logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListWebhookLogsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    test_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Webhook ID */
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Test event sent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestWebhookResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_external_templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Template list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     get_template_data: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                /** @description Project ID */
                 projectId: string;
+                /** @description Template ID */
                 templateId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            501: {
+            /** @description Template aggregated data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalTemplateDataResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_task_data: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Task ID */
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Task data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_task_data: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Task ID */
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Task data updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

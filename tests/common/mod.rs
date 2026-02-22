@@ -315,6 +315,20 @@ impl TestContext {
         let ws_manager = Arc::new(WsManager::new(50));
         let awareness_manager = Arc::new(AwarenessManager::new());
 
+        let webhook_service = Arc::new(
+            conf_ops::modules::core::webhook::service::WebhookService::new(
+                self.pool.clone(),
+                event_bus.clone(),
+            ),
+        );
+        let api_key_service = Arc::new(
+            conf_ops::modules::core::api_key::service::ApiKeyService::new(self.pool.clone()),
+        );
+        let audit_service = Arc::new(conf_ops::modules::audit::service::AuditService::new(
+            self.pool.clone(),
+            event_bus.clone(),
+        ));
+
         AppState {
             pool: self.pool.clone(),
             event_bus,
@@ -347,6 +361,9 @@ impl TestContext {
             privacy_engine,
             tool_service,
             notification_service,
+            webhook_service,
+            api_key_service,
+            audit_service,
         }
     }
 

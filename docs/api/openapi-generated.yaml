@@ -31,6 +31,55 @@ components:
       - createdAt
       - updatedAt
       type: object
+    ApiKeyCreatedResponse:
+      description: API key created response (includes raw key, shown only once).
+      properties:
+        apiKey:
+          type: string
+        createdAt:
+          type: string
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        permissions: {}
+      required:
+      - id
+      - name
+      - apiKey
+      - permissions
+      - createdAt
+      type: object
+    ApiKeyResponse:
+      description: API key response item (without raw key).
+      properties:
+        createdAt:
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        id:
+          format: uuid
+          type: string
+        lastUsedAt:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        permissions: {}
+        projectId:
+          format: uuid
+          type: string
+      required:
+      - id
+      - projectId
+      - name
+      - permissions
+      - createdBy
+      - createdAt
+      type: object
     AssignEmailRequest:
       properties:
         taskId:
@@ -100,6 +149,47 @@ components:
       - id
       - tagId
       - projectId
+      - createdAt
+      type: object
+    AuditLogResponse:
+      description: Audit log response item.
+      properties:
+        action:
+          type: string
+        actorId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        actorType:
+          type: string
+        contextId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        contextType:
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+        details: {}
+        id:
+          format: uuid
+          type: string
+        resourceId:
+          format: uuid
+          type: string
+        resourceType:
+          type: string
+      required:
+      - id
+      - actorType
+      - action
+      - resourceType
+      - resourceId
+      - details
       - createdAt
       type: object
     AuthTokenResponse:
@@ -184,6 +274,16 @@ components:
       required:
       - sourceProjectId
       - name
+      type: object
+    CreateApiKeyRequest:
+      description: Create API key request body.
+      properties:
+        name:
+          type: string
+        permissions: {}
+      required:
+      - name
+      - permissions
       type: object
     CreateContactRequest:
       properties:
@@ -384,6 +484,26 @@ components:
           - 'null'
       required:
       - toolName
+      type: object
+    CreateWebhookRequest:
+      description: Create webhook request body.
+      properties:
+        eventTypes:
+          items:
+            type: string
+          type: array
+        name:
+          type: string
+        secret:
+          type:
+          - string
+          - 'null'
+        url:
+          type: string
+      required:
+      - name
+      - url
+      - eventTypes
       type: object
     DataEntryListResponse:
       properties:
@@ -622,6 +742,23 @@ components:
       - result
       - durationMs
       type: object
+    ExternalTemplateDataResponse:
+      description: External template data response.
+      properties:
+        data:
+          items: {}
+          type: array
+        projectId:
+          format: uuid
+          type: string
+        templateId:
+          format: uuid
+          type: string
+      required:
+      - templateId
+      - projectId
+      - data
+      type: object
     FieldConstraints:
       properties:
         accept:
@@ -847,6 +984,30 @@ components:
       required:
       - memberTagId
       type: object
+    ListApiKeysResponse:
+      description: List API keys response.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ApiKeyResponse'
+          type: array
+      required:
+      - data
+      type: object
+    ListAuditLogsResponse:
+      description: List audit logs response.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/AuditLogResponse'
+          type: array
+        nextCursor:
+          type:
+          - string
+          - 'null'
+      required:
+      - data
+      type: object
     ListNotificationsResponse:
       description: Response for listing notifications.
       properties:
@@ -894,6 +1055,30 @@ components:
           type: array
       required:
       - tools
+      type: object
+    ListWebhookLogsResponse:
+      description: List webhook logs response.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/WebhookLogResponse'
+          type: array
+        nextCursor:
+          type:
+          - string
+          - 'null'
+      required:
+      - data
+      type: object
+    ListWebhooksResponse:
+      description: List webhooks response.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/WebhookResponse'
+          type: array
+      required:
+      - data
       type: object
     MagicLinkRequest:
       properties:
@@ -1958,6 +2143,18 @@ components:
       - memberTagId
       - createdAt
       type: object
+    TestWebhookResponse:
+      description: Test webhook response.
+      properties:
+        eventLogId:
+          format: uuid
+          type: string
+        status:
+          type: string
+      required:
+      - eventLogId
+      - status
+      type: object
     TodoAssigneeResponse:
       properties:
         createdAt:
@@ -2513,6 +2710,32 @@ components:
           - 'null'
         mcpServerConfig: {}
       type: object
+    UpdateWebhookRequest:
+      description: Update webhook request body.
+      properties:
+        enabled:
+          type:
+          - boolean
+          - 'null'
+        eventTypes:
+          items:
+            type: string
+          type:
+          - array
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+        secret:
+          type:
+          - string
+          - 'null'
+        url:
+          type:
+          - string
+          - 'null'
+      type: object
     UpsertDataEntryRequest:
       properties:
         values: {}
@@ -2588,6 +2811,84 @@ components:
       - id
       - endpoint
       - createdAt
+      type: object
+    WebhookLogResponse:
+      description: Webhook event log response item.
+      properties:
+        attempts:
+          format: int32
+          type: integer
+        completedAt:
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+        eventType:
+          type: string
+        id:
+          format: uuid
+          type: string
+        maxAttempts:
+          format: int32
+          type: integer
+        payload: {}
+        responseStatus:
+          format: int32
+          type:
+          - integer
+          - 'null'
+        status:
+          type: string
+        webhookId:
+          format: uuid
+          type: string
+      required:
+      - id
+      - webhookId
+      - eventType
+      - payload
+      - status
+      - attempts
+      - maxAttempts
+      - createdAt
+      type: object
+    WebhookResponse:
+      description: Webhook response item.
+      properties:
+        createdAt:
+          type: string
+        createdBy:
+          format: uuid
+          type: string
+        enabled:
+          type: boolean
+        eventTypes: {}
+        hasSecret:
+          type: boolean
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+        url:
+          type: string
+      required:
+      - id
+      - projectId
+      - name
+      - url
+      - hasSecret
+      - eventTypes
+      - enabled
+      - createdBy
+      - createdAt
+      - updatedAt
       type: object
   securitySchemes:
     bearer_auth:
@@ -3813,6 +4114,63 @@ paths:
       summary: Update an existing organization.
       tags:
       - organizations
+  /api/v1/organizations/{orgId}/audit-logs:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_org_audit_logs
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Max items to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      - description: Filter by actor type
+        in: query
+        name: actorType
+        required: false
+        schema:
+          type: string
+      - description: Filter by action
+        in: query
+        name: action
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAuditLogsResponse'
+          description: Organization audit logs
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List audit logs for an organization.
+      tags:
+      - audit
   /api/v1/organizations/{orgId}/contacts:
     get:
       description: |-
@@ -4610,6 +4968,182 @@ paths:
       summary: Update an existing project.
       tags:
       - projects
+  /api/v1/projects/{projectId}/api-keys:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_api_keys
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListApiKeysResponse'
+          description: API key list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List API keys for a project.
+      tags:
+      - api-keys
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on validation or database failure.
+      operationId: create_api_key
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCreatedResponse'
+          description: API key created (raw key shown only once)
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Create an API key for a project.
+      tags:
+      - api-keys
+  /api/v1/projects/{projectId}/api-keys/{keyId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found.
+      operationId: delete_api_key
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: API Key ID
+        in: path
+        name: keyId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: API key revoked
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Revoke (delete) an API key.
+      tags:
+      - api-keys
+  /api/v1/projects/{projectId}/audit-logs:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_project_audit_logs
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Max items to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      - description: Filter by actor type
+        in: query
+        name: actorType
+        required: false
+        schema:
+          type: string
+      - description: Filter by action
+        in: query
+        name: action
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAuditLogsResponse'
+          description: Project audit logs
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List audit logs for a project.
+      tags:
+      - audit
   /api/v1/projects/{projectId}/member-tags:
     get:
       description: |-
@@ -8131,37 +8665,453 @@ paths:
       summary: Assign an unassigned email to a task.
       tags:
       - email-inbound
-  /external/v1/projects/{projectId}/task-templates/{templateId}/data:
+  /api/v1/projects/{projectId}/webhooks:
     get:
       description: |-
-        This endpoint will be available for external integrations in Phase 11
-        with API Key authentication. Currently returns 501 Not Implemented.
-
         # Errors
 
-        Always returns `ProblemDetails` with 501 status.
-      operationId: get_template_data
+        Returns `ProblemDetails` on database failure.
+      operationId: list_webhooks
       parameters:
-      - in: path
+      - description: Project ID
+        in: path
         name: projectId
         required: true
         schema:
           format: uuid
           type: string
-      - in: path
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListWebhooksResponse'
+          description: Webhook list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List webhooks for a project.
+      tags:
+      - webhooks
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on validation or database failure.
+      operationId: create_webhook
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+          description: Webhook created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Create a new webhook.
+      tags:
+      - webhooks
+  /api/v1/projects/{projectId}/webhooks/{webhookId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found.
+      operationId: delete_webhook
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Webhook ID
+        in: path
+        name: webhookId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Webhook deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Delete a webhook.
+      tags:
+      - webhooks
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on not found.
+      operationId: get_webhook
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Webhook ID
+        in: path
+        name: webhookId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+          description: Webhook details
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get a webhook by ID.
+      tags:
+      - webhooks
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on validation or not found.
+      operationId: update_webhook
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Webhook ID
+        in: path
+        name: webhookId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+          description: Webhook updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update a webhook.
+      tags:
+      - webhooks
+  /api/v1/projects/{projectId}/webhooks/{webhookId}/logs:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on database failure.
+      operationId: list_webhook_logs
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Webhook ID
+        in: path
+        name: webhookId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Max items to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListWebhookLogsResponse'
+          description: Webhook event logs
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List event logs for a webhook.
+      tags:
+      - webhooks
+  /api/v1/projects/{projectId}/webhooks/{webhookId}/test:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on failure.
+      operationId: test_webhook
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Webhook ID
+        in: path
+        name: webhookId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestWebhookResponse'
+          description: Test event sent
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Send a test event to a webhook.
+      tags:
+      - webhooks
+  /external/v1/projects/{projectId}/task-templates:
+    get:
+      description: |-
+        Requires API Key authentication via X-API-Key header.
+
+        # Errors
+
+        Returns `ProblemDetails` on authorization failure.
+      operationId: list_external_templates
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          description: Template list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List task templates (external API).
+      tags:
+      - external-data
+  /external/v1/projects/{projectId}/task-templates/{templateId}/data:
+    get:
+      description: |-
+        Requires API Key authentication via X-API-Key header.
+
+        # Errors
+
+        Returns `ProblemDetails` on not found or authorization failure.
+      operationId: get_template_data
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Template ID
+        in: path
         name: templateId
         required: true
         schema:
           format: uuid
           type: string
       responses:
-        '501':
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalTemplateDataResponse'
+          description: Template aggregated data
+        '401':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
           description: ''
-      summary: Get template data (external API — not yet implemented).
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get aggregated data for a task template (external API).
+      tags:
+      - external-data
+  /external/v1/projects/{projectId}/tasks/{taskId}/data:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on authorization failure.
+      operationId: get_task_data
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          description: Task data
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get task data (external API).
+      tags:
+      - external-data
+    put:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on authorization failure.
+      operationId: update_task_data
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          description: Task data updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update task data (external API).
       tags:
       - external-data
   /healthz:
@@ -8235,3 +9185,11 @@ tags:
   name: tools
 - description: Tool configuration management endpoints
   name: tool-configs
+- description: Webhook management endpoints
+  name: webhooks
+- description: API key management endpoints
+  name: api-keys
+- description: Audit log endpoints
+  name: audit
+- description: Observability and metrics endpoints
+  name: observability

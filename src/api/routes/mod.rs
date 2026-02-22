@@ -1,5 +1,7 @@
 pub mod accounts;
 pub mod ai_suggestions;
+pub mod api_keys;
+pub mod audit;
 pub mod auth;
 pub mod contacts;
 pub mod conversations;
@@ -19,4 +21,5 @@ pub mod task_templates;
 pub mod tasks;
 pub mod todos;
 pub mod tools;
+pub mod webhooks;
 pub mod ws;

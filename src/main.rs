@@ -9,9 +9,9 @@ use tracing_subscriber::EnvFilter;
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::api::routes::{
-    accounts, ai_suggestions, auth, contacts, conversations, data_entries, data_external,
-    email_inbound, email_threads, files, health, member_tags, members, memories, notifications,
-    organizations, projects, task_templates, tasks, todos, tools, ws,
+    accounts, ai_suggestions, api_keys, audit, auth, contacts, conversations, data_entries,
+    data_external, email_inbound, email_threads, files, health, member_tags, members, memories,
+    notifications, organizations, projects, task_templates, tasks, todos, tools, webhooks, ws,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
@@ -25,6 +25,7 @@ use conf_ops::modules::ai::pipeline::PipelineWorker;
 use conf_ops::modules::ai::placeholder::PlaceholderResolver;
 use conf_ops::modules::ai::privacy::PrivacyEngine;
 use conf_ops::modules::ai::trigger::TriggerRouter;
+use conf_ops::modules::audit::service::AuditService;
 use conf_ops::modules::auth::jwt::JwtConfig;
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::service::AuthService;
@@ -32,6 +33,7 @@ use conf_ops::modules::conversation::awareness::AwarenessManager;
 use conf_ops::modules::conversation::crdt::CrdtManager;
 use conf_ops::modules::conversation::service::ConversationService;
 use conf_ops::modules::conversation::ws_manager::WsManager;
+use conf_ops::modules::core::api_key::service::ApiKeyService;
 use conf_ops::modules::core::contact::service::ContactService;
 use conf_ops::modules::core::data_sheet::service::DataSheetService;
 use conf_ops::modules::core::member::service::MemberService;
@@ -42,6 +44,7 @@ use conf_ops::modules::core::project::service::ProjectService;
 use conf_ops::modules::core::task::service::TaskService;
 use conf_ops::modules::core::task_template::service::TaskTemplateService;
 use conf_ops::modules::core::todo::service::TodoService;
+use conf_ops::modules::core::webhook::service::WebhookService;
 use conf_ops::modules::email::inbound::InboundEmailService;
 use conf_ops::modules::email::service::EmailOutboundService;
 use conf_ops::modules::email::smtp::SmtpEmailService;
@@ -175,6 +178,9 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         web_push_sender,
         email_service,
     ));
+    let webhook_service = Arc::new(WebhookService::new(pool.clone(), event_bus.clone()));
+    let api_key_service = Arc::new(ApiKeyService::new(pool.clone()));
+    let audit_service = Arc::new(AuditService::new(pool.clone(), event_bus.clone()));
 
     AppState {
         pool,
@@ -208,6 +214,9 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         privacy_engine,
         tool_service,
         notification_service,
+        webhook_service,
+        api_key_service,
+        audit_service,
     }
 }
 
@@ -279,6 +288,7 @@ fn org_routes() -> Router<AppState> {
         )
         .route("/{orgId}/tool-configs", get(tools::list_org_tool_configs))
         .nest("/{orgId}/contacts", contact_routes)
+        .route("/{orgId}/audit-logs", get(audit::list_org_audit_logs))
 }
 
 fn task_routes() -> Router<AppState> {
@@ -463,6 +473,31 @@ fn task_template_routes() -> Router<AppState> {
         )
 }
 
+fn webhook_routes() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/",
+            get(webhooks::list_webhooks).post(webhooks::create_webhook),
+        )
+        .route(
+            "/{webhookId}",
+            get(webhooks::get_webhook)
+                .put(webhooks::update_webhook)
+                .delete(webhooks::delete_webhook),
+        )
+        .route("/{webhookId}/test", post(webhooks::test_webhook))
+        .route("/{webhookId}/logs", get(webhooks::list_webhook_logs))
+}
+
+fn api_key_routes() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/",
+            get(api_keys::list_api_keys).post(api_keys::create_api_key),
+        )
+        .route("/{keyId}", delete(api_keys::delete_api_key))
+}
+
 fn project_routes() -> Router<AppState> {
     Router::new()
         .route(
@@ -493,6 +528,12 @@ fn project_routes() -> Router<AppState> {
             get(data_entries::get_aggregated_sheet),
         )
         .merge(tool_routes())
+        .nest("/{projectId}/webhooks", webhook_routes())
+        .nest("/{projectId}/api-keys", api_key_routes())
+        .route(
+            "/{projectId}/audit-logs",
+            get(audit::list_project_audit_logs),
+        )
 }
 
 fn tool_routes() -> Router<AppState> {
@@ -517,10 +558,19 @@ fn tool_routes() -> Router<AppState> {
 }
 
 fn external_v1_routes() -> Router<AppState> {
-    Router::new().route(
-        "/projects/{projectId}/task-templates/{templateId}/data",
-        get(data_external::get_template_data),
-    )
+    Router::new()
+        .route(
+            "/projects/{projectId}/task-templates",
+            get(data_external::list_external_templates),
+        )
+        .route(
+            "/projects/{projectId}/task-templates/{templateId}/data",
+            get(data_external::get_template_data),
+        )
+        .route(
+            "/projects/{projectId}/tasks/{taskId}/data",
+            get(data_external::get_task_data).put(data_external::update_task_data),
+        )
 }
 
 fn build_router(state: AppState) -> Router {
@@ -712,6 +762,29 @@ fn spawn_background_tasks(state: &AppState, config: &AppConfig) {
             }
         }
     });
+
+    // Start webhook event listener
+    state.webhook_service.start_event_listener();
+
+    // Spawn periodic webhook retry task (every 60 seconds)
+    let webhook_retry_service = Arc::clone(&state.webhook_service);
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            match webhook_retry_service.retry_failed_events().await {
+                Ok(0) => {}
+                Ok(n) => tracing::info!("Webhook retry: retried {n} event(s)"),
+                Err(e) => tracing::warn!("Webhook retry error: {e}"),
+            }
+        }
+    });
+
+    // Start audit event listener
+    state.audit_service.start_event_listener();
+
+    // Start audit partition manager
+    state.audit_service.start_partition_manager();
 }
 
 #[tokio::main]

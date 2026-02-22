@@ -6,9 +6,9 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use super::routes::{
-    accounts, ai_suggestions, auth, contacts, data_entries, data_external, email_inbound,
-    email_threads, health, member_tags, members, memories, notifications, organizations, projects,
-    task_templates, tasks, todos, tools,
+    accounts, ai_suggestions, api_keys, audit, auth, contacts, data_entries, data_external,
+    email_inbound, email_threads, health, member_tags, members, memories, notifications,
+    organizations, projects, task_templates, tasks, todos, tools, webhooks,
 };
 
 #[derive(OpenApi)]
@@ -114,6 +114,9 @@ use super::routes::{
         data_entries::delete_entry,
         data_entries::get_aggregated_sheet,
         data_external::get_template_data,
+        data_external::list_external_templates,
+        data_external::get_task_data,
+        data_external::update_task_data,
         email_threads::list_email_threads,
         email_threads::create_email_thread,
         email_threads::update_email_thread,
@@ -154,6 +157,18 @@ use super::routes::{
         tools::update_project_tool_config,
         tools::delete_project_tool_config,
         tools::list_org_tool_configs,
+        webhooks::list_webhooks,
+        webhooks::create_webhook,
+        webhooks::get_webhook,
+        webhooks::update_webhook,
+        webhooks::delete_webhook,
+        webhooks::test_webhook,
+        webhooks::list_webhook_logs,
+        api_keys::create_api_key,
+        api_keys::list_api_keys,
+        api_keys::delete_api_key,
+        audit::list_org_audit_logs,
+        audit::list_project_audit_logs,
     ),
     modifiers(&SecurityAddon),
     tags(
@@ -176,7 +191,11 @@ use super::routes::{
         (name = "ai-suggestions", description = "AI suggestion pipeline endpoints"),
         (name = "notifications", description = "Notification and Web Push endpoints"),
         (name = "tools", description = "Tool execution endpoints"),
-        (name = "tool-configs", description = "Tool configuration management endpoints")
+        (name = "tool-configs", description = "Tool configuration management endpoints"),
+        (name = "webhooks", description = "Webhook management endpoints"),
+        (name = "api-keys", description = "API key management endpoints"),
+        (name = "audit", description = "Audit log endpoints"),
+        (name = "observability", description = "Observability and metrics endpoints")
     )
 )]
 pub struct ApiDoc;
