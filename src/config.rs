@@ -49,6 +49,10 @@ pub struct AppConfig {
     pub crdt_ws_max_connections: usize,
     pub crdt_ws_heartbeat_interval_secs: u64,
     pub crdt_ws_idle_timeout_secs: u64,
+
+    // AI / Gemini
+    pub gemini_api_key: Option<String>,
+    pub gemini_model: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -128,6 +132,9 @@ impl AppConfig {
             parse_or(&lookup, "CRDT_WS_HEARTBEAT_INTERVAL_SECS", 30)?;
         let crdt_ws_idle_timeout_secs = parse_or(&lookup, "CRDT_WS_IDLE_TIMEOUT_SECS", 300)?;
 
+        let gemini_api_key = lookup("GEMINI_API_KEY");
+        let gemini_model = lookup("GEMINI_MODEL").unwrap_or_else(|| "gemini-2.5-flash".to_string());
+
         Ok(Self {
             database_url,
             database_max_connections,
@@ -160,6 +167,8 @@ impl AppConfig {
             crdt_ws_max_connections,
             crdt_ws_heartbeat_interval_secs,
             crdt_ws_idle_timeout_secs,
+            gemini_api_key,
+            gemini_model,
         })
     }
 }

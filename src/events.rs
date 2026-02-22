@@ -140,6 +140,31 @@ pub enum DomainEvent {
         from_address: String,
         subject: String,
     },
+    MemoryUpserted {
+        memory_id: uuid::Uuid,
+        scope_type: String,
+        scope_id: uuid::Uuid,
+    },
+    SuggestionGenerated {
+        message_id: uuid::Uuid,
+        task_id: uuid::Uuid,
+    },
+    SuggestionDecided {
+        message_id: uuid::Uuid,
+        task_id: uuid::Uuid,
+        suggestion_id: uuid::Uuid,
+        decision: String,
+    },
+    ToolExecutionFailed {
+        task_id: uuid::Uuid,
+        message_id: uuid::Uuid,
+        tool_name: String,
+        error: String,
+    },
+    DataEntryChanged {
+        task_id: uuid::Uuid,
+        data_entry_id: uuid::Uuid,
+    },
 }
 
 /// In-process event bus backed by a Tokio broadcast channel.

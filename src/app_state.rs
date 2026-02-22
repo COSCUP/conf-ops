@@ -4,6 +4,10 @@ use sqlx::PgPool;
 
 use crate::api::routes::ws::WsTokenStore;
 use crate::events::EventBus;
+use crate::modules::ai::decision::DecisionService;
+use crate::modules::ai::memory::service::MemoryService;
+use crate::modules::ai::placeholder::PlaceholderResolver;
+use crate::modules::ai::privacy::PrivacyEngine;
 use crate::modules::auth::jwt::JwtConfig;
 use crate::modules::auth::service::AuthService;
 use crate::modules::conversation::awareness::AwarenessManager;
@@ -50,4 +54,8 @@ pub struct AppState {
     pub awareness_manager: Arc<AwarenessManager>,
     pub crdt_ws_heartbeat_interval_secs: u64,
     pub crdt_ws_idle_timeout_secs: u64,
+    pub memory_service: Arc<MemoryService>,
+    pub decision_service: Arc<DecisionService>,
+    pub placeholder_resolver: Arc<PlaceholderResolver>,
+    pub privacy_engine: Arc<PrivacyEngine>,
 }

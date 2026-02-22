@@ -9,14 +9,22 @@ use tracing_subscriber::EnvFilter;
 use conf_ops::api::middleware::auth::auth_middleware;
 use conf_ops::api::routes::ws::WsTokenStore;
 use conf_ops::api::routes::{
-    accounts, auth, contacts, conversations, data_entries, data_external, email_inbound,
-    email_threads, files, health, member_tags, members, organizations, projects, task_templates,
-    tasks, todos, ws,
+    accounts, ai_suggestions, auth, contacts, conversations, data_entries, data_external,
+    email_inbound, email_threads, files, health, member_tags, members, memories, organizations,
+    projects, task_templates, tasks, todos, ws,
 };
 use conf_ops::app_state::AppState;
 use conf_ops::config::AppConfig;
 use conf_ops::db;
-use conf_ops::events::EventBus;
+use conf_ops::events::{DomainEvent, EventBus};
+use conf_ops::modules::ai::context::ContextAssembler;
+use conf_ops::modules::ai::decision::DecisionService;
+use conf_ops::modules::ai::llm_client::{GeminiClient, LlmProvider, MockLlmProvider};
+use conf_ops::modules::ai::memory::service::MemoryService;
+use conf_ops::modules::ai::pipeline::PipelineWorker;
+use conf_ops::modules::ai::placeholder::PlaceholderResolver;
+use conf_ops::modules::ai::privacy::PrivacyEngine;
+use conf_ops::modules::ai::trigger::TriggerRouter;
 use conf_ops::modules::auth::jwt::JwtConfig;
 use conf_ops::modules::auth::passkey::build_webauthn;
 use conf_ops::modules::auth::service::AuthService;
@@ -40,6 +48,26 @@ use conf_ops::modules::email::smtp::SmtpEmailService;
 use conf_ops::modules::storage::local::LocalStorageBackend;
 use conf_ops::modules::storage::service::{FileService, StorageConfig};
 
+fn build_file_service(
+    config: &AppConfig,
+    pool: sqlx::PgPool,
+    event_bus: EventBus,
+) -> Arc<FileService> {
+    let storage_backend = Arc::new(LocalStorageBackend::new(&config.storage_base_path));
+    let storage_config = StorageConfig {
+        max_image_size: config.storage_max_image_size,
+        max_document_size: config.storage_max_document_size,
+        max_file_size: config.storage_max_file_size,
+        cleanup_grace_period_secs: config.storage_cleanup_grace_period_secs,
+    };
+    Arc::new(FileService::new(
+        pool,
+        event_bus,
+        storage_backend,
+        storage_config,
+    ))
+}
+
 fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
     let event_bus = EventBus::default();
     let jwt_config = JwtConfig {
@@ -51,7 +79,6 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
 
     let email_service =
         Arc::new(SmtpEmailService::new(config).expect("Failed to create email service"));
-
     let webauthn = build_webauthn(config).expect("Failed to build WebAuthn");
 
     let auth_service = Arc::new(AuthService::new(
@@ -62,49 +89,27 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         event_bus.clone(),
         config,
     ));
-
     let org_service = Arc::new(OrganizationService::new(
         pool.clone(),
         event_bus.clone(),
         email_service.clone(),
         config.frontend_url.clone(),
     ));
-
     let project_service = Arc::new(ProjectService::new(pool.clone(), event_bus.clone()));
-
     let member_service = Arc::new(MemberService::new(pool.clone(), event_bus.clone()));
-
     let member_tag_service = Arc::new(MemberTagService::new(pool.clone(), event_bus.clone()));
-
     let contact_service = Arc::new(ContactService::new(pool.clone(), event_bus.clone()));
-
     let permission_service = Arc::new(PermissionService::new(
         pool.clone(),
         &event_bus,
         config.authz_cache_ttl_secs,
     ));
-
     let task_template_service = Arc::new(TaskTemplateService::new(pool.clone(), event_bus.clone()));
-
     let task_service = Arc::new(TaskService::new(pool.clone(), event_bus.clone(), 120));
-
     let todo_service = Arc::new(TodoService::new(pool.clone(), event_bus.clone()));
-
     let data_sheet_service = Arc::new(DataSheetService::new(pool.clone(), event_bus.clone()));
 
-    let storage_backend = Arc::new(LocalStorageBackend::new(&config.storage_base_path));
-    let storage_config = StorageConfig {
-        max_image_size: config.storage_max_image_size,
-        max_document_size: config.storage_max_document_size,
-        max_file_size: config.storage_max_file_size,
-        cleanup_grace_period_secs: config.storage_cleanup_grace_period_secs,
-    };
-    let file_service = Arc::new(FileService::new(
-        pool.clone(),
-        event_bus.clone(),
-        storage_backend,
-        storage_config,
-    ));
+    let file_service = build_file_service(config, pool.clone(), event_bus.clone());
 
     let crdt_manager = Arc::new(CrdtManager::new(pool.clone()));
     let conversation_service = Arc::new(ConversationService::new(
@@ -113,18 +118,24 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         crdt_manager,
         Arc::clone(&file_service),
     ));
-
     let email_outbound_service = Arc::new(EmailOutboundService::new(
         pool.clone(),
         event_bus.clone(),
         email_service,
         config.email_domain.clone(),
     ));
-
     let inbound_email_service = Arc::new(InboundEmailService::new(
         pool.clone(),
         event_bus.clone(),
         Arc::clone(&file_service),
+    ));
+    let memory_service = Arc::new(MemoryService::new(pool.clone(), event_bus.clone()));
+    let privacy_engine = Arc::new(PrivacyEngine::new(pool.clone()));
+    let placeholder_resolver = Arc::new(PlaceholderResolver::new(pool.clone()));
+    let decision_service = Arc::new(DecisionService::new(
+        pool.clone(),
+        event_bus.clone(),
+        Arc::clone(&placeholder_resolver),
     ));
 
     let ws_token_store = Arc::new(WsTokenStore::new());
@@ -157,6 +168,10 @@ fn build_app_state(config: &AppConfig, pool: sqlx::PgPool) -> AppState {
         awareness_manager,
         crdt_ws_heartbeat_interval_secs: config.crdt_ws_heartbeat_interval_secs,
         crdt_ws_idle_timeout_secs: config.crdt_ws_idle_timeout_secs,
+        memory_service,
+        decision_service,
+        placeholder_resolver,
+        privacy_engine,
     }
 }
 
@@ -308,6 +323,26 @@ fn task_routes() -> Router<AppState> {
             "/{taskId}/email-threads/{threadId}/messages",
             get(email_threads::list_thread_messages).post(email_threads::send_thread_email),
         )
+        .route(
+            "/{taskId}/suggestions",
+            get(ai_suggestions::list_suggestions),
+        )
+        .route(
+            "/{taskId}/suggestions/request",
+            post(ai_suggestions::request_suggestion),
+        )
+        .route(
+            "/{taskId}/suggestions/{groupId}",
+            get(ai_suggestions::get_suggestion_group),
+        )
+        .route(
+            "/{taskId}/suggestions/{groupId}/suggestions/{suggestionId}/decide",
+            post(ai_suggestions::decide_suggestion),
+        )
+        .route(
+            "/{taskId}/ai/resolve-placeholders",
+            post(ai_suggestions::resolve_placeholders),
+        )
 }
 
 fn project_routes() -> Router<AppState> {
@@ -437,12 +472,43 @@ fn build_router(state: AppState) -> Router {
         )
         .route("/me/todos", get(todos::list_my_todos));
 
+    let memory_routes = Router::new()
+        .route(
+            "/",
+            get(memories::list_memories).post(memories::create_memory),
+        )
+        .route(
+            "/{memoryId}",
+            get(memories::get_memory)
+                .put(memories::update_memory)
+                .delete(memories::delete_memory),
+        )
+        .route("/{memoryId}/versions", get(memories::list_memory_versions));
+
+    let library_document_routes = Router::new()
+        .route(
+            "/",
+            get(memories::list_library_documents).post(memories::create_library_document),
+        )
+        .route(
+            "/{documentId}",
+            get(memories::get_library_document)
+                .put(memories::update_library_document)
+                .delete(memories::delete_library_document),
+        )
+        .route(
+            "/{documentId}/versions",
+            get(memories::list_library_document_versions),
+        );
+
     let api_v1 = Router::new()
         .nest("/auth", auth_routes())
         .nest("/accounts", account_routes)
         .nest("/organizations", org_routes())
         .nest("/projects", project_routes())
-        .nest("/files", files::file_routes());
+        .nest("/files", files::file_routes())
+        .nest("/memories", memory_routes)
+        .nest("/library-documents", library_document_routes);
 
     // WS upgrade route must be outside auth middleware
     let ws_route = Router::new().route(
@@ -470,27 +536,7 @@ fn build_router(state: AppState) -> Router {
         .with_state(state)
 }
 
-#[tokio::main]
-async fn main() {
-    dotenvy::dotenv().ok();
-
-    let config = AppConfig::from_env().expect("Failed to load configuration");
-
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::new(&config.app_log_level))
-        .init();
-
-    let pool = db::create_pool(&config)
-        .await
-        .expect("Failed to create database pool");
-
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run database migrations");
-
-    let state = build_app_state(&config, pool);
-
+fn spawn_background_tasks(state: &AppState, config: &AppConfig) {
     // Spawn periodic CRDT compaction background task (every 10 minutes, threshold: 100 ops)
     let compaction_crdt_manager = Arc::clone(state.conversation_service.crdt_manager());
     tokio::spawn(async move {
@@ -518,6 +564,94 @@ async fn main() {
             }
         }
     });
+
+    // Spawn memory cache invalidation listener
+    state
+        .memory_service
+        .start_cache_invalidation(&state.event_bus);
+
+    // Start AI pipeline: TriggerRouter + PipelineWorker
+    TriggerRouter::start(state.pool.clone(), &state.event_bus);
+
+    let llm_provider: Arc<dyn LlmProvider> = if let Some(ref api_key) = config.gemini_api_key {
+        Arc::new(GeminiClient::new(
+            api_key.clone(),
+            config.gemini_model.clone(),
+        ))
+    } else {
+        tracing::warn!("GEMINI_API_KEY not set, using MockLlmProvider for AI pipeline");
+        Arc::new(MockLlmProvider::new())
+    };
+
+    let context_assembler = Arc::new(ContextAssembler::new(
+        state.pool.clone(),
+        Arc::clone(&state.memory_service),
+        Arc::clone(&state.privacy_engine),
+    ));
+
+    let pipeline_worker = Arc::new(PipelineWorker::new(
+        state.pool.clone(),
+        state.event_bus.clone(),
+        context_assembler,
+        llm_provider,
+    ));
+    pipeline_worker.start();
+
+    // Spawn event handler for unmatched email notifications (stub for Phase 10)
+    let unmatched_rx = state.event_bus.subscribe();
+    tokio::spawn(async move {
+        let mut rx = unmatched_rx;
+        loop {
+            match rx.recv().await {
+                Ok(DomainEvent::UnmatchedEmailReceived {
+                    email_id,
+                    project_id,
+                    from_address,
+                    subject,
+                }) => {
+                    tracing::info!(
+                        %email_id,
+                        %project_id,
+                        %from_address,
+                        %subject,
+                        "Unmatched email received — notification to project owners pending Phase 10"
+                    );
+                }
+                Ok(_) => {}
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                    tracing::warn!("Event handler lagged, skipped {n} event(s)");
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    tracing::error!("Event bus closed, stopping unmatched email handler");
+                    break;
+                }
+            }
+        }
+    });
+}
+
+#[tokio::main]
+async fn main() {
+    dotenvy::dotenv().ok();
+
+    let config = AppConfig::from_env().expect("Failed to load configuration");
+
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::new(&config.app_log_level))
+        .init();
+
+    let pool = db::create_pool(&config)
+        .await
+        .expect("Failed to create database pool");
+
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to run database migrations");
+
+    let state = build_app_state(&config, pool);
+
+    spawn_background_tasks(&state, &config);
 
     let app = build_router(state);
 

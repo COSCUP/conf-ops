@@ -6,8 +6,9 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use super::routes::{
-    accounts, auth, contacts, data_entries, data_external, email_inbound, email_threads, health,
-    member_tags, members, organizations, projects, task_templates, tasks, todos,
+    accounts, ai_suggestions, auth, contacts, data_entries, data_external, email_inbound,
+    email_threads, health, member_tags, members, memories, organizations, projects, task_templates,
+    tasks, todos,
 };
 
 #[derive(OpenApi)]
@@ -122,6 +123,23 @@ use super::routes::{
         email_inbound::receive_inbound_email,
         email_inbound::list_unassigned_inbox,
         email_inbound::assign_unassigned_email,
+        memories::list_memories,
+        memories::create_memory,
+        memories::get_memory,
+        memories::update_memory,
+        memories::delete_memory,
+        memories::list_memory_versions,
+        memories::list_library_documents,
+        memories::create_library_document,
+        memories::get_library_document,
+        memories::update_library_document,
+        memories::delete_library_document,
+        memories::list_library_document_versions,
+        ai_suggestions::list_suggestions,
+        ai_suggestions::get_suggestion_group,
+        ai_suggestions::decide_suggestion,
+        ai_suggestions::request_suggestion,
+        ai_suggestions::resolve_placeholders,
     ),
     modifiers(&SecurityAddon),
     tags(
@@ -139,7 +157,9 @@ use super::routes::{
         (name = "data-entries", description = "Data entry management endpoints"),
         (name = "external-data", description = "External data access endpoints"),
         (name = "email-threads", description = "Email thread management endpoints"),
-        (name = "email-inbound", description = "Email inbound webhook and unassigned inbox endpoints")
+        (name = "email-inbound", description = "Email inbound webhook and unassigned inbox endpoints"),
+        (name = "memories", description = "Memory and library document management endpoints"),
+        (name = "ai-suggestions", description = "AI suggestion pipeline endpoints")
     )
 )]
 pub struct ApiDoc;

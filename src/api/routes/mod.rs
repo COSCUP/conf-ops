@@ -1,4 +1,5 @@
 pub mod accounts;
+pub mod ai_suggestions;
 pub mod auth;
 pub mod contacts;
 pub mod conversations;
@@ -10,6 +11,7 @@ pub mod files;
 pub mod health;
 pub mod member_tags;
 pub mod members;
+pub mod memories;
 pub mod organizations;
 pub mod projects;
 pub mod task_templates;
