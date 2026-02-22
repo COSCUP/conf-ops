@@ -31,6 +31,27 @@ components:
       - createdAt
       - updatedAt
       type: object
+    AssignEmailRequest:
+      properties:
+        taskId:
+          format: uuid
+          type: string
+      required:
+      - taskId
+      type: object
+    AssignEmailResponse:
+      properties:
+        taskId:
+          format: uuid
+          type: string
+        threadId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      required:
+      - taskId
+      type: object
     AssignTagRequest:
       properties:
         contactId:
@@ -185,6 +206,18 @@ components:
       required:
       - name
       - fields
+      type: object
+    CreateEmailThreadRequest:
+      properties:
+        participants:
+          items:
+            type: string
+          type: array
+        subject:
+          type: string
+      required:
+      - subject
+      - participants
       type: object
     CreateOrganizationRequest:
       properties:
@@ -381,6 +414,97 @@ components:
       - createdAt
       - updatedAt
       type: object
+    EmailMessageListResponse:
+      properties:
+        messages:
+          items:
+            $ref: '#/components/schemas/EmailMessageResponse'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+      required:
+      - messages
+      - pagination
+      type: object
+    EmailMessageResponse:
+      properties:
+        ccAddresses: {}
+        createdAt:
+          type: string
+        direction:
+          type: string
+        fromAddress:
+          type: string
+        id:
+          format: uuid
+          type: string
+        inReplyTo:
+          type:
+          - string
+          - 'null'
+        messageId:
+          type: string
+        sendStatus:
+          type: string
+        subject:
+          type: string
+        threadId:
+          format: uuid
+          type: string
+        toAddresses: {}
+      required:
+      - id
+      - threadId
+      - messageId
+      - fromAddress
+      - toAddresses
+      - ccAddresses
+      - subject
+      - direction
+      - sendStatus
+      - createdAt
+      type: object
+    EmailThreadListResponse:
+      properties:
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+        threads:
+          items:
+            $ref: '#/components/schemas/EmailThreadResponse'
+          type: array
+      required:
+      - threads
+      - pagination
+      type: object
+    EmailThreadResponse:
+      properties:
+        createdAt:
+          type: string
+        id:
+          format: uuid
+          type: string
+        lastMessageAt:
+          type:
+          - string
+          - 'null'
+        messageIds: {}
+        participants: {}
+        subject:
+          type: string
+        taskId:
+          format: uuid
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - taskId
+      - subject
+      - participants
+      - messageIds
+      - createdAt
+      - updatedAt
+      type: object
     FieldConstraints:
       properties:
         accept:
@@ -453,6 +577,23 @@ components:
       properties:
         status:
           type: string
+      required:
+      - status
+      type: object
+    InboundWebhookResponse:
+      properties:
+        status:
+          type: string
+        taskId:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        threadId:
+          format: uuid
+          type:
+          - string
+          - 'null'
       required:
       - status
       type: object
@@ -878,6 +1019,18 @@ components:
       - createdAt
       - updatedAt
       type: object
+    PaginationInfo:
+      properties:
+        hasMore:
+          type: boolean
+        nextCursor:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      required:
+      - hasMore
+      type: object
     PasskeyListResponse:
       properties:
         passkeys:
@@ -943,41 +1096,46 @@ components:
       - settings
       type: object
     ProblemDetails:
-      description: RFC 7807 Problem Details error response.
-      properties:
-        detail:
-          description: Detailed error description.
-          type:
-          - string
-          - 'null'
-        errors:
-          description: Field-level validation errors.
-          items:
-            $ref: '#/components/schemas/ValidationError'
-          type:
-          - array
-          - 'null'
-        instance:
-          description: URI of the specific resource where the error occurred.
-          type:
-          - string
-          - 'null'
-        status:
-          description: HTTP status code.
-          format: int32
-          minimum: 0
-          type: integer
-        title:
-          description: Human-readable error summary.
-          type: string
+      allOf:
+      - description: RFC 7807 extension fields (e.g. for 409 `StaleConversation` extra data).
         type:
-          description: Error type URI for programmatic identification.
-          type: string
-      required:
-      - type
-      - title
-      - status
-      type: object
+        - object
+        - 'null'
+      - properties:
+          detail:
+            description: Detailed error description.
+            type:
+            - string
+            - 'null'
+          errors:
+            description: Field-level validation errors.
+            items:
+              $ref: '#/components/schemas/ValidationError'
+            type:
+            - array
+            - 'null'
+          instance:
+            description: URI of the specific resource where the error occurred.
+            type:
+            - string
+            - 'null'
+          status:
+            description: HTTP status code.
+            format: int32
+            minimum: 0
+            type: integer
+          title:
+            description: Human-readable error summary.
+            type: string
+          type:
+            description: Error type URI for programmatic identification.
+            type: string
+        required:
+        - type
+        - title
+        - status
+        type: object
+      description: RFC 7807 Problem Details error response.
     ProfileResponse:
       properties:
         profileData:
@@ -1102,6 +1260,28 @@ components:
           type: array
       required:
       - orders
+      type: object
+    SendThreadEmailRequest:
+      properties:
+        ccAddresses:
+          items:
+            type: string
+          type:
+          - array
+          - 'null'
+        htmlBody:
+          type: string
+        subject:
+          type:
+          - string
+          - 'null'
+        toAddresses:
+          items:
+            type: string
+          type: array
+      required:
+      - toAddresses
+      - htmlBody
       type: object
     TagAssignedContactResponse:
       properties:
@@ -1413,6 +1593,50 @@ components:
       - template
       - ad_hoc
       type: string
+    UnassignedEmailListResponse:
+      properties:
+        emails:
+          items:
+            $ref: '#/components/schemas/UnassignedEmailResponse'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+      required:
+      - emails
+      - pagination
+      type: object
+    UnassignedEmailResponse:
+      properties:
+        fromAddress:
+          type: string
+        fromName:
+          type:
+          - string
+          - 'null'
+        hasAttachments:
+          type: boolean
+        id:
+          format: uuid
+          type: string
+        projectId:
+          format: uuid
+          type: string
+        receivedAt:
+          type: string
+        snippet:
+          type:
+          - string
+          - 'null'
+        subject:
+          type: string
+      required:
+      - id
+      - projectId
+      - fromAddress
+      - subject
+      - hasAttachments
+      - receivedAt
+      type: object
     UpdateAccountRequest:
       properties:
         avatarUrl:
@@ -1452,6 +1676,19 @@ components:
           - array
           - 'null'
         name:
+          type:
+          - string
+          - 'null'
+      type: object
+    UpdateEmailThreadRequest:
+      properties:
+        participants:
+          items:
+            type: string
+          type:
+          - array
+          - 'null'
+        subject:
           type:
           - string
           - 'null'
@@ -2105,6 +2342,38 @@ paths:
       summary: Rotate the refresh token and return new tokens.
       tags:
       - auth
+  /api/v1/email/inbound:
+    post:
+      description: |-
+        Expects `Authorization: Bearer {API_KEY}` header and raw MIME body
+        with `Content-Type: message/rfc822`.
+
+        # Errors
+
+        Returns `ProblemDetails` on invalid API key, parse error, or database failure.
+      operationId: receive_inbound_email
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboundWebhookResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Receive an inbound email via webhook.
+      tags:
+      - email-inbound
   /api/v1/organizations:
     get:
       description: |-
@@ -5267,6 +5536,287 @@ paths:
       summary: Get or upsert a data entry by schema ID.
       tags:
       - data-entries
+  /api/v1/projects/{projectId}/tasks/{taskId}/email-threads:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure or not found.
+      operationId: list_email_threads
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailThreadListResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List email threads for a task.
+      tags:
+      - email-threads
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure.
+      operationId: create_email_thread
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmailThreadRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailThreadResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Create an email thread for a task.
+      tags:
+      - email-threads
+  /api/v1/projects/{projectId}/tasks/{taskId}/email-threads/{threadId}:
+    delete:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure or not found.
+      operationId: delete_email_thread
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: threadId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Delete an email thread.
+      tags:
+      - email-threads
+    patch:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure or not found.
+      operationId: update_email_thread
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: threadId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmailThreadRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailThreadResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Update an email thread.
+      tags:
+      - email-threads
+  /api/v1/projects/{projectId}/tasks/{taskId}/email-threads/{threadId}/messages:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure or not found.
+      operationId: list_thread_messages
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: threadId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailMessageListResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: List messages in an email thread.
+      tags:
+      - email-threads
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure, SMTP error, or not found.
+      operationId: send_thread_email
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: threadId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendThreadEmailRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailMessageResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Send an email in a thread.
+      tags:
+      - email-threads
   /api/v1/projects/{projectId}/tasks/{taskId}/status:
     put:
       description: |-
@@ -5652,6 +6202,123 @@ paths:
       summary: Update a todo's status.
       tags:
       - todos
+  /api/v1/projects/{projectId}/unassigned-inbox:
+    get:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure.
+      operationId: list_unassigned_inbox
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnassignedEmailListResponse'
+          description: ''
+      summary: List unassigned emails for a project.
+      tags:
+      - email-inbound
+  /api/v1/projects/{projectId}/unassigned-inbox/{emailId}/assign:
+    post:
+      description: |-
+        # Errors
+
+        Returns `ProblemDetails` on permission failure, not found, or already assigned.
+      operationId: assign_unassigned_email
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: emailId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignEmailRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignEmailResponse'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Assign an unassigned email to a task.
+      tags:
+      - email-inbound
+  /external/v1/projects/{projectId}/task-templates/{templateId}/data:
+    get:
+      description: |-
+        This endpoint will be available for external integrations in Phase 11
+        with API Key authentication. Currently returns 501 Not Implemented.
+
+        # Errors
+
+        Always returns `ProblemDetails` with 501 status.
+      operationId: get_template_data
+      parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '501':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: ''
+      summary: Get template data (external API — not yet implemented).
+      tags:
+      - external-data
   /healthz:
     get:
       operationId: healthz
@@ -5707,3 +6374,9 @@ tags:
   name: todos
 - description: Data entry management endpoints
   name: data-entries
+- description: External data access endpoints
+  name: external-data
+- description: Email thread management endpoints
+  name: email-threads
+- description: Email inbound webhook and unassigned inbox endpoints
+  name: email-inbound

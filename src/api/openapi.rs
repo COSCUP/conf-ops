@@ -6,8 +6,8 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use super::routes::{
-    accounts, auth, contacts, data_entries, data_external, health, member_tags, members,
-    organizations, projects, task_templates, tasks, todos,
+    accounts, auth, contacts, data_entries, data_external, email_inbound, email_threads, health,
+    member_tags, members, organizations, projects, task_templates, tasks, todos,
 };
 
 #[derive(OpenApi)]
@@ -113,6 +113,15 @@ use super::routes::{
         data_entries::delete_entry,
         data_entries::get_aggregated_sheet,
         data_external::get_template_data,
+        email_threads::list_email_threads,
+        email_threads::create_email_thread,
+        email_threads::update_email_thread,
+        email_threads::delete_email_thread,
+        email_threads::list_thread_messages,
+        email_threads::send_thread_email,
+        email_inbound::receive_inbound_email,
+        email_inbound::list_unassigned_inbox,
+        email_inbound::assign_unassigned_email,
     ),
     modifiers(&SecurityAddon),
     tags(
@@ -128,7 +137,9 @@ use super::routes::{
         (name = "tasks", description = "Task management endpoints"),
         (name = "todos", description = "Todo management endpoints"),
         (name = "data-entries", description = "Data entry management endpoints"),
-        (name = "external-data", description = "External data access endpoints")
+        (name = "external-data", description = "External data access endpoints"),
+        (name = "email-threads", description = "Email thread management endpoints"),
+        (name = "email-inbound", description = "Email inbound webhook and unassigned inbox endpoints")
     )
 )]
 pub struct ApiDoc;
